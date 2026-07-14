@@ -437,7 +437,7 @@ export function repairContentPlan(plan: ContentPlan): ContentPlan {
     generationWarnings: plan.generationWarnings?.length ? plan.generationWarnings : ["证据不足时标记待补资料，不编造来源。"]
   };
   const existingText = repaired.slidePlan.map((slide) => `${slide.role} ${slide.titleIntent}`).join("\n");
-  const missing = playbook.requiredSlideRoles.filter((roleSeed) => !existingText.includes(roleSeed.role) && !existingText.includes(roleSeed.titleIntent));
+  const missing = repaired.teacherContext ? [] : playbook.requiredSlideRoles.filter((roleSeed) => !existingText.includes(roleSeed.role) && !existingText.includes(roleSeed.titleIntent));
   if (missing.length) {
     repaired.slidePlan = [
       ...repaired.slidePlan,

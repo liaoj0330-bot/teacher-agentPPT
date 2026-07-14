@@ -1,114 +1,132 @@
 {
-  "schemaVersion": "teacher-agentppt-failure-library/v1",
-  "updatedAt": "2026-07-15T00:00:00+08:00",
-  "cases": [
-    {
-      "id": "FC-001-WRONG-ENTRY",
-      "status": "active_rule",
-      "fingerprint": "旧版和新版教师 PPT 页面并存，交互或状态写入不同路径",
-      "rootCause": "没有唯一主入口",
-      "detection": "核对 URL、页面身份、API 请求和版本写入对象",
-      "resolution": "只保留 /teacher-ai-ppt 为主入口；旧能力通过模块和 API 迁移",
-      "prevention": "入口身份回归"
-    },
-    {
-      "id": "FC-002-ARTIFACT-ONLY-FIX",
-      "status": "active_rule",
-      "fingerprint": "单份 PPT 被修好，但换课题后问题复现",
-      "rootCause": "修输出而没有修生成逻辑",
-      "detection": "追溯问题是否落到 ContentPlan、DeckSpec、LayoutContract、RenderScene 或导出器",
-      "resolution": "修复底层合同并用至少两个课题回归",
-      "prevention": "跨课题回归"
-    },
-    {
-      "id": "FC-003-FIXED-NINE-PAGES",
-      "status": "active_rule",
-      "fingerprint": "不同课程都生成相同页数和相似结构",
-      "rootCause": "固定模板代替策划",
-      "detection": "检查页数是否由状态机和页面 role 产生",
-      "resolution": "TeacherDeckPlan + DeckSpec 动态规划",
-      "prevention": "不同页数和 role 覆盖测试"
-    },
-    {
-      "id": "FC-004-FAKE-INTERACTION",
-      "status": "active_rule",
-      "fingerprint": "按钮和 Toast 成功，但刷新或查询后状态消失",
-      "rootCause": "只改浏览器内存",
-      "detection": "读取服务器版本和旧版本快照",
-      "resolution": "基于 baseVersionId 创建新 CoursewareVersion",
-      "prevention": "旧版本不变 + stale 409 测试"
-    },
-    {
-      "id": "FC-005-PREVIEW-EXPORT-DRIFT",
-      "status": "active_rule",
-      "fingerprint": "浏览器与 PPTX 布局或内容不一致",
-      "rootCause": "两套渲染逻辑",
-      "detection": "比较 RenderScene、layoutId、页数和 PPTX 对象",
-      "resolution": "浏览器与 PPTX 共同消费 RenderScene",
-      "prevention": "场景与 PPTX 结构回归"
-    },
-    {
-      "id": "FC-006-ASSERTION-NOT-RUN",
-      "status": "active_rule",
-      "fingerprint": "测试通过但新断言位于退出语句后或补丁没有应用",
-      "rootCause": "命令失败后继续执行，报告来自旧运行",
-      "detection": "检查补丁退出码、断言源码位置、报告时间戳和断言数",
-      "resolution": "失败即停止；每步报告落盘",
-      "prevention": "测试元数据绑定提交和开始时间"
-    },
-    {
-      "id": "FC-007-ORPHAN-RESPONSE-PROMISE",
-      "status": "active_rule",
-      "fingerprint": "按钮没有点击成功，但脚本等待接口数分钟",
-      "rootCause": "waitForResponse Promise 先创建且未被回收",
-      "detection": "服务日志没有对应请求",
-      "resolution": "按钮先 waitFor，再 Promise.all 响应与点击",
-      "prevention": "动作级超时和实时报告"
-    },
-    {
-      "id": "FC-008-PROVIDER-MISDIAGNOSIS",
-      "status": "active_rule",
-      "fingerprint": "流程卡住就归因火山或品川",
-      "rootCause": "没有确认 generate-image 是否被调用",
-      "detection": "按浏览器、generate-ppt、generate-image、供应商逐层核对",
-      "resolution": "只有真实 HTTP 证据才能归因供应商",
-      "prevention": "供应商请求 ID 和状态记录"
-    },
-    {
-      "id": "FC-009-STALE-PORT",
-      "status": "active_rule",
-      "fingerprint": "3002 EADDRINUSE，但页面请求超时",
-      "rootCause": "遗留 Node 进程监听但不健康",
-      "detection": "检查 PID、路径、启动时间和 HTTP 健康",
-      "resolution": "只停止确认的旧进程并重启",
-      "prevention": "会话交接记录服务状态"
-    },
-    {
-      "id": "FC-010-WARM-WORKSPACE",
-      "status": "active_rule",
-      "fingerprint": "原工作区检查通过，干净安装后类型失败",
-      "rootCause": "旧 node_modules 掩盖 Prisma Client 未生成",
-      "detection": "无 node_modules 冷启动安装和构建",
-      "resolution": "postinstall 执行 prisma generate",
-      "prevention": "发布前干净目录验证"
-    },
-    {
-      "id": "FC-011-WORKTREE-GIT-POINTER",
-      "status": "active_rule",
-      "fingerprint": "新发布目录 git init 却重连原仓库，数据库出现在暂存区",
-      "rootCause": "Windows worktree 的 .git 文本指针被复制",
-      "detection": "检查 git rev-parse --git-dir 和暂存风险文件",
-      "resolution": "发布目录排除 .git 文件和目录后重新初始化",
-      "prevention": "推送前 Git 目录、密钥和风险文件三重扫描"
-    },
-    {
-      "id": "FC-012-LAYOUT-EQUALS-PRODUCT",
-      "status": "active_rule",
-      "fingerprint": "版面确认后将产品描述为完成",
-      "rootCause": "视觉合同、工程链、真人验收和商业采用没有分层",
-      "detection": "检查汇报是否分别列四层状态",
-      "resolution": "状态保持 partial/verification 直到全流程和人类验收通过",
-      "prevention": "完成四门：实现、执行、证据、人工验收"
-    }
-  ]
+    "schemaVersion":  "teacher-agentppt-failure-library/v1",
+    "updatedAt":  "2026-07-15T04:37:00+08:00",
+    "cases":  [
+                  {
+                      "id":  "FC-001-WRONG-ENTRY",
+                      "status":  "active_rule",
+                      "fingerprint":  "旧版和新版教师 PPT 页面并存，交互或状态写入不同路径",
+                      "rootCause":  "没有唯一主入口",
+                      "detection":  "核对 URL、页面身份、API 请求和版本写入对象",
+                      "resolution":  "只保留 /teacher-ai-ppt 为主入口；旧能力通过模块和 API 迁移",
+                      "prevention":  "入口身份回归"
+                  },
+                  {
+                      "id":  "FC-002-ARTIFACT-ONLY-FIX",
+                      "status":  "active_rule",
+                      "fingerprint":  "单份 PPT 被修好，但换课题后问题复现",
+                      "rootCause":  "修输出而没有修生成逻辑",
+                      "detection":  "追溯问题是否落到 ContentPlan、DeckSpec、LayoutContract、RenderScene 或导出器",
+                      "resolution":  "修复底层合同并用至少两个课题回归",
+                      "prevention":  "跨课题回归"
+                  },
+                  {
+                      "id":  "FC-003-FIXED-NINE-PAGES",
+                      "status":  "active_rule",
+                      "fingerprint":  "不同课程都生成相同页数和相似结构",
+                      "rootCause":  "固定模板代替策划",
+                      "detection":  "检查页数是否由状态机和页面 role 产生",
+                      "resolution":  "TeacherDeckPlan + DeckSpec 动态规划",
+                      "prevention":  "不同页数和 role 覆盖测试"
+                  },
+                  {
+                      "id":  "FC-004-FAKE-INTERACTION",
+                      "status":  "active_rule",
+                      "fingerprint":  "按钮和 Toast 成功，但刷新或查询后状态消失",
+                      "rootCause":  "只改浏览器内存",
+                      "detection":  "读取服务器版本和旧版本快照",
+                      "resolution":  "基于 baseVersionId 创建新 CoursewareVersion",
+                      "prevention":  "旧版本不变 + stale 409 测试"
+                  },
+                  {
+                      "id":  "FC-005-PREVIEW-EXPORT-DRIFT",
+                      "status":  "active_rule",
+                      "fingerprint":  "浏览器与 PPTX 布局或内容不一致",
+                      "rootCause":  "两套渲染逻辑",
+                      "detection":  "比较 RenderScene、layoutId、页数和 PPTX 对象",
+                      "resolution":  "浏览器与 PPTX 共同消费 RenderScene",
+                      "prevention":  "场景与 PPTX 结构回归"
+                  },
+                  {
+                      "id":  "FC-006-ASSERTION-NOT-RUN",
+                      "status":  "active_rule",
+                      "fingerprint":  "测试通过但新断言位于退出语句后或补丁没有应用",
+                      "rootCause":  "命令失败后继续执行，报告来自旧运行",
+                      "detection":  "检查补丁退出码、断言源码位置、报告时间戳和断言数",
+                      "resolution":  "失败即停止；每步报告落盘",
+                      "prevention":  "测试元数据绑定提交和开始时间"
+                  },
+                  {
+                      "id":  "FC-007-ORPHAN-RESPONSE-PROMISE",
+                      "status":  "active_rule",
+                      "fingerprint":  "按钮没有点击成功，但脚本等待接口数分钟",
+                      "rootCause":  "waitForResponse Promise 先创建且未被回收",
+                      "detection":  "服务日志没有对应请求",
+                      "resolution":  "按钮先 waitFor，再 Promise.all 响应与点击",
+                      "prevention":  "动作级超时和实时报告"
+                  },
+                  {
+                      "id":  "FC-008-PROVIDER-MISDIAGNOSIS",
+                      "status":  "active_rule",
+                      "fingerprint":  "流程卡住就归因火山或品川",
+                      "rootCause":  "没有确认 generate-image 是否被调用",
+                      "detection":  "按浏览器、generate-ppt、generate-image、供应商逐层核对",
+                      "resolution":  "只有真实 HTTP 证据才能归因供应商",
+                      "prevention":  "供应商请求 ID 和状态记录"
+                  },
+                  {
+                      "id":  "FC-009-STALE-PORT",
+                      "status":  "active_rule",
+                      "fingerprint":  "3002 EADDRINUSE，但页面请求超时",
+                      "rootCause":  "遗留 Node 进程监听但不健康",
+                      "detection":  "检查 PID、路径、启动时间和 HTTP 健康",
+                      "resolution":  "只停止确认的旧进程并重启",
+                      "prevention":  "会话交接记录服务状态"
+                  },
+                  {
+                      "id":  "FC-010-WARM-WORKSPACE",
+                      "status":  "active_rule",
+                      "fingerprint":  "原工作区检查通过，干净安装后类型失败",
+                      "rootCause":  "旧 node_modules 掩盖 Prisma Client 未生成",
+                      "detection":  "无 node_modules 冷启动安装和构建",
+                      "resolution":  "postinstall 执行 prisma generate",
+                      "prevention":  "发布前干净目录验证"
+                  },
+                  {
+                      "id":  "FC-011-WORKTREE-GIT-POINTER",
+                      "status":  "active_rule",
+                      "fingerprint":  "新发布目录 git init 却重连原仓库，数据库出现在暂存区",
+                      "rootCause":  "Windows worktree 的 .git 文本指针被复制",
+                      "detection":  "检查 git rev-parse --git-dir 和暂存风险文件",
+                      "resolution":  "发布目录排除 .git 文件和目录后重新初始化",
+                      "prevention":  "推送前 Git 目录、密钥和风险文件三重扫描"
+                  },
+                  {
+                      "id":  "FC-012-LAYOUT-EQUALS-PRODUCT",
+                      "status":  "active_rule",
+                      "fingerprint":  "版面确认后将产品描述为完成",
+                      "rootCause":  "视觉合同、工程链、真人验收和商业采用没有分层",
+                      "detection":  "检查汇报是否分别列四层状态",
+                      "resolution":  "状态保持 partial/verification 直到全流程和人类验收通过",
+                      "prevention":  "完成四门：实现、执行、证据、人工验收"
+                  },
+                  {
+                      "id":  "FC-013-GENERIC-PLANNER-CONTAMINATION",
+                      "status":  "active_rule",
+                      "fingerprint":  "教师专用动态大纲生成后又被通用 courseware requiredRoles 补页，出现重复角色和策划话术",
+                      "rootCause":  "通用 ContentPlan 校验器没有识别 teacherContext 的专用角色合同",
+                      "detection":  "对比 TeacherDeckPlan、ContentPlan.slidePlan、SlidePagePlan、DesignSlide 四层页数与角色",
+                      "resolution":  "teacherContext 使用教师专用角色合同，禁止通用 requiredRoles 自动追加",
+                      "prevention":  "25/45/60/90 分钟页数矩阵与规划/生成页数一致断言"
+                  },
+                  {
+                      "id":  "FC-014-FUZZY-SLIDE-ID-REUSE",
+                      "status":  "active_rule",
+                      "fingerprint":  "多个页面出现相同 React key 或多个 DeckSpec 页面指向同一 slideId",
+                      "rootCause":  "页面匹配使用标题子串，主题词相同的页面误命中第一张 slide",
+                      "detection":  "检查 DeckSpec.slideSpecs[].slideId 和 DesignSlide[].id 唯一性",
+                      "resolution":  "只允许精确标题或精确角色匹配，否则按稳定索引匹配",
+                      "prevention":  "控制台重复 key 为零 + 冻结版本 ID 唯一性回归"
+                  }
+              ]
 }

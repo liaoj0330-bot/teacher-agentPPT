@@ -101,7 +101,7 @@ export function validateContentPlan(plan: ContentPlan): ContentPlanValidationRes
   }
 
   const slidePlanText = cleanText((plan.slidePlan || []).map((slide) => `${slide.role} ${slide.titleIntent} ${slide.pagePurpose} ${slide.mustProve}`).join("\n"));
-  const missingRoles = playbook.requiredSlideRoles.filter((role) => !roleCovered(slidePlanText, role.role, role.titleIntent));
+  const missingRoles = plan.teacherContext ? [] : playbook.requiredSlideRoles.filter((role) => !roleCovered(slidePlanText, role.role, role.titleIntent));
   if (missingRoles.length) {
     push(issues, "missing-required-roles", "slidePlan", `缺少必备页面角色：${missingRoles.map((item) => item.role).join("、")}。`);
   }

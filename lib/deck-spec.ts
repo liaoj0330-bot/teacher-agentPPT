@@ -43,7 +43,7 @@ function densityForPage(page: PlanningAuditPage, index: number): SlideSpec["dens
 function slideForPage(project: CanvasProject, page: PlanningAuditPage, index: number) {
   return project.slides.find((slide) => {
     const text = cleanText(`${slide.title} ${slide.pageIntent}`);
-    return text.includes(page.title) || page.title.includes(slide.title) || slide.pageIntent === page.role;
+    return slide.title === page.title || slide.pageIntent === page.role;
   }) || project.slides[index];
 }
 
@@ -287,9 +287,17 @@ export function attachDeckSpec(projectInput: CanvasProject, state?: ReviewCenter
   const reviewCenter = state || project.reviewCenter;
   if (!reviewCenter) return project;
   const deckSpec = buildDeckSpec(project, reviewCenter);
-  const slides = project.slides.map((slide, index): DesignSlide => {
-    const spec = deckSpec.slideSpecs.find((item) => item.slideId === slide.id) || deckSpec.slideSpecs[index];
-    if (!spec) return slide;
+  const slides = deckSpec.slideSpecs.map((spec, index): DesignSlide => {
+    const slide = project.slides.find((candidate) => candidate.id === spec.slideId) || project.slides[index] || {
+      id: spec.slideId || spec.id,
+      title: spec.finalTitle || spec.title || `第 ${index + 1} 页`,
+      subtitle: spec.leadSentence || spec.claim || "",
+      tone: "教学设计",
+      layout: (spec.layoutIntent || "split") as SlideLayout,
+      bullets: [],
+      visualPrompt: spec.visualIntent,
+      speakerNote: `页面角色：${spec.role}。要证明：${spec.mustProve}。`,
+    };
     const draft = project.contentDrafts?.find((item) => item.contentDraftId === spec.contentDraftId || item.pagePlanId === spec.pagePlanId || item.slideIndex === index + 1);
     // Teacher-math drafts carry semantic blocks beyond the compact DeckSpec
     // preview (M07 needs the full 题目/步骤/结论 chain). Prefer that draft
