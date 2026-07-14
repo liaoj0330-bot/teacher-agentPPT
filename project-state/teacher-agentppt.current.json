@@ -1,7 +1,7 @@
 {
     "schemaVersion":  "teacher-agentppt-project-state/v1",
     "projectKey":  "teacher-agentppt",
-    "updatedAt":  "2026-07-15T04:37:00+08:00",
+    "updatedAt":  "2026-07-15T04:45:00+08:00",
     "status":  "browser_flow_verified",
     "commercialReady":  false,
     "goal":  "建立面向市场的教师 AI 课件产品：真实备课交互、教材绑定、动态策划、逐页变化、不可变版本链、真实视觉、可编辑 PPTX 与人工验收。",
@@ -72,5 +72,25 @@
                             "docs/CONTINUITY_AND_RESUME_PROTOCOL.md",
                             "docs/FAILURE_PLAYBOOK.md"
                         ],
-    "lastKnownServiceState":  "3002 开发服务当前监听，PID 17880；/teacher-ai-ppt HTTP 200。恢复时仍需重新核对 PID 与健康状态。"
+    "lastKnownServiceState":  "3002 开发服务当前监听，PID 17880；/teacher-ai-ppt HTTP 200。恢复时仍需重新核对 PID 与健康状态。",
+    "resumeCheckpoint":  {
+                             "recordedAt":  "2026-07-15T04:45:00+08:00",
+                             "conclusion":  "教师课件主体链已经跑通。即使没有图片模型，也能依据学段、年级、学科、教材章节、教学要求和课时，完成动态大纲、逐页内容、版本保存、审核和可编辑 PPTX 导出。",
+                             "imageModelMeaning":  "图片模型配置成功只是供应商能力可用；还必须把真实图片绑定指定页面与冻结版本，并同时进入 BrowserSceneRenderer 和 PPTX RenderScene。",
+                             "acceptanceExample":  "使用小学二年级数学“加减乘除”及真实教材章节做跨课题验收，确认表达难度、课堂活动、练习和图片均随学段与章节变化。",
+                             "nextSessionFirstAction":  "不要重做规划或单个 PPT。先读取本文件，然后分别验收火山与品川 generate-image 请求，再完成图片版本绑定和浏览器/PPTX 同源。",
+                             "doNotRedo":  [
+                                               "不要重建 /teacher-ai-ppt 主入口",
+                                               "不要恢复通用 requiredRoles 对教师规划的补页",
+                                               "不要把 45 分钟的 9 页误判为固定 9 页",
+                                               "不要把图片接口返回成功误判为图片链完成"
+                                           ],
+                             "verifiedEvidence":  [
+                                                      "真实按钮验收 22/22",
+                                                      "25/45/60/90 分钟分别 7/9/10/12 页",
+                                                      "RenderScene 翻页变化通过",
+                                                      "PPTX 导出 HTTP 200",
+                                                      "版本事实链 10/10"
+                                                  ]
+                         }
 }
