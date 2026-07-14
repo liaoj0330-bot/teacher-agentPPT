@@ -1,0 +1,37 @@
+import fs from "node:fs";
+import vm from "node:vm";
+import assert from "node:assert/strict";
+import ts from "typescript";
+
+const source = fs.readFileSync(new URL("../lib/teacher-deck-plan-state.ts", import.meta.url), "utf8");
+const output = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+const module = { exports: {} };
+vm.runInNewContext(output, { module, exports: module.exports, Set, Date, Error }, { filename: "teacher-deck-plan-state.js" });
+const { createTeacherDeckPlan, reduceTeacherDeckPlan, TeacherDeckPlanStateError } = module.exports;
+const page = (id) => ({ id, role: `role-${id}`, titleIntent: `title-${id}`, pagePurpose: `purpose-${id}`, mustProve: `proof-${id}`, priority: "required" });
+
+let plan = createTeacherDeckPlan("domain-plan", [page("a"), page("b"), page("c"), page("d"), page("e"), page("f")]);
+assert.equal(plan.status, "reviewing");
+plan = reduceTeacherDeckPlan(plan, { type: "remove_section", pageId: "f" });
+plan = reduceTeacherDeckPlan(plan, { type: "add_section", at: 2, page: page("x") });
+plan = reduceTeacherDeckPlan(plan, { type: "move_section", pageId: "x", to: 0 });
+plan = reduceTeacherDeckPlan(plan, { type: "rewrite_section", pageId: "x", patch: { titleIntent: "rewritten" } });
+assert.equal(plan.pages.map((item) => item.id).join(","), "x,a,b,c,d,e");
+assert.equal(plan.pageCount, 6);
+assert.equal(plan.pages[0].titleIntent, "rewritten");
+plan = reduceTeacherDeckPlan(plan, { type: "confirm" });
+plan = reduceTeacherDeckPlan(plan, { type: "start_compile" });
+for (const item of plan.pages) plan = reduceTeacherDeckPlan(plan, { type: "page_progress", pageId: item.id, completed: true });
+plan = reduceTeacherDeckPlan(plan, { type: "page_progress", pageId: plan.pages[0].id, completed: true });
+assert.equal(plan.progress.completedPages, 6, "duplicate completion must be idempotent");
+plan = reduceTeacherDeckPlan(plan, { type: "fail", code: "RENDER_FAILED", message: "renderer unavailable" });
+assert.equal(plan.failure.resumeStatus, "compiling");
+plan = reduceTeacherDeckPlan(plan, { type: "retry" });
+assert.equal(plan.status, "compiling");
+plan = reduceTeacherDeckPlan(plan, { type: "fail", code: "INTERRUPTED", message: "worker restarted" });
+plan = reduceTeacherDeckPlan(plan, { type: "resume" });
+plan = reduceTeacherDeckPlan(plan, { type: "complete" });
+assert.equal(plan.status, "ready");
+assert.equal(plan.progress.completedPages, 6);
+assert.throws(() => reduceTeacherDeckPlan(plan, { type: "remove_section", pageId: "a" }), (error) => error instanceof TeacherDeckPlanStateError && error.code === "PLAN_LOCKED");
+console.log(JSON.stringify({ pass: true, finalStatus: plan.status, pageCount: plan.pageCount, transitions: plan.transitions.map((item) => `${item.from}->${item.to}`) }, null, 2));

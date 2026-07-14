@@ -1,0 +1,4 @@
+universal-ppt-agent evidence-regression source-document editable-pptx
+This is a generic uploaded text fixture for the P1-F regression suite.
+It contains stable keywords that the parser should keep.
+The file is intentionally not tied to any specific product scenario.

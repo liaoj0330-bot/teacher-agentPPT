@@ -1,0 +1,207 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String          @id @default(cuid())
+  email        String          @unique
+  name         String?
+  passwordHash String
+  inviteCode   String          @unique
+  invitedById  String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  sessions     AuthSession[]
+  credit       CreditAccount?
+  creditLedger CreditLedger[]
+  pptSessions         PptSession[]
+  coursewareProjects  CoursewareProject[]
+}
+
+model AuthSession {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CreditAccount {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  balance   Int      @default(500)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CreditLedger {
+  id        String   @id @default(cuid())
+  userId    String
+  amount    Int
+  reason    String
+  refType   String?
+  refId     String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PptSession {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  prompt      String
+  stage       String   @default("idle")
+  provider    String?
+  projectJson String
+  assetsJson  String   @default("[]")
+  searchJson  String   @default("[]")
+  visualsJson String   @default("{}")
+  messagesJson String  @default("[]")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, updatedAt])
+}
+
+// ── Teacher Courseware Project domain ─────────────────────────────────────────
+// These models form the authoritative server-side fact source for teacher
+// courseware PPT. PptSession remains for backward compatibility with the general
+// PPT path; the teacher path uses CoursewareProject + Version + Artifact.
+
+model CoursewareProject {
+  id              String              @id @default(cuid())
+  userId          String
+  title           String
+  subject         String
+  schoolStage     String
+  grade           String
+  currentVersionId String?
+  lifecycleStatus String              @default("draft")
+  // draft | generating | generated | review_required | ready_for_teacher | failed
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requests        CoursewareRequest[]
+  versions        CoursewareVersion[]
+  artifacts       CoursewareArtifact[]
+  chatMessages    CoursewareChatMessage[]
+
+  @@index([userId, updatedAt])
+}
+
+model CoursewareRequest {
+  id                  String             @id @default(cuid())
+  projectId           String
+  requestType         String
+  // initial_generate | regenerate | edit_commit
+  teacherTaskSnapshot String
+  // JSON snapshot of TeacherCoursewareTask at request time
+  status              String             @default("pending")
+  // pending | running | completed | failed
+  errorFacts          String?
+  // JSON with error/failure details if status=failed
+  createdAt           DateTime           @default(now())
+  completedAt         DateTime?
+  project             CoursewareProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  versions            CoursewareVersion[]
+
+  @@index([projectId, createdAt])
+}
+
+model CoursewareVersion {
+  id                    String              @id @default(cuid())
+  projectId             String
+  requestId             String
+  versionNumber         Int
+  // monotonically increasing within a project
+  parentVersionId       String?
+  // the baseVersionId this version was committed from (null for initial_generate)
+  operation             String             @default("initial_generate")
+  // initial_generate | manual_edit | attach_material | ai_refine_page |
+  // ai_refine_deck | classroom_interaction | generate_visuals |
+  // apply_page_review_fixes | apply_review_fixes | teacher_submit_for_review
+  summary               String             @default("")
+  // short human-readable description of what this version changed
+  idempotencyKey        String?
+  // client-supplied dedupe key; unique per project when present
+  teacherTaskSnapshot   String
+  // JSON snapshot of TeacherCoursewareTask
+  contentPlanSnapshot   String             @default("{}")
+  slidePagePlanSnapshot String             @default("[]")
+  layoutPlanSnapshot    String             @default("[]")
+  evidenceSnapshot      String             @default("[]")
+  sourceDocumentsSnapshot String           @default("[]")
+  // JSON snapshot of bound source documents / uploaded file metadata
+  deckSpecSnapshot      String             @default("{}")
+  deckSpecHash          String             @default("")
+  slideContentSnapshot  String             @default("[]")
+  // JSON snapshot of DesignSlide[] at generation time (server-side render source)
+  engineeringStatus     String             @default("pending")
+  // pending | passed | failed
+  teacherReadiness      String             @default("pending")
+  // pending | review_required | ready_for_teacher | failed
+  lifecycleStatus       String             @default("draft")
+  createdAt             DateTime           @default(now())
+  project               CoursewareProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  request               CoursewareRequest  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  artifacts             CoursewareArtifact[]
+
+  @@unique([projectId, versionNumber])
+  @@unique([projectId, idempotencyKey])
+  @@index([projectId, createdAt])
+}
+
+model CoursewareChatMessage {
+  id                String             @id @default(cuid())
+  projectId         String
+  versionId         String?
+  // the version the message was sent against (context), if any
+  role              String
+  // user | assistant
+  content           String
+  status            String             @default("complete")
+  // complete | failed
+  suggestedActions  String             @default("[]")
+  // JSON: assistant-proposed actions (does NOT auto-mutate courseware)
+  suggestedPatch    String             @default("{}")
+  // JSON: optional structured patch the teacher may explicitly apply
+  appliedVersionId  String?
+  // set once the teacher applies a suggestion → the version it produced
+  createdAt         DateTime           @default(now())
+  project           CoursewareProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
+}
+
+model CoursewareArtifact {
+  id                  String             @id @default(cuid())
+  projectId           String
+  versionId           String
+  artifactType        String
+  // pptx | pdf | preview_manifest | render_manifest
+  status              String             @default("pending")
+  // pending | generating | ready | failed
+  storagePath         String             @default("")
+  manifestJson        String             @default("{}")
+  sourceDeckSpecHash  String             @default("")
+  sourceArtifactId    String?
+  // for pdf: points to the pptx artifact it was derived from
+  errorDetail         String?
+  createdAt           DateTime           @default(now())
+  project             CoursewareProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  version             CoursewareVersion  @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, versionId, artifactType])
+}
+
+// Back-relation on User for CoursewareProject
+// (Prisma requires the relation field on User to be declared explicitly)
+// This extension is additive — existing User rows are unaffected.
