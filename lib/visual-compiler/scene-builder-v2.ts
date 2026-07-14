@@ -47,16 +47,13 @@ function makeElements(spec: SlideSpec, slide: DesignSlide, layout: LayoutContrac
   const textSlots = layout.slots.filter((slot) => slot.bounds && !occupied.has(slot.slotId) && ["body", "interaction", "formula", "meta"].includes(slot.kind));
   const blocks = contentBlocks(spec, slide);
   if (!subtitleSlot && slide.subtitle && blocks[0]?.body !== slide.subtitle) blocks.unshift({ title: "", body: slide.subtitle });
-  textSlots.forEach((slot, index) => {
-    const block = blocks[index];
-    if (block) elements.push(textElement(slide.id, slot, textFor(block), index));
-  });
-  if (blocks.length > textSlots.length && textSlots.length) {
-    const lastSlot = textSlots[textSlots.length - 1];
-    const last = elements.find((element) => element.slotId === lastSlot.slotId && element.kind === "text") as Extract<RenderElement, { kind: "text" }> | undefined;
-    if (last) last.text = [...blocks.slice(textSlots.length - 1).map(textFor)].join("\n");
-  }
-  return elements;
+  const activeTextSlots = textSlots.slice(0, Math.min(textSlots.length, blocks.length));
+  activeTextSlots.forEach((slot, index) => {
+    const start = Math.floor(index * blocks.length / activeTextSlots.length);
+    const end = Math.floor((index + 1) * blocks.length / activeTextSlots.length);
+    const grouped = blocks.slice(start, Math.max(start + 1, end));
+    if (grouped.length) elements.push(textElement(slide.id, slot, grouped.map(textFor).join("\n"), index));
+  });  return elements;
 }
 
 export function buildRenderScenesV2(input: { deckSpec: DeckSpec; slides: DesignSlide[]; layouts: LayoutContract[] }): RenderScene[] {

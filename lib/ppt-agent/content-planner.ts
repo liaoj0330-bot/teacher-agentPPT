@@ -208,17 +208,30 @@ function teacherGeneralSlidePlan(topic: string, subject: string): ContentPlan["s
     ["反馈纠错", "反馈、纠错与再练习", "根据典型错误提供反馈和二次练习。", "错误表现、原因、纠正方法和复查标准清楚。", "comparison", "对照标准修正答案并说明改动原因。", "能识别错误并完成修正。"],
     ["总结作业", "总结与作业", "回扣目标、整理知识结构并安排课后任务。", "总结覆盖核心知识、方法和应用，作业可执行。", "closing", "完成一分钟总结和自评。", "能对照学习目标完成自评。"],
   ] as const;
-  return seeds.map((seed, index) => ({
+  const subjectRoles = subject === "数学" && /加减|乘除|口算|竖式/.test(topic)
+    ? ["课程封面", "学习目标", "生活情境", "算理建构", "例题示范", "操作探究", "计算练习", "错因诊断", "总结作业"]
+    : /语文/.test(subject)
+      ? ["课程封面", "学习目标", "初读感知", "词句品读", "重点段落", "朗读表达", "迁移仿写", "反馈修改", "总结作业"]
+      : /英语|English/i.test(subject)
+        ? ["Course cover", "Learning goals", "Listening warm-up", "Key expressions", "Model dialogue", "Pair work", "Speaking practice", "Feedback and retry", "Summary task"]
+        : undefined;
+  const subjectTitles = subject === "数学" && /加减|乘除|口算|竖式/.test(topic)
+    ? [topic, "本课学习目标", `用生活问题认识${topic}`, `${topic}的计算方法`, "例题：从算式到算理", "摆一摆、说一说、算一算", `${topic}课堂练习`, "常见错误与订正", "总结与作业"]
+    : /语文/.test(subject)
+      ? [topic, "本课学习目标", `初读《${topic}》`, "词语、段落与表达线索", "重点段落品读", "朗读、批注与分享", "表达迁移与仿写", "反馈修改与再读", "总结与作业"]
+      : /英语|English/i.test(subject)
+        ? [topic, "Learning goals", "Listen and greet", "Key expressions", "Model dialogue", "Meet a new classmate", "Speaking practice", "Feedback and retry", "I can do it"]
+        : undefined;  return seeds.map((seed, index) => ({
     id: `teacher-general-${String(index + 1).padStart(2, "0")}`,
-    role: seed[0],
-    titleIntent: seed[1],
+    role: subjectRoles?.[index] || seed[0],
+    titleIntent: subjectTitles?.[index] || seed[1],
     pagePurpose: seed[2],
     mustProve: seed[3],
     suggestedEvidence: [topic, `${subject}教材`, "学生课堂产出"],
     avoid: ["商务汇报语义", "内部规划字段上屏", "泛化套话"],
     priority: "required" as const,
     layoutHint: seed[4],
-    audienceQuestion: `学生学完「${seed[1]}」后应该能做出什么可观察的表现？`,
+    audienceQuestion: `学生学完「${subjectTitles?.[index] || seed[1]}」后应该能做出什么可观察的表现？`,
     studentAction: seed[5],
     masteryCheck: seed[6],
     childOutputRequired: index > 0,
@@ -326,7 +339,8 @@ function buildPlan(input: ContentPlannerInput, playbookType: ContentPlanPPTType)
   const audience = inferAudience(input.prompt, playbook, input.typeDetection?.audience);
   const decisionGoal = inferDecisionGoal(input.prompt, playbook, input.typeDetection?.goal);
   const evidenceNeeds = evidenceNeedsFor(playbook, input.research, input.uploadedAssets);
-  if (teacherContext && teacherContext.subject === "数学" && teacherContext.visualMode === "teaching_grid") {
+  const isFunctionMathTopic = /函数|单调|解析式|坐标图|斜率|截距/.test(teacherContext?.topic || "");
+  if (teacherContext && teacherContext.subject === "数学" && isFunctionMathTopic) {
     const topic = teacherContext.topic;
     return {
       planId: `content-plan-teacher-math-${Date.now()}`,

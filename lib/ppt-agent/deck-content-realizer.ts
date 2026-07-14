@@ -601,7 +601,48 @@ function teacherGeneralDynamicDrafts(input: DeckContentRealizerInput): SlideCont
       ] }, { type: "callout", title: "作业", body: `基础：完成教材巩固任务；拓展：选择一个新情境，解释${topic}如何在其中体现。` }],
     },
   ];
-  if (/函数的单调性|一次函数/.test(topic)) {
+  if (subject === "数学" && /加减|乘除|口算|竖式/.test(topic)) {
+    pages[2].title = `用生活问题认识${topic}`;
+    pages[2].blocks = [["情境", "文具盒里有36支铅笔，又放入27支；送给同学28支。分别需要用加法和减法解决。"], ["学生操作", "先用小棒或计数器表示十位和个位，再写出算式。"], ["核心问题", "个位不够减或相加满十时，十位应该怎样变化？"]];
+    pages[3].title = `${topic}的计算方法`;
+    pages[3].blocks = [["数位对齐", "列竖式时个位和个位对齐，十位和十位对齐。"], ["进位加法", "个位相加满十，向十位进1。"], ["退位减法", "个位不够减，从十位退1当作10个一。"], ["检查", "用估算或相反运算检查结果是否合理。"]];
+    pages[4].title = "例题：36+27和52-28";
+    pages[4].blocks = [["加法", "36+27：个位6+7=13，写3向十位进1；十位3+2+1=6，结果63。"], ["减法", "52-28：个位2不够减8，从十位退1，12-8=4；十位4-2=2，结果24。"], ["检验", "63-27=36；24+28=52。"]];
+    pages[5].title = "摆小棒、说算理、写竖式";
+    pages[5].blocks = [["操作", "两人一组用小棒表示47+35，交换一捆十根，说明为什么要进位。"], ["表达", "按“先算个位—再算十位—写出结果”的顺序说算理。"], ["产出", "每组完成一张小棒图、一列竖式和一句算理说明。"]];
+    pages[6].title = `${topic}课堂练习`;
+    pages[6].blocks = [["基础", "列竖式计算：28+34，71-46。"], ["判断", "找出错误：43+29=612，并说明数位为什么不能错位。"], ["应用", "二年级一班有38人，二班有35人，两个班一共有多少人？"], ["答案", "28+34=62；71-46=25；38+35=73。"]];
+    pages[7].blocks = [["典型错误", "数位没有对齐、忘记进位、退位后十位没有减1。"], ["纠正步骤", "先圈出个位和十位，再逐位计算，最后用相反运算检查。"], ["再练习", "计算46+37和80-54，并向同伴解释进位或退位发生在哪里。"]];
+    pages[8].blocks = [["方法总结", "数位对齐，从个位算起；满十进1，不够减就退1当10。"], ["自我检查", "我会列竖式、说算理、检查答案。"], ["作业", "完成教材对应练习，并编一道需要进位或退位的生活问题。"]];
+  }
+  if (/语文/.test(subject)) {
+    pages[2].title = `初读《${topic}》`;
+    pages[2].blocks = [["朗读任务", "自由朗读课文，读准字音，标出不理解的词语。"], ["整体感知", `用一句话说说《${topic}》主要写了什么。`], ["学习问题", "作者按怎样的顺序展开描写？哪些词句最有画面感？"]];
+    pages[3].title = "词语、段落与表达线索";
+    pages[3].blocks = [["重点词语", "结合上下文理解“五彩缤纷”等词语，并用近义词或画面解释。"], ["段落结构", "给每个自然段提取关键词，梳理课文从整体到具体的表达顺序。"], ["表达效果", "寻找比喻、拟人等表达，说明它让景物产生了怎样的画面。"]];
+    pages[4].title = "重点段落品读";
+    pages[4].blocks = [["读", "有感情地朗读重点段落，圈出表示颜色、动作和气味的词语。"], ["想", "把文字转换成脑海中的画面，说出你看见了什么。"], ["析", "选择一处比喻或拟人，说明本体、表达特点和情感作用。"], ["写", "仿照课文句式写一句秋天的景物。"]];
+    pages[5].title = "朗读、批注与小组分享";
+    pages[5].blocks = [["个人批注", "在最喜欢的句子旁写下画面、感受和理由。"], ["小组交流", "轮流朗读并比较不同语气带来的表达效果。"], ["学习产出", "每组推荐一句重点句，完成“朗读—解释—仿写”展示。"]];
+    pages[6].title = `《${topic}》课堂练习`;
+    pages[6].blocks = [["词语", "联系上下文解释重点词语，并选择一个词造句。"], ["结构", "用关键词补全自然段之间的关系。"], ["表达", "判断一个句子使用了什么修辞，并说明表达效果。"], ["迁移", "仿照课文写两句自己观察到的秋天。"]];
+    pages[7].blocks = [["典型问题", "朗读停顿不当、只说“很美”却没有引用词句、仿写缺少具体景物。"], ["纠正方法", "回到关键词和重点句，用“词句—画面—感受”三步说明。"], ["再练习", "重新朗读并修改仿写，使句子包含颜色、动作或气味。"]];
+    pages[8].blocks = [["内容总结", `《${topic}》通过具体景物展现秋天的特点。`], ["方法总结", "抓关键词、想象画面、体会修辞、通过朗读表达感受。"], ["作业", "朗读课文给家人听，并完成一段80字左右的秋景仿写。"]];
+  }
+  if (/英语|English/i.test(subject)) {
+    pages[2].title = "Listen and greet";
+    pages[2].blocks = [["情境", "Two students meet at the school gate in the morning."], ["听说任务", "Listen and choose: Hello / Good morning / Goodbye."], ["课堂问题", "How do we greet someone and introduce ourselves politely?"]];
+    pages[3].title = "Key expressions";
+    pages[3].blocks = [["Greeting", "Hello! / Hi! / Good morning!"], ["Introduction", "My name is Li Hua. / I'm Li Hua."], ["Ask a name", "What's your name?"], ["Response", "Nice to meet you. — Nice to meet you, too."]];
+    pages[4].title = "Model dialogue";
+    pages[4].blocks = [["A", "Good morning! I'm Amy. What's your name?"], ["B", "Good morning! My name is Jack."], ["A", "Nice to meet you, Jack."], ["B", "Nice to meet you, too."]];
+    pages[5].title = "Pair work: meet a new classmate";
+    pages[5].blocks = [["Step 1", "Choose a greeting for morning or afternoon."], ["Step 2", "Introduce yourself and ask your partner's name."], ["Step 3", "Change partners and complete the dialogue again."], ["Output", "Each pair performs a four-line dialogue without reading."]];
+    pages[6].title = "Speaking practice";
+    pages[6].blocks = [["Complete", "A: Good morning! ____ Amy. B: Hello, Amy! ____ name is Tom."], ["Choose", "At 8:00 a.m., say: Good morning / Good evening."], ["Create", "Use Hello, My name is and Nice to meet you to write a new dialogue."], ["Answer", "I'm; My; Good morning."]];
+    pages[7].blocks = [["Common error", "Saying Good evening in the morning, or forgetting is in My name is..."], ["Pronunciation", "Practise the stress in GOOD MORNING and NICE TO MEET YOU."], ["Retry", "Perform the dialogue again with clear voice, eye contact and correct expressions."]];
+    pages[8].blocks = [["I can", "I can greet people, introduce myself and ask someone's name."], ["Checklist", "Correct words, complete sentences, clear voice and natural response."], ["Homework", "Record a 20-second self-introduction and greet one family member in English."]];
+  }  if (/函数的单调性|一次函数/.test(topic)) {
     pages[3].blocks = [
       ["定义", "在给定区间内，若任意 x1 < x2 都有 f(x1) < f(x2)，则称函数在该区间上单调递增；反之为单调递减。"],
       ["判断方法", "取区间内任意两点比较函数值，或结合图象从左向右观察变化趋势。"],
@@ -709,9 +750,9 @@ export function createDeckContentDrafts(input: DeckContentRealizerInput): DeckCo
     return { contentDrafts, deckContentQualityReport: buildReport(contentDrafts, 0) };
   }
   if (input.contentPlan.playbookId === "teacher_general_v1") {
-    // Keep teacher courseware on the topic-driven realizer so every mode
-    // receives concrete, reviewable teaching content rather than scaffold text.
-    const contentDrafts = sanitizeTeacherDrafts(teacherMathDynamicDrafts(input));
+    // General subjects must not inherit mathematics/function vocabulary.
+    // The subject-neutral realizer lets subject/topic inputs drive visible classroom tasks.
+    const contentDrafts = sanitizeTeacherDrafts(teacherGeneralDynamicDrafts(input));
     return { contentDrafts, deckContentQualityReport: buildReport(contentDrafts, 0) };
   }
   let autoFixedSlides = 0;

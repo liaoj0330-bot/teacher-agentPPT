@@ -182,8 +182,8 @@ export function selectLayoutForSlidePagePlan(input: LayoutSelectorInput): Layout
     const mode = input.contentPlan.teacherContext?.generationMode;
     const lockedByMode = {
       chapter_prep: [
-        "tm01_teacher_math_cover", "tm05_table_formula_graph", "tm02_learning_objectives", "tm06_parameter_comparison",
-        "tm05_table_formula_graph", "tm04_concept_definition", "tm07_worked_example", "tm08_interaction_practice", "tm09_summary_assignment",
+        "tm01_teacher_math_cover", "tm03_prior_knowledge_context", "tm02_learning_objectives", "tm04_concept_definition",
+        "tm04_concept_definition", "tm04_concept_definition", "tm07_worked_example", "tm08_interaction_practice", "tm09_summary_assignment",
       ],
       lesson_plan: [
         "tm01_teacher_math_cover", "tm02_learning_objectives", "tm03_prior_knowledge_context", "tm04_concept_definition",
