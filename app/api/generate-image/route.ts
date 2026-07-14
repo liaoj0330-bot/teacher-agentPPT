@@ -1,6 +1,26 @@
 import { NextResponse } from "next/server";
 import { createTopicVisualDataUri } from "@/lib/visual-assets";
 
+const keyCooldowns = new Map<string, number>();
+let activeImageRequests = 0;
+const imageRequestWaiters: Array<() => void> = [];
+
+function parseApiKeys(...values: Array<string | undefined>) {
+  return [...new Set(values.flatMap((value) => (value || "").split(/[;,\r\n]+/)).map((value) => value.trim()).filter(Boolean))];
+}
+
+async function withImageConcurrency<T>(task: () => Promise<T>) {
+  const limit = Math.min(2, Math.max(1, Math.floor(Number(process.env.SANDUN_IMAGE_CONCURRENCY || "1") || 1)));
+  if (activeImageRequests >= limit) await new Promise<void>((resolve) => imageRequestWaiters.push(resolve));
+  activeImageRequests += 1;
+  try {
+    return await task();
+  } finally {
+    activeImageRequests -= 1;
+    imageRequestWaiters.shift()?.();
+  }
+}
+
 function imagesEndpoint(baseUrl: string, endpoint?: string) {
   const normalized = baseUrl.replace(/\/$/, "");
   if (endpoint) {
@@ -76,7 +96,7 @@ function imageApiConfig() {
   const arkKey = process.env.ARK_API_KEY || process.env.VOLCENGINE_API_KEY;
   if (arkKey) return {
     provider: "volcengine",
-    apiKey: arkKey,
+    apiKeys: parseApiKeys(process.env.ARK_API_KEYS, arkKey),
     baseUrl: process.env.ARK_BASE_URL || "https://ark.cn-beijing.volces.com/api/v3",
     model: process.env.ARK_IMAGE_MODEL || "doubao-seedream-5-0-260128",
     endpoint: "/images/generations",
@@ -85,7 +105,9 @@ function imageApiConfig() {
   const provider = process.env.SANDUN_IMAGE_PROVIDER || "";
   const usePinchuan = provider.toLowerCase() === "pinchuan" || Boolean(process.env.PINCHUAN_API_KEY);
   return {
-    apiKey: usePinchuan ? process.env.PINCHUAN_API_KEY || process.env.OPENAI_API_KEY : process.env.OPENAI_API_KEY,
+    apiKeys: usePinchuan
+      ? parseApiKeys(process.env.PINCHUAN_API_KEYS, process.env.PINCHUAN_API_KEY, process.env.OPENAI_API_KEY)
+      : parseApiKeys(process.env.OPENAI_IMAGE_API_KEYS, process.env.OPENAI_API_KEY),
     baseUrl: usePinchuan
       ? process.env.PINCHUAN_API_BASE_URL || process.env.OPENAI_IMAGE_BASE_URL || process.env.OPENAI_BASE_URL || "https://pinchuanapi.tech"
       : process.env.OPENAI_IMAGE_BASE_URL || process.env.OPENAI_BASE_URL || "https://api.openai.com",
@@ -96,36 +118,41 @@ function imageApiConfig() {
 }
 
 async function generateWithImageApi(prompt: string, size: string) {
-  const { apiKey, baseUrl, model, endpoint, includeApiKeyHeader, provider } = imageApiConfig();
+  const { apiKeys, baseUrl, model, endpoint, includeApiKeyHeader, provider } = imageApiConfig();
 
-  if (!apiKey) {
+  if (!apiKeys.length) {
     throw new Error("image API key is not configured");
   }
 
-  let response = await requestImage({ apiKey, baseUrl, model, endpoint, prompt, size, includeResponseFormat: provider !== "volcengine", includeApiKeyHeader });
-  // Pinchuan has historically exposed both the OpenAI-compatible v1 path and
-  // the legacy root-compatible path. Try the documented v1 path first, then
-  // the compatible path before declaring the provider unavailable.
-  if (response.status === 404 && endpoint === "/v1/images/generations") {
-    response = await requestImage({ apiKey, baseUrl, model, endpoint: "/images/generations", prompt, size, includeResponseFormat: provider !== "volcengine", includeApiKeyHeader });
+  const failures: string[] = [];
+  for (const [index, apiKey] of apiKeys.entries()) {
+    if ((keyCooldowns.get(apiKey) || 0) > Date.now()) continue;
+    try {
+      let response = await requestImage({ apiKey, baseUrl, model, endpoint, prompt, size, includeResponseFormat: provider !== "volcengine", includeApiKeyHeader });
+      if (response.status === 404 && endpoint === "/v1/images/generations") {
+        response = await requestImage({ apiKey, baseUrl, model, endpoint: "/images/generations", prompt, size, includeResponseFormat: provider !== "volcengine", includeApiKeyHeader });
+      }
+      if (!response.ok && [400, 404, 422].includes(response.status)) {
+        response = await requestImage({ apiKey, baseUrl, model, endpoint, prompt, size, includeResponseFormat: false, includeApiKeyHeader });
+      }
+      if (!response.ok) {
+        const detail = await response.text().catch(() => "");
+        if ([401, 403, 429].includes(response.status) || response.status >= 500) keyCooldowns.set(apiKey, Date.now() + 30_000);
+        failures.push(`key#${index + 1} HTTP ${response.status}: ${detail.replace(/\s+/g, " ").slice(0, 120)}`);
+        continue;
+      }
+      const image = extractImageData(await response.json());
+      if (image) {
+        keyCooldowns.delete(apiKey);
+        return image;
+      }
+      failures.push(`key#${index + 1} returned no image`);
+    } catch (error) {
+      keyCooldowns.set(apiKey, Date.now() + 30_000);
+      failures.push(`key#${index + 1} ${error instanceof Error ? error.message : "request failed"}`);
+    }
   }
-  if (!response.ok && [400, 404, 422].includes(response.status)) {
-    response = await requestImage({ apiKey, baseUrl, model, endpoint, prompt, size, includeResponseFormat: false, includeApiKeyHeader });
-  }
-
-  if (!response.ok) {
-    const detail = await response.text().catch(() => "");
-    throw new Error(`image request failed ${response.status}: ${detail.slice(0, 180)}`);
-  }
-
-  const payload = await response.json();
-  const image = extractImageData(payload);
-
-  if (!image) {
-    throw new Error("empty image response");
-  }
-
-  return image;
+  throw new Error(`all image keys failed: ${failures.join("; ").slice(0, 360)}`);
 }
 
 export async function POST(request: Request) {
@@ -148,7 +175,7 @@ export async function POST(request: Request) {
   const size = typeof body?.size === "string" && body.size.trim() ? body.size.trim() : process.env.OPENAI_IMAGE_SIZE || "1024x1024";
 
   try {
-    const image = await generateWithImageApi(prompt, size);
+    const image = await withImageConcurrency(() => generateWithImageApi(prompt, size));
     return NextResponse.json({ image, provider: imageApiConfig().provider });
   } catch (error) {
     console.warn("[generate-image] Image API failed, using local visual fallback.", error);

@@ -4,6 +4,10 @@ function configured(value: string | undefined) {
   return Boolean(value && value.trim());
 }
 
+function configuredKeys(...values: Array<string | undefined>) {
+  return [...new Set(values.flatMap((value) => (value || "").split(/[;,\r\n]+/)).map((value) => value.trim()).filter(Boolean))];
+}
+
 function hostLabel(value: string | undefined) {
   if (!value) return "未配置";
   try {
@@ -25,9 +29,14 @@ function imageConfig() {
     };
   }
   const provider = process.env.SANDUN_IMAGE_PROVIDER || "";
-  const usePinchuan = provider.toLowerCase() === "pinchuan" || configured(process.env.PINCHUAN_API_KEY);
+  const usePinchuan = provider.toLowerCase() === "pinchuan" || configured(process.env.PINCHUAN_API_KEYS || process.env.PINCHUAN_API_KEY);
+  const apiKeys = usePinchuan
+    ? configuredKeys(process.env.PINCHUAN_API_KEYS, process.env.PINCHUAN_API_KEY, process.env.OPENAI_API_KEY)
+    : configuredKeys(process.env.OPENAI_IMAGE_API_KEYS, process.env.OPENAI_API_KEY);
   return {
-    configured: usePinchuan ? configured(process.env.PINCHUAN_API_KEY || process.env.OPENAI_API_KEY) : configured(process.env.OPENAI_API_KEY),
+    configured: apiKeys.length > 0,
+    keyPoolSize: apiKeys.length,
+    concurrencyLimit: Math.min(2, Math.max(1, Math.floor(Number(process.env.SANDUN_IMAGE_CONCURRENCY || "1") || 1))),
     provider: usePinchuan ? "pinchuan" : configured(process.env.OPENAI_API_KEY) ? "openai-compatible" : "local-fallback",
     baseUrl: usePinchuan
       ? process.env.PINCHUAN_API_BASE_URL || process.env.OPENAI_IMAGE_BASE_URL || process.env.OPENAI_BASE_URL || "https://pinchuanapi.tech"
@@ -54,6 +63,8 @@ export async function GET() {
     },
     image: {
       configured: image.configured,
+      keyPoolSize: "keyPoolSize" in image ? image.keyPoolSize : 1,
+      concurrencyLimit: "concurrencyLimit" in image ? image.concurrencyLimit : 1,
       provider: image.provider,
       host: hostLabel(image.baseUrl),
       model: image.model,

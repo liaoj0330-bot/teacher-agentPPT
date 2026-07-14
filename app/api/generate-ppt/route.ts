@@ -107,7 +107,7 @@ function parseJsonObject(text: string) {
 function timeoutMs() {
   const parsed = Number(process.env.OPENAI_TIMEOUT_MS);
   const configured = Number.isFinite(parsed) && parsed >= 15000 ? parsed : 45000;
-  return Math.min(configured, 45000);
+  return Math.min(configured, 120000);
 }
 
 function isAbortError(error: unknown) {
