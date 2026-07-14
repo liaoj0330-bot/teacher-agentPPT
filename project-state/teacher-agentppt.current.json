@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "teacher-agentppt-project-state/v1",
+  "projectKey": "teacher-agentppt",
+  "updatedAt": "2026-07-15T00:00:00+08:00",
+  "status": "partial_verification",
+  "commercialReady": false,
+  "goal": "建立面向市场的教师 AI 课件产品：真实备课交互、教材绑定、动态策划、逐页变化、不可变版本链、真实视觉、可编辑 PPTX 与人工验收。",
+  "nonNegotiables": [
+    "唯一主入口为 /teacher-ai-ppt",
+    "不能固定为 9 页",
+    "不能用演示状态冒充真实写入",
+    "不能覆盖历史版本",
+    "不能用截图或占位图冒充可编辑 PPTX 或真实出图",
+    "工程通过不等于商业可交付",
+    "关键结果必须由人类验收"
+  ],
+  "repository": {
+    "url": "https://github.com/liaoj0330-bot/teacher-agentPPT",
+    "branch": "main",
+    "verifiedCommit": "d407e3711e571e0a86b82631b21491c83439de9b"
+  },
+  "entry": {
+    "path": "/teacher-ai-ppt",
+    "developmentUrl": "http://127.0.0.1:3002/teacher-ai-ppt"
+  },
+  "verified": [
+    "独立公开仓库已完成合规清理和密钥扫描",
+    "全新 npm install 与 Prisma Client 自动生成通过",
+    "TypeScript 检查和 Next.js 生产构建通过",
+    "版本事实链真实 HTTP E2E 10/10",
+    "13 类教师 LayoutContract 已建立",
+    "RenderScene、Page Gate、Visual QA 已建立",
+    "版本化 PPTX 使用统一场景并包含逐页独立可编辑对象",
+    "PPTX 模板解析和运行时布局评分 POC 通过"
+  ],
+  "openBlockers": [
+    {
+      "id": "BROWSER-FLOW-001",
+      "summary": "无截图真人按钮全流程尚未最终通过",
+      "evidence": "最近一次运行在 generate 请求发出前等待；验收脚本已补逐步落盘和原子等待，但重跑被中断。"
+    },
+    {
+      "id": "IMAGE-TRUTH-001",
+      "summary": "火山与品川真实出图及失败降级尚未分别验收",
+      "evidence": "此前卡顿发生在 generate-image 之前，不能归因供应商。"
+    },
+    {
+      "id": "IMAGE-SCENE-001",
+      "summary": "图片尚未完整绑定冻结版本并同时进入浏览器和 PPTX 场景",
+      "evidence": "文本、形状、表格、图表已同源；图片链仍有断点。"
+    },
+    {
+      "id": "TEMPLATE-UI-001",
+      "summary": "模板选择、持久化和版本追踪尚未进入主入口",
+      "evidence": "解析与评分 POC 已通过，但主交互未闭环。"
+    }
+  ],
+  "nextAction": {
+    "id": "RESUME-BROWSER-ACCEPTANCE",
+    "summary": "启动干净 3002 服务，运行修正后的 teacher-human-button-acceptance.mjs，并从第一个失败动作直接修复。",
+    "doneWhen": [
+      "每个动作实时落盘",
+      "generate-ppt 请求真实发出",
+      "切页后 sceneId 和可见内容变化",
+      "保存、版本、教材、课堂、对话、审核和导出逐项有响应证据",
+      "没有未处理 Promise 或旧报告复用"
+    ]
+  },
+  "resumeReadOrder": [
+    "README.md",
+    "project-state/teacher-agentppt.current.json",
+    "project-state/teacher-agentppt.failure-cases.json",
+    "docs/CONTINUITY_AND_RESUME_PROTOCOL.md",
+    "docs/FAILURE_PLAYBOOK.md"
+  ],
+  "lastKnownServiceState": "packaging 时已停止本轮启动的 3002 服务；恢复前必须重新检查端口和 HTTP 健康状态。"
+}

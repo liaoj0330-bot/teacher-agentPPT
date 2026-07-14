@@ -57,6 +57,10 @@ node scripts/teacher-069-version-truth-e2e.mjs
 详细信息：
 
 - [Obsidian 可视化汇报总览](docs/obsidian/TEACHER_AGENTPPT_可视化汇报总览_20260715.md)
+- [卡点复盘与续跑协议](docs/obsidian/TEACHER_AGENTPPT_卡点复盘与续跑协议_20260715.md)
+- [连续推进与会话恢复合同](docs/CONTINUITY_AND_RESUME_PROTOCOL.md)
+- [失败防复发手册](docs/FAILURE_PLAYBOOK.md)
+- [自媒体复盘素材库](docs/SELF_MEDIA_REVIEW_BANK.md)
 - [架构说明](docs/ARCHITECTURE.md)
 - [进度与剩余风险](docs/STATUS.md)
 - [安全与数据合规](SECURITY.md)
