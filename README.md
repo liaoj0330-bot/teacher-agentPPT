@@ -56,6 +56,7 @@ node scripts/teacher-069-version-truth-e2e.mjs
 
 详细信息：
 
+- [Obsidian 可视化汇报总览](docs/obsidian/TEACHER_AGENTPPT_可视化汇报总览_20260715.md)
 - [架构说明](docs/ARCHITECTURE.md)
 - [进度与剩余风险](docs/STATUS.md)
 - [安全与数据合规](SECURITY.md)
