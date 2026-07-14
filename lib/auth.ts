@@ -42,10 +42,12 @@ export async function createSession(userId: string) {
     }
   });
   const cookieStore = await cookies();
+  const secureCookie = process.env.AUTH_COOKIE_SECURE === "true" ||
+    (process.env.NODE_ENV === "production" && process.env.AUTH_COOKIE_SECURE !== "false");
   cookieStore.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: secureCookie,
     path: "/",
     expires: expiresAt
   });

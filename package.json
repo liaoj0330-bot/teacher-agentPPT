@@ -36,7 +36,7 @@
         "p1i:generate-samples": "node scripts/p1h-generate-samples.mjs --stage=p1i",
         "p1i:render": "node scripts/p1h-render-pptx.mjs --stage=p1i",
         "p1i:all": "npm run p1i:generate-samples && npm run p1i:content-quality && npm run p1i:render",
-        "db:push": "prisma db push || node scripts/init-db.mjs",
+        "db:push": "node scripts/init-db.mjs",
         "db:generate": "prisma generate",
         "db:init": "node scripts/init-db.mjs",
         "lint": "tsc --noEmit",
