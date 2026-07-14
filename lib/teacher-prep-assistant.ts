@@ -87,9 +87,14 @@ function parseModelResult(text: string): Omit<TeacherPrepAssistantResult, "provi
 }
 
 async function askModel(input: TeacherPrepAssistantInput) {
-  const useArk = Boolean(process.env.ARK_API_KEY || process.env.VOLCENGINE_API_KEY);
-  const usePinchuan = Boolean(process.env.PINCHUAN_API_KEY) && !process.env.OPENAI_API_KEY && !useArk;
-  const apiKey = process.env.ARK_API_KEY || process.env.VOLCENGINE_API_KEY || process.env.OPENAI_API_KEY || process.env.PINCHUAN_API_KEY;
+  const useOpenAICompatible = Boolean(process.env.OPENAI_API_KEY);
+  const useArk = !useOpenAICompatible && Boolean(process.env.ARK_API_KEY || process.env.VOLCENGINE_API_KEY);
+  const usePinchuan = !useOpenAICompatible && !useArk && Boolean(process.env.PINCHUAN_API_KEY);
+  const apiKey = useOpenAICompatible
+    ? process.env.OPENAI_API_KEY
+    : useArk
+      ? process.env.ARK_API_KEY || process.env.VOLCENGINE_API_KEY
+      : process.env.PINCHUAN_API_KEY;
   if (!apiKey) return null;
   const baseUrl = useArk
     ? process.env.ARK_BASE_URL || "https://ark.cn-beijing.volces.com/api/v3"
@@ -99,34 +104,44 @@ async function askModel(input: TeacherPrepAssistantInput) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 30000);
   try {
-    const response = await fetch(modelEndpoint(baseUrl), {
-      method: "POST",
-      signal: controller.signal,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: useArk ? process.env.ARK_TEXT_MODEL || "doubao-1.5-vision-pro-250328" : usePinchuan ? process.env.SANDUN_TEXT_MODEL || process.env.OPENAI_MODEL || "gpt-5.5" : process.env.OPENAI_MODEL || "gpt-5.5",
-        messages: [
-          {
-            role: "system",
-            content: [
-              "你是教师备课助理。根据教师消息回答问题，并提取可确认的备课字段。",
-              "只返回 JSON：{reply,patch,taskKind}。",
-              "patch 只能包含 schoolStage、grade、subject、topic、duration、textbook、chapter、teachingRequirements。",
-              "taskKind 只能是 chapter、materials、polish；不确定时省略。",
-              "不要虚构教师没有提供的信息。回复必须说明识别或建议的具体内容。",
-            ].join("\n"),
-          },
-          { role: "user", content: JSON.stringify(input) },
-        ],
-        max_tokens: 900,
-      }),
+    const requestBody = JSON.stringify({
+      model: useArk ? process.env.ARK_TEXT_MODEL || "doubao-1.5-vision-pro-250328" : usePinchuan ? process.env.SANDUN_TEXT_MODEL || process.env.OPENAI_MODEL || "gpt-5.5" : process.env.OPENAI_MODEL || "gpt-5.5",
+      messages: [
+        {
+          role: "system",
+          content: [
+            "你是教师备课助理。根据教师消息回答问题，并提取可确认的备课字段。",
+            "只返回 JSON：{reply,patch,taskKind}。",
+            "patch 只能包含 schoolStage、grade、subject、topic、duration、textbook、chapter、teachingRequirements。",
+            "taskKind 只能是 chapter、materials、polish；不确定时省略。",
+            "不要虚构教师没有提供的信息。回复必须说明识别或建议的具体内容。",
+          ].join("\n"),
+        },
+        { role: "user", content: JSON.stringify(input) },
+      ],
+      max_tokens: 900,
     });
-    if (!response.ok) return null;
-    const payload = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
-    return parseModelResult(payload.choices?.[0]?.message?.content || "");
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const response = await fetch(modelEndpoint(baseUrl), {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: requestBody,
+      });
+      if (response.ok) {
+        const payload = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
+        return parseModelResult(payload.choices?.[0]?.message?.content || "");
+      }
+      if (attempt === 0 && (response.status === 429 || response.status >= 500)) {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        continue;
+      }
+      return null;
+    }
+    return null;
   } catch {
     return null;
   } finally {
@@ -145,6 +160,15 @@ function capture(message: string, pattern: RegExp) {
 function localAssistant(input: TeacherPrepAssistantInput): Omit<TeacherPrepAssistantResult, "provider"> {
   const message = clean(input.message, 500);
   const patch: Partial<TeacherPrepForm> = {};
+
+  if (/能.{0,4}(对话|聊天)|可以.{0,4}(对话|聊天)|会.{0,4}(对话|聊天)/.test(message)) {
+    const context = [input.form.grade, input.form.subject, input.form.topic].filter(Boolean).join(" ");
+    return {
+      reply: `可以。${context ? `我已经知道你正在准备“${context}”的课件。` : "你可以直接告诉我学段、年级、学科和课题。"}你可以继续补充教材、教学目标，也可以直接问我这节课应该怎么组织。`,
+      patch,
+      taskKind: input.taskKind || undefined,
+    };
+  }
   const subject = firstMatch(message, SUBJECTS);
   const schoolStage = firstMatch(message, STAGES);
   const grade = firstMatch(message, GRADES);
