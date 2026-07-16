@@ -1,7 +1,7 @@
 {
   "schemaVersion": "teacher-agentppt-project-state/v1",
   "projectKey": "teacher-agentppt",
-  "updatedAt": "2026-07-16T14:30:00+08:00",
+  "updatedAt": "2026-07-16T17:42:39+08:00",
   "status": "private_beta_preparation_core_verified_images_paused",
   "productStage": "邀请制内测准备",
   "commercialReady": false,
@@ -23,8 +23,8 @@
   "repository": {
     "url": "https://github.com/liaoj0330-bot/teacher-agentPPT",
     "branch": "main",
-    "baselineCommit": "1cf66c7",
-    "publicationState": "2026-07-16 本地提交完成，按用户要求未推送"
+    "baselineCommit": "c9f1334",
+    "publicationState": "2026-07-16 README、状态卡、路线图与项目事实已纳入 main 发布链"
   },
   "entry": {
     "path": "/teacher-ai-ppt",
