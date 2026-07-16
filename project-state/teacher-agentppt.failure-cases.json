@@ -1,6 +1,6 @@
 {
   "schemaVersion": "teacher-agentppt-failure-library/v1",
-  "updatedAt": "2026-07-16T14:30:00+08:00",
+  "updatedAt": "2026-07-17T06:20:00+08:00",
   "cases": [
     {
       "id": "FC-001-WRONG-ENTRY",
@@ -208,6 +208,60 @@
       "detection": "检查是否有真实教材、学科动作、禁用词、事实正确性、页面差异和教师验收报告",
       "resolution": "建立跨学科真实教材矩阵；每个学科验证独有教学动作，而不只比较标题",
       "prevention": "README、状态卡和产品文案必须分别标记 supported、partially_verified、verified"
+    },
+    {
+      "id": "FC-024-LITERAL-QUESTION-MARK-CONTENT",
+      "status": "active_rule",
+      "fingerprint": "60/90 分钟或扩页后出现 ???? 标题和正文，但 45 分钟 9 页样例正常",
+      "rootCause": "动态扩展页种子在源码中已经被保存为 ASCII 问号，且验收只匹配常见 mojibake 特征",
+      "detection": "扫描源码、API JSON、网页可见文本和 PPTX OOXML 中连续问号；运行 25/45/60/90 分钟矩阵",
+      "resolution": "替换为有效教学事件种子，并让页数来自 LessonEvent 而非问号补页",
+      "prevention": "连续问号、替换字符、锟斤拷和占位文本五层门禁"
+    },
+    {
+      "id": "FC-025-FONT-PORTABILITY-ASSUMED",
+      "status": "active_rule",
+      "fingerprint": "开发机 PowerPoint 正常，就宣称所有客户电脑打开不乱码不跑版",
+      "rootCause": "PPTX 指定 Microsoft YaHei 但没有嵌入字体，也没有目标环境替换与渲染矩阵",
+      "detection": "检查主题字体、嵌入关系和 Windows Office、WPS、macOS、LibreOffice 渲染差异",
+      "resolution": "使用可分发字体策略或安全字体栈，增加字体缺失预检和跨环境截图比对",
+      "prevention": "没有目标环境 render report 时不得标记 portable_verified"
+    },
+    {
+      "id": "FC-026-ARTIFACT-NAME-AS-DURABLE-FILE",
+      "status": "active_rule",
+      "fingerprint": "Artifact 状态为 ready 且 storagePath 有文件名，但服务器重启后无法再次下载原文件",
+      "rootCause": "导出 buffer 只写入 HTTP 响应，数据库没有真实字节路径、对象存储键和内容哈希",
+      "detection": "检查 storagePath 是否存在、字节是否可读、哈希是否与版本一致，并执行重启后再次下载",
+      "resolution": "原子写入持久盘或对象存储后再把 Artifact 标记 ready",
+      "prevention": "ready 记录强制 size/hash/storageExists，重启恢复回归"
+    },
+    {
+      "id": "FC-027-FIXED-NINE-PAGE-ACCEPTANCE",
+      "status": "active_rule",
+      "fingerprint": "最终验收只接受 9 页，导致动态 7/10/12 页无法通过或从未进入测试",
+      "rootCause": "样例页数被硬编码成产品合同，且渲染只依赖 PowerPoint COM",
+      "detection": "检查验收断言是否读取预期计划页数，检查无 COM 环境是否有 LibreOffice/结构降级证据",
+      "resolution": "按 frozen DeckSpec/RenderScene 断言页数，拆分结构、字符、渲染和人工四层结果",
+      "prevention": "25/45/60/90 分钟均进入同一验收脚本"
+    },
+    {
+      "id": "FC-028-SLIDE-DECK-AS-FULL-LESSON",
+      "status": "active_rule",
+      "fingerprint": "8-9 页 PPT 看起来完整，就描述为老师能直接完成 45 分钟课堂",
+      "rootCause": "没有 LessonEvent 时间预算，也没有教师动作、学生产出、预期回答、答案、板书和备用动作统一合同",
+      "detection": "逐事件核对 durationMinutes、teacherAction、studentAction、expectedResponse、evidenceOfLearning、fallbackAction 和 slideIds",
+      "resolution": "生成 StudentDeck + TeacherNotes + AnswerKey + BoardPlan + Homework 交付包，并校验总时长",
+      "prevention": "没有课堂事件闭环时 deliveryClass 不得达到 teacher_review_copy"
+    },
+    {
+      "id": "FC-029-DEV-CHUNK-FAILURE-MISDIAGNOSED",
+      "status": "candidate",
+      "fingerprint": "恢复版本接口成功，但 reload 后 CSS/JS chunk 加载失败，自动化报缺少业务按钮",
+      "rootCause": "验收脚本没有先确认 Next 静态资源健康，也没有在错误页保存网络失败证据",
+      "detection": "记录 requestfailed、页面错误页文本、chunk URL 和 HTTP 状态，再判断业务按钮",
+      "resolution": "生产构建验收；开发态脚本增加静态资源预检、一次受控重载和失败截图",
+      "prevention": "入口健康、资源健康、业务状态三层断言"
     }
   ]
 }

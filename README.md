@@ -206,6 +206,7 @@ npm run source-asset:e2e
 ## 项目资料
 
 - [当前状态与风险](docs/STATUS.md)
+- [真实客户链路、100 场景推演与 12 小时收口方案](docs/PRIVATE_BETA_DELIVERABILITY_AUDIT_20260717.md)
 - [内测准备路线图](docs/PRIVATE_BETA_ROADMAP_20260716.md)
 - [架构说明](docs/ARCHITECTURE.md)
 - [安全与数据合规](SECURITY.md)

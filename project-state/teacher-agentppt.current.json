@@ -1,12 +1,12 @@
 {
   "schemaVersion": "teacher-agentppt-project-state/v1",
   "projectKey": "teacher-agentppt",
-  "updatedAt": "2026-07-16T17:42:39+08:00",
-  "status": "private_beta_preparation_core_verified_images_paused",
-  "productStage": "邀请制内测准备",
+  "updatedAt": "2026-07-17T06:00:00+08:00",
+  "status": "private_beta_blocked_by_p0_deliverability",
+  "productStage": "邀请制内测 P0 收口",
   "commercialReady": false,
   "goal": "建立面向市场的教师 AI 课件产品：真实备课交互、教材绑定、跨学科动态策划、不可变版本链、真实视觉、可编辑 PPTX 与教师验收。",
-  "currentJudgement": "三条教师产品主线和无图片核心链已经达到可用候选水平；数学、语文、英语有差异化证据，其他学科深度、连续修改、图片长任务和云端部署仍需在内测前补齐。",
+  "currentJudgement": "基础产品链存在，但真实客户交付尚未放行：动态扩页含字面量问号，45 分钟课堂编排与教师交付包不完整，字体和跨环境门禁不足，导出产物未耐久存储，云端单实例未部署。先关闭六项 P0，再进入教师邀请。",
   "nonNegotiables": [
     "唯一主入口为 /teacher-ai-ppt",
     "不能固定为 9 页",
@@ -18,13 +18,17 @@
     "关键结果必须由真实教师验收",
     "分钟级图片任务必须可恢复并逐页持久化",
     "远程成功、原生降级和失败必须显式区分",
-    "涉及真实模型的测试必须先设置预算和成功图片上限"
+    "涉及真实模型的测试必须先设置预算和成功图片上限",
+    "任何可见文本、文件名、日志和报告不得包含字面量问号占位或错误解码",
+    "45 分钟交付必须由教学事件和时间预算证明，不能用页数代替课堂完整性",
+    "Artifact ready 必须对应可再次下载的真实字节、哈希和耐久路径",
+    "没有跨环境渲染证据时不得声称跨电脑交付已通过"
   ],
   "repository": {
     "url": "https://github.com/liaoj0330-bot/teacher-agentPPT",
     "branch": "main",
-    "baselineCommit": "c9f1334",
-    "publicationState": "2026-07-16 README、状态卡、路线图与项目事实已纳入 main 发布链"
+    "baselineCommit": "f131a01",
+    "publicationState": "2026-07-17 真实客户链路、100 场景推演与 12 小时收口方案已纳入当前发布变更"
   },
   "entry": {
     "path": "/teacher-ai-ppt",
@@ -80,6 +84,36 @@
   },
   "openBlockers": [
     {
+      "id": "ENCODING-001",
+      "summary": "60/90 分钟动态扩展页源码包含字面量 ????，现有乱码检查无法发现",
+      "evidence": "lib/ppt-agent/content-planner.ts 的 extras 数组为 ASCII 问号；45 分钟 9 页不触发，扩页路径会直接进入可见内容。"
+    },
+    {
+      "id": "LESSON-ORCHESTRATION-001",
+      "summary": "45 分钟只有页数估算，没有教学事件、总时长、预期回答和备用动作合同",
+      "evidence": "variableTeacherPlan 仅将分钟映射为 7/9/10/12/14 页；没有 LessonEvent 或总时长校验。"
+    },
+    {
+      "id": "TEACHER-PACK-001",
+      "summary": "教师讲稿、答案、板书和作业未形成统一可下载交付包",
+      "evidence": "相关文案分散在 slide 和 speakerNote，内容实现仍存在教师补充具体题目/答案等占位文本。"
+    },
+    {
+      "id": "FONT-PORTABILITY-001",
+      "summary": "PPTX 使用但不嵌入 Microsoft YaHei，跨 Office/WPS/LibreOffice 未验证",
+      "evidence": "导出器和 RenderScene renderer 固定 fontFace=Microsoft YaHei；没有字体嵌入或替换矩阵。"
+    },
+    {
+      "id": "ARTIFACT-DURABILITY-001",
+      "summary": "成功导出的 PPTX 字节未持久化，Artifact storagePath 只是文件名",
+      "evidence": "export-pptx 即时返回 buffer，writeCoursewareArtifact 写入 storagePath=fileName，但没有对应 writeFile 或对象存储写入。"
+    },
+    {
+      "id": "ACCEPTANCE-PORTABILITY-001",
+      "summary": "最终 PPTX 验收固定 9 页、字符规则过窄且只依赖 PowerPoint COM",
+      "evidence": "teacher-final-pptx-acceptance.mjs 断言 slideNames.length===9；本轮环境 COM 未注册，只有结构检查可运行。"
+    },
+    {
       "id": "SUBJECT-MATRIX-001",
       "summary": "物理、化学、生物、历史、地理等真实教材和学科动作未形成稳定验收矩阵",
       "evidence": "输入层支持多学科，当前差异化证据主要覆盖数学、语文、英语；理科通用模板不能替代学科深度验收。"
@@ -116,15 +150,17 @@
     }
   ],
   "nextAction": {
-    "id": "HARDEN-PRIVATE-BETA-CORE-WITHOUT-IMAGE",
-    "summary": "图片模型暂时独立排查；先完成跨学科真实教材矩阵、三条主线 E2E、教师连续修改与内测部署设计。",
+    "id": "PRIVATE-BETA-RC1-12H-P0-CLOSURE",
+    "summary": "按 2026-07-17 06:00-18:00 计划关闭非图片交付 P0：字符、课堂编排、教师包、跨环境门禁、Artifact 耐久和两门真实 E2E。",
     "doneWhen": [
-      "数学、语文、英语、物理、化学、生物、历史、地理各有真实教材策划证据",
-      "章节、材料、旧 PPT 三条主线各有规划-生成-修改-保存-导出的真实 E2E",
-      "连续 10 次教师调整不丢版本、不改错页、不重复执行已完成动作",
-      "记录大纲、无图片课件、AI 修改、单页重做和图片任务的 P50/P90 时间",
-      "完成单服务器邀请制内测部署方案：HTTPS、持久磁盘、备份、日志和配额",
-      "形成 5-10 位教师封闭内测的任务、指标和反馈表"
+      "源码、网页、PPTX、文件名和报告五层字符扫描通过，动态扩页没有 ????",
+      "25/45/60/90 分钟由 LessonEvent 与时间预算驱动，规划页数和生成页数一致",
+      "高二物理与初中语文均从主入口完成生成、修改、保存、导出和重开",
+      "教师讲稿、答案、板书和作业都有实际内容且无教师补充类占位",
+      "无图片模式不调用图片 API 并完成全部交付",
+      "同版本导出产物可再次下载且字节哈希与 Artifact 一致",
+      "连续 10 次教师调整、版本回退、stale 409 与刷新重开通过",
+      "类型、构建、关键回归和浏览器 E2E 报告绑定当前提交"
     ]
   },
   "imageResumePlan": {
@@ -147,16 +183,17 @@
     "README.md",
     "project-state/teacher-agentppt.current.json",
     "project-state/teacher-agentppt.failure-cases.json",
+    "docs/PRIVATE_BETA_DELIVERABILITY_AUDIT_20260717.md",
     "docs/STATUS.md",
     "docs/PRIVATE_BETA_ROADMAP_20260716.md",
     "docs/CONTINUITY_AND_RESUME_PROTOCOL.md",
     "docs/FAILURE_PLAYBOOK.md"
   ],
-  "lastKnownServiceState": "2026-07-16 最新生产构建曾在 3002 运行并通过 /teacher-ai-ppt 健康检查；恢复新会话时必须重新核对进程和 HTTP 状态。",
+  "lastKnownServiceState": "2026-07-17 06:20，3002 返回 HTTP 200，三入口桌面/移动 UI 验收通过；版本读取 HTTP 200，但一次开发态 reload 因 CSS chunk ERR_NETWORK_ACCESS_DENIED 落入 Next 错误页，重开验收需加资源健康与重试证据。",
   "resumeCheckpoint": {
-    "recordedAt": "2026-07-16T14:30:00+08:00",
-    "conclusion": "核心产品可用候选已经成立，但市场化多学科稳定性和图片长任务尚未完成。下一轮先做非图片稳定性和内测部署，不重做主入口和基础架构。",
-    "nextSessionFirstAction": "读取本文件和 PRIVATE_BETA_ROADMAP_20260716.md，先建立跨学科真实教材验收矩阵与教师连续修改基线。",
+    "recordedAt": "2026-07-17T06:20:00+08:00",
+    "conclusion": "真实客户交付未放行。先执行 PRIVATE_BETA_DELIVERABILITY_AUDIT_20260717.md 的 12 小时 P0 收口，不把样品、OOXML 结构或历史单机 PowerPoint 结果当成跨客户完成。",
+    "nextSessionFirstAction": "读取本文件和 docs/PRIVATE_BETA_DELIVERABILITY_AUDIT_20260717.md，从 ENCODING-001 开始，先修复动态扩页问号并建立五层字符门禁。",
     "doNotRedo": [
       "不要恢复已删除的旧页面和旧入口组件",
       "不要重建 /teacher-ai-ppt 主入口",
@@ -164,7 +201,10 @@
       "不要把 45 分钟的 9 页误判为固定 9 页",
       "不要用提高同步超时承载整套图片生成",
       "不要在没有预算上限时重复运行完整图片验收",
-      "不要把本地单份 PPTX 计为网页产品闭环证据"
+      "不要把本地单份 PPTX 计为网页产品闭环证据",
+      "不要把 7/9/10/12 页动态数量当作 45 分钟课堂编排完成",
+      "不要在没有真实文件字节时把 Artifact storagePath 文件名当作耐久产物",
+      "不要在缺少目标电脑字体与渲染证据时宣称跨电脑无风险"
     ]
   }
 }

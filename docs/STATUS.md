@@ -1,13 +1,13 @@
 # Teacher AgentPPT 当前状态
 
-更新时间：2026-07-16
+更新时间：2026-07-17
 
 ## 一句话裁定
 
-Teacher AgentPPT 已从“工程原型”进入“邀请制内测准备”阶段：三条产品入口、教材身份、版本事实链、统一渲染、可编辑 PPTX 和无图片真实流程已经成立；跨学科深度、教师连续修改、图片长任务和云端部署尚未完成稳定性验收。
+Teacher AgentPPT 的基础产品链已经成立，但真实客户交付审计发现 6 个 P0：动态扩页存在字面量 `????`、45 分钟课堂编排不完整、答案/教材事实仍可能出现占位、字体与跨环境验收不足、导出产物没有耐久字节存储、云端单实例尚未部署。当前不得直接扩大教师内测。
 
 ```text
-productStage = private_beta_preparation
+productStage = private_beta_blocked_by_p0_deliverability
 commercialReady = false
 primaryEntry = /teacher-ai-ppt
 ```
@@ -31,7 +31,7 @@ primaryEntry = /teacher-ai-ppt
 - 浏览器预览与 PPTX 导出共享统一场景模型。
 - 原生文本、形状、表格和图表保持可编辑。
 - 真实无图片流程生成 9 页、保存版本并导出 PPTX，总耗时约 1 分 47 秒。
-- PowerPoint 对最新 9 页课件真实渲染 9/9；未发现乱码、禁用占位字段或渲染警告。
+- 历史 PowerPoint 环境曾对 9 页样例真实渲染 9/9；本轮环境缺少 PowerPoint COM，只完成 OOXML 结构与 Unicode 检查，不能外推为跨电脑通过。
 - 数学、语文、英语的角色、标题和可见内容能够随学科变化，未观察到已知跨学科泄漏。
 - 课前评分 V3 覆盖教材对齐、教学设计、学科正确、视觉表达、工程质量和教师效率。
 - 原始教材/教案文件已进入耐久 SourceAsset 事实链。
@@ -87,12 +87,16 @@ primaryEntry = /teacher-ai-ppt
 
 ## 当前阻塞
 
-1. `SUBJECT-MATRIX-001`：物理、化学、生物、历史、地理真实教材矩阵未验收。
-2. `TEACHER-EDIT-001`：连续修改、版本恢复和分层响应时间未验收。
-3. `IMAGE-CREDIT-001`：当前图片供应商余额不足。
-4. `IMAGE-JOB-001`：分钟级图片仍是同步长请求，缺少可恢复任务状态机。
-5. `DEPLOYMENT-001`：云端邀请制内测环境、HTTPS、备份与监控未建立。
-6. `SEARCH-TRUTH-001`：正式公开检索 Provider 尚未配置；实验性 Bing HTML 结果不能作为生产证据。
+1. `ENCODING-001`：60/90 分钟动态扩展页源码包含字面量 `????`；现有乱码检查无法发现。
+2. `LESSON-ORCHESTRATION-001`：45 分钟只有页数估算，没有教学事件、总时长、预期回答和备用动作合同。
+3. `TEACHER-PACK-001`：教师讲稿、答案、板书、作业尚未形成统一可下载交付包，仍存在“教师补充”占位风险。
+4. `FONT-PORTABILITY-001`：PPTX 使用但不嵌入微软雅黑；macOS/WPS/LibreOffice 和缺字体环境未验证。
+5. `ARTIFACT-DURABILITY-001`：导出成功后 Artifact 记录文件名，但没有持久化 PPTX 字节与哈希供再次下载。
+6. `SUBJECT-MATRIX-001`：物理、化学、生物、历史、地理真实教材矩阵未验收。
+7. `TEACHER-EDIT-001`：连续修改、版本恢复和分层响应时间未验收。
+8. `DEPLOYMENT-001`：云端邀请制内测环境、HTTPS、备份与监控未建立。
+9. `IMAGE-JOB-001`：图片长任务仍未异步化；本轮收口明确不依赖图片。
+10. `SEARCH-TRUTH-001`：正式公开检索 Provider 尚未配置；实验性 Bing HTML 结果不能作为生产证据。
 
 ## 内测门槛
 
@@ -105,5 +109,5 @@ primaryEntry = /teacher-ai-ppt
 5. 图片恢复后采用单张探针、预算上限和页面级重试，不再直接重复整套出图。
 6. 由真实教师完成最终人工验收。
 
-详细执行顺序见 [内测准备路线图](PRIVATE_BETA_ROADMAP_20260716.md)。
+真实客户链、100 场景推演和 12 小时收口边界见 [交付审计](PRIVATE_BETA_DELIVERABILITY_AUDIT_20260717.md)，后续顺序见 [内测准备路线图](PRIVATE_BETA_ROADMAP_20260716.md)。
 
