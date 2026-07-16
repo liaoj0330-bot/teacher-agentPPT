@@ -1,102 +1,170 @@
 {
   "schemaVersion": "teacher-agentppt-project-state/v1",
   "projectKey": "teacher-agentppt",
-  "updatedAt": "2026-07-15T05:10:00+08:00",
-  "status": "browser_flow_verified",
+  "updatedAt": "2026-07-16T14:30:00+08:00",
+  "status": "private_beta_preparation_core_verified_images_paused",
+  "productStage": "邀请制内测准备",
   "commercialReady": false,
-  "goal": "建立面向市场的教师 AI 课件产品：真实备课交互、教材绑定、动态策划、逐页变化、不可变版本链、真实视觉、可编辑 PPTX 与人工验收。",
+  "goal": "建立面向市场的教师 AI 课件产品：真实备课交互、教材绑定、跨学科动态策划、不可变版本链、真实视觉、可编辑 PPTX 与教师验收。",
+  "currentJudgement": "三条教师产品主线和无图片核心链已经达到可用候选水平；数学、语文、英语有差异化证据，其他学科深度、连续修改、图片长任务和云端部署仍需在内测前补齐。",
   "nonNegotiables": [
     "唯一主入口为 /teacher-ai-ppt",
     "不能固定为 9 页",
     "不能用演示状态冒充真实写入",
     "不能覆盖历史版本",
-    "不能用截图或占位图冒充可编辑 PPTX 或真实出图",
+    "不能用截图、SVG 或本地占位冒充远程出图",
     "工程通过不等于商业可交付",
-    "关键结果必须由人类验收"
+    "选择框支持某学科不等于该学科已经稳定验收",
+    "关键结果必须由真实教师验收",
+    "分钟级图片任务必须可恢复并逐页持久化",
+    "远程成功、原生降级和失败必须显式区分",
+    "涉及真实模型的测试必须先设置预算和成功图片上限"
   ],
   "repository": {
     "url": "https://github.com/liaoj0330-bot/teacher-agentPPT",
     "branch": "main",
-    "verifiedCommit": "8e0aae9"
+    "baselineCommit": "1cf66c7",
+    "publicationState": "2026-07-16 本地提交完成，按用户要求未推送"
   },
   "entry": {
     "path": "/teacher-ai-ppt",
-    "developmentUrl": "http://127.0.0.1:3002/teacher-ai-ppt"
+    "developmentUrl": "http://127.0.0.1:3002/teacher-ai-ppt",
+    "legacyUiComponentsRemoved": true
   },
+  "threeProductLines": [
+    {
+      "id": "chapter",
+      "name": "从教材章节备课",
+      "status": "core_verified",
+      "evidence": "教材版本、出版社、年份、册次、页码、单元、章节和教学要求进入 TeacherCoursewareTask。"
+    },
+    {
+      "id": "materials",
+      "name": "从教案或材料生成",
+      "status": "core_verified_more_formats_needed",
+      "evidence": "原始文件持久化为 SourceAsset；解析结果、来源和版本关系进入服务器事实链。"
+    },
+    {
+      "id": "polish",
+      "name": "优化已有 PPT",
+      "status": "logic_verified_real_sample_matrix_needed",
+      "evidence": "支持 preserve、standard、deep 三档；原稿保留和 pptx-automizer 隔离适配已建立。"
+    }
+  ],
   "verified": [
-    "独立公开仓库已完成合规清理和密钥扫描",
     "全新 npm install 与 Prisma Client 自动生成通过",
     "TypeScript 检查和 Next.js 生产构建通过",
+    "三条产品入口、教材字段、三档美化和桌面/移动响应式 UI 验收通过，errors=[]、requestFailures=[]",
     "版本事实链真实 HTTP E2E 10/10",
-    "13 类教师 LayoutContract 已建立",
-    "RenderScene、Page Gate、Visual QA 已建立",
-    "版本化 PPTX 使用统一场景并包含逐页独立可编辑对象",
-    "PPTX 模板解析和运行时布局评分 POC 通过",
-    "无截图真实按钮全流程 22/22 通过：规划、生成、RenderScene 翻页、保存、版本、教材、课堂、对话、审核、导出均有 HTTP 证据",
+    "13 类教师 LayoutContract、RenderScene、Page Gate、Visual QA 已建立",
+    "浏览器预览与版本化 PPTX 共用 RenderScene，PPTX 包含逐页独立可编辑对象",
     "动态页数实测：25/45/60/90 分钟分别生成 7/9/10/12 页",
-    "浏览器规划页数与生成页数一致，RenderScene sceneId 与可见内容随翻页变化",
-    "正式 PPTX 导出 HTTP 200；浏览器控制台错误 0、失败请求 0",
-    "三学科真实 E2E 通过：数学、语文、英语分别生成 9 页，页面角色序列、标题序列、内容指纹均 3/3 唯一且无跨学科泄漏",
-    "修复教师通用课件误走数学内容实现器；学科内容路由现由 subject/topic 决定，不再由视觉风格决定",
-    "完整主入口按钮验收再次 22/22 通过：规划 9=生成 9、导出 HTTP 200、控制台错误 0、失败请求 0"
+    "数学、语文、英语三学科角色、标题和内容指纹能够变化且无已知跨学科泄漏",
+    "无图片真实流程：9 页规划、生成、版本保存和 PPTX 导出约 1 分 47 秒",
+    "PowerPoint 对最新 9 页课件真实渲染 9/9；无乱码、禁用占位字段和渲染警告",
+    "课前评分 V3 已覆盖教材对齐、教学设计、学科正确、视觉表达、工程质量和教师效率",
+    "原始教材和教案进入 SourceAsset 耐久事实链",
+    "图片通道单一化为 OPENAI_IMAGE_API_KEY + gpt-image-2 + SSE + 全局并发 3",
+    "图片失败返回 HTTP 502，不再使用本地 SVG 冒充成功",
+    "gpt-image-2 三路并发真实验收 3/3 成功"
   ],
+  "observedMetrics": {
+    "noImageNineSlideFlowSeconds": 107,
+    "imageLatencySecondsObserved": {
+      "min": 34,
+      "max": 123
+    },
+    "recordedSuccessfulImages": 31,
+    "imageConcurrencyAcceptance": "3/3",
+    "powerPointRenderedSlides": "9/9"
+  },
   "openBlockers": [
     {
-      "id": "IMAGE-TRUTH-001",
-      "summary": "火山与品川真实出图及失败降级尚未分别验收",
-      "evidence": "此前卡顿发生在 generate-image 之前，不能归因供应商。"
+      "id": "SUBJECT-MATRIX-001",
+      "summary": "物理、化学、生物、历史、地理等真实教材和学科动作未形成稳定验收矩阵",
+      "evidence": "输入层支持多学科，当前差异化证据主要覆盖数学、语文、英语；理科通用模板不能替代学科深度验收。"
+    },
+    {
+      "id": "TEACHER-EDIT-001",
+      "summary": "教师连续修改、局部重做、版本回退和响应时间尚未完成压力验收",
+      "evidence": "功能和版本 API 已存在，但缺少连续 10 次不同要求的真人路径报告。"
+    },
+    {
+      "id": "IMAGE-CREDIT-001",
+      "summary": "当前图片供应商余额不足，模型列表可读但无法完成新的真实出图",
+      "evidence": "gpt-image-2 可见；生成请求返回 insufficient balance，余额 0.024820，单次预扣要求 0.100000。"
+    },
+    {
+      "id": "IMAGE-JOB-001",
+      "summary": "逐页远程图片仍是分钟级同步长任务，缺少页面级任务状态和断点续跑",
+      "evidence": "历史真实流程出现过长等待、失败重试、整套超时和重复额度消耗。"
     },
     {
       "id": "IMAGE-SCENE-001",
-      "summary": "图片尚未完整绑定冻结版本并同时进入浏览器和 PPTX 场景",
-      "evidence": "文本、形状、表格、图表已同源；图片链仍有断点。"
+      "summary": "整套图片资产尚未完成冻结版本、浏览器与 PPTX 同源验收",
+      "evidence": "原生视觉 fallback 和交付策略已通过；完整远程图片版本链需在额度恢复后重新验收。"
     },
     {
-      "id": "TEMPLATE-UI-001",
-      "summary": "模板选择、持久化和版本追踪尚未进入主入口",
-      "evidence": "解析与评分 POC 已通过，但主交互未闭环。"
+      "id": "DEPLOYMENT-001",
+      "summary": "邀请制云端内测环境尚未建立",
+      "evidence": "当前为 SQLite + 本地文件；尚无 HTTPS 域名、持久磁盘、备份、监控和用户配额证据。"
+    },
+    {
+      "id": "SEARCH-TRUTH-001",
+      "summary": "正式公开检索 Provider 尚未配置",
+      "evidence": "Bing HTML 仅为实验 fallback；教材事实应优先来自教师上传材料或正式 Provider。"
     }
   ],
   "nextAction": {
-    "id": "VERIFY-IMAGE-PROVIDERS",
-    "summary": "分别调用火山与品川真实出图链路，记录请求 ID、响应、失败降级和版本绑定证据。",
+    "id": "HARDEN-PRIVATE-BETA-CORE-WITHOUT-IMAGE",
+    "summary": "图片模型暂时独立排查；先完成跨学科真实教材矩阵、三条主线 E2E、教师连续修改与内测部署设计。",
     "doneWhen": [
-      "两个供应商分别有独立请求证据",
-      "失败时不把占位图冒充真实图片",
-      "生成图片绑定指定 CoursewareVersion",
-      "同一图片资产进入 BrowserSceneRenderer 与 PPTX RenderScene",
-      "导出后的 PPTX 图片页与冻结版本一致"
+      "数学、语文、英语、物理、化学、生物、历史、地理各有真实教材策划证据",
+      "章节、材料、旧 PPT 三条主线各有规划-生成-修改-保存-导出的真实 E2E",
+      "连续 10 次教师调整不丢版本、不改错页、不重复执行已完成动作",
+      "记录大纲、无图片课件、AI 修改、单页重做和图片任务的 P50/P90 时间",
+      "完成单服务器邀请制内测部署方案：HTTPS、持久磁盘、备份、日志和配额",
+      "形成 5-10 位教师封闭内测的任务、指标和反馈表"
     ]
+  },
+  "imageResumePlan": {
+    "status": "paused_until_provider_balance_restored",
+    "firstAction": "只运行 1 张低质量探针，确认费用、图片字节、SSE 和 requestId",
+    "budgetRules": [
+      "每轮测试前声明最大成功图片数",
+      "默认不运行完整课件图片流程",
+      "先小批次，再完整流程",
+      "失败只重试当前页",
+      "已完成资产必须复用"
+    ]
+  },
+  "deploymentRecommendation": {
+    "privateBeta": "一台带持久磁盘的云服务器或单容器实例，通过 HTTPS 域名提供网站；教师只访问 URL，不接触模型 API Key。",
+    "scaleUp": "迁移 PostgreSQL、对象存储、后台任务队列与 Worker，再考虑多实例。",
+    "externalApi": "普通教师内测不需要外部 API；面向学校平台集成时再设计鉴权任务 API。"
   },
   "resumeReadOrder": [
     "README.md",
     "project-state/teacher-agentppt.current.json",
     "project-state/teacher-agentppt.failure-cases.json",
+    "docs/STATUS.md",
+    "docs/PRIVATE_BETA_ROADMAP_20260716.md",
     "docs/CONTINUITY_AND_RESUME_PROTOCOL.md",
     "docs/FAILURE_PLAYBOOK.md"
   ],
-  "lastKnownServiceState": "3002 开发服务当前监听，PID 17880；/teacher-ai-ppt HTTP 200。恢复时仍需重新核对 PID 与健康状态。",
+  "lastKnownServiceState": "2026-07-16 最新生产构建曾在 3002 运行并通过 /teacher-ai-ppt 健康检查；恢复新会话时必须重新核对进程和 HTTP 状态。",
   "resumeCheckpoint": {
-    "recordedAt": "2026-07-15T05:10:00+08:00",
-    "conclusion": "教师课件主体链已经跑通。即使没有图片模型，也能依据学段、年级、学科、教材章节、教学要求和课时，完成动态大纲、逐页内容、版本保存、审核和可编辑 PPTX 导出。",
-    "imageModelMeaning": "图片模型配置成功只是供应商能力可用；还必须把真实图片绑定指定页面与冻结版本，并同时进入 BrowserSceneRenderer 和 PPTX RenderScene。",
-    "acceptanceExample": "已真实验收小学二年级数学“100以内加减法”、小学三年级语文“秋天的雨”、初中七年级英语“Greetings and Introductions”；三套课件的角色、标题和内容均随学科变化。",
-    "nextSessionFirstAction": "不要重做规划或单个 PPT。先读取本文件，然后分别验收火山与品川 generate-image 请求，再完成图片版本绑定和浏览器/PPTX 同源。",
+    "recordedAt": "2026-07-16T14:30:00+08:00",
+    "conclusion": "核心产品可用候选已经成立，但市场化多学科稳定性和图片长任务尚未完成。下一轮先做非图片稳定性和内测部署，不重做主入口和基础架构。",
+    "nextSessionFirstAction": "读取本文件和 PRIVATE_BETA_ROADMAP_20260716.md，先建立跨学科真实教材验收矩阵与教师连续修改基线。",
     "doNotRedo": [
+      "不要恢复已删除的旧页面和旧入口组件",
       "不要重建 /teacher-ai-ppt 主入口",
-      "不要恢复通用 requiredRoles 对教师规划的补页",
+      "不要把学科下拉选项当成跨学科稳定证据",
       "不要把 45 分钟的 9 页误判为固定 9 页",
-      "不要把图片接口返回成功误判为图片链完成"
-    ],
-    "verifiedEvidence": [
-      "真实按钮验收 22/22",
-      "25/45/60/90 分钟分别 7/9/10/12 页",
-      "RenderScene 翻页变化通过",
-      "PPTX 导出 HTTP 200",
-      "版本事实链 10/10",
-      "三学科真实 E2E 通过：数学、语文、英语分别生成 9 页，页面角色序列、标题序列、内容指纹均 3/3 唯一且无跨学科泄漏",
-      "修复教师通用课件误走数学内容实现器；学科内容路由现由 subject/topic 决定，不再由视觉风格决定",
-      "完整主入口按钮验收再次 22/22 通过：规划 9=生成 9、导出 HTTP 200、控制台错误 0、失败请求 0"
+      "不要用提高同步超时承载整套图片生成",
+      "不要在没有预算上限时重复运行完整图片验收",
+      "不要把本地单份 PPTX 计为网页产品闭环证据"
     ]
   }
 }

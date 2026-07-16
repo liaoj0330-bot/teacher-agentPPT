@@ -12,9 +12,11 @@ const dirs = ensureImageAssetDirs(tmpRoot);
 const provider = createImageProvider();
 const safeConfig = provider.safeConfig();
 
-assert.equal(safeConfig.provider, "pinchuan");
-assert.equal(safeConfig.base_url, "https://pinchuanapi.tech");
-assert(!safeConfig.key_mask || !safeConfig.key_mask.includes(process.env.PINCHUAN_API_KEY || "__missing__"), "safe config must not expose key");
+assert.equal(safeConfig.provider, "openai-compatible");
+assert.equal(safeConfig.base_url, "https://api.xcode.hk");
+assert.equal(safeConfig.model, "gpt-image-2");
+assert.equal(safeConfig.transport, "sse");
+assert(!safeConfig.key_mask || !safeConfig.key_mask.includes(process.env.OPENAI_IMAGE_API_KEY || "__missing__"), "safe config must not expose key");
 assert.equal(IMAGE_USAGE_BOUNDARY.asset_type, "ai_generated_image");
 assert.equal(IMAGE_USAGE_BOUNDARY.is_factual_evidence, false);
 assert.equal(IMAGE_USAGE_BOUNDARY.source_status, "ai_generated_unverified_visual");
@@ -33,8 +35,8 @@ assert.equal(imagePlan.image_policy.required_metadata.is_factual_evidence, false
 
 const metadata = buildImageMetadata({
   imageId: "generated_image_001",
-  provider: "pinchuan",
-  model: "gpt-image-1",
+  provider: "openai-compatible",
+  model: "gpt-image-2",
   prompt: imagePlan.slides[0].image_prompt,
   size: "1536x1024",
   slide: imagePlan.slides[0],

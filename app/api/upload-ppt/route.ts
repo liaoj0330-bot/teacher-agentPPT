@@ -1,4 +1,5 @@
 ﻿import { randomUUID } from "crypto";
+import { createHash } from "crypto";
 import { mkdir, readFile, rm, writeFile } from "fs/promises";
 import os from "os";
 import path from "path";
@@ -6,6 +7,10 @@ import { execFile } from "child_process";
 import { promisify } from "util";
 import { NextResponse } from "next/server";
 import { emptyAnalysis, type DocumentAnalysis } from "@/lib/document-analysis";
+import { getCurrentUser } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { parseWithOfficeParser } from "@/lib/document-ingestion";
+import { inspectPptxWithAutomizer } from "@/lib/pptx-automizer-adapter";
 
 const execFileAsync = promisify(execFile);
 
@@ -110,7 +115,8 @@ function buildTextAnalysis(fileName: string, fileType: string, text: string, sou
     blocks,
     sourceKind,
     parseStatus: blocks.length ? "parsed" : "partial",
-    warnings: sourceKind === "image" ? ["image_ocr_not_available"] : []
+    warnings: sourceKind === "image" ? ["image_ocr_not_available"] : [],
+    parser: "native"
   };
 }
 
@@ -154,13 +160,22 @@ function failedAnalysis(fileName: string, fileType: string, lastError: string): 
       reason,
       "run scripts/setup-parser-python.ps1 then npm run p1g:parser-check"
     ],
-    summary: `File uploaded, but structured parsing failed (${reason}). Install parser dependencies with scripts/setup-parser-python.ps1. ${lastError.slice(0, 180)}`
+    summary: `File uploaded, but structured parsing failed (${reason}). Install parser dependencies with scripts/setup-parser-python.ps1. ${lastError.slice(0, 180)}`,
+    parser: "python"
   };
 }
 
 async function parseDocument(filePath: string, fileName: string, fileType: string): Promise<DocumentAnalysis> {
   const jsParsed = await parseWithJs(filePath, fileName, fileType);
   if (jsParsed) return jsParsed;
+
+  if (["pdf", "docx", "pptx"].includes(fileType)) {
+    try {
+      return await parseWithOfficeParser(filePath, fileName, fileType);
+    } catch (error) {
+      console.warn("[upload-ppt] officeparser failed, using compatibility parser", error);
+    }
+  }
 
   const script = path.join(process.cwd(), "scripts", "parse_document.py");
   let lastError = "";
@@ -179,7 +194,7 @@ async function parseDocument(filePath: string, fileName: string, fileType: strin
       });
       const parsed = JSON.parse(stdout) as DocumentAnalysis;
       return parsed?.fileName
-        ? { ...parsed, parseStatus: parsed.blockCount > 0 ? "parsed" : "partial", warnings: parsed.warnings || [] }
+        ? { ...parsed, parseStatus: parsed.blockCount > 0 ? "parsed" : "partial", warnings: parsed.warnings || [], parser: "python" }
         : { ...emptyAnalysis(fileName, fileType), parseStatus: "partial", warnings: ["parser_returned_empty_result"] };
     } catch (error) {
       lastError = errorText(error);
@@ -213,14 +228,55 @@ export async function POST(request: Request) {
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
     await writeFile(tempPath, buffer);
-    const analysis = await parseDocument(tempPath, file.name, extension.replace(".", "") || file.type || "unknown");
+    const fileType = extension.replace(".", "") || file.type || "unknown";
+    const analysis = await parseDocument(tempPath, file.name, fileType);
+    if (fileType === "pptx") {
+      try {
+        const templateManifest = await inspectPptxWithAutomizer(tempPath);
+        analysis.metadata = { ...(analysis.metadata || {}), templateManifest };
+      } catch (error) {
+        analysis.warnings = [...(analysis.warnings || []), `pptx_automizer_inspection_failed: ${error instanceof Error ? error.message : String(error)}`];
+      }
+    }
+    const sha256 = createHash("sha256").update(buffer).digest("hex");
+    const user = await getCurrentUser();
+    let assetId: string | undefined;
+    let storageStatus: "persisted" | "temporary" = "temporary";
+
+    if (user) {
+      assetId = randomUUID();
+      const assetDir = path.join(process.cwd(), "artifacts", "source-assets", user.id, assetId);
+      await mkdir(assetDir, { recursive: true });
+      const storagePath = path.join(assetDir, fileName);
+      await writeFile(storagePath, buffer);
+      await prisma.sourceAsset.create({
+        data: {
+          id: assetId,
+          userId: user.id,
+          fileName: file.name,
+          mimeType: file.type || "application/octet-stream",
+          fileType,
+          byteSize: buffer.length,
+          sha256,
+          storagePath,
+          parseStatus: analysis.parseStatus || (analysis.blockCount ? "parsed" : "partial"),
+          parser: analysis.parser || "compatibility",
+          analysisJson: JSON.stringify(analysis),
+          metadataJson: JSON.stringify({ originalName: file.name, uploadedAt: new Date().toISOString() }),
+        },
+      });
+      storageStatus = "persisted";
+    }
 
     return NextResponse.json({
       fileName: file.name,
       size: file.size,
       type: file.type || "application/octet-stream",
       status: "uploaded",
-      analysis
+      analysis,
+      assetId,
+      sha256,
+      storageStatus
     });
   } finally {
     void rm(tempPath, { force: true }).catch(() => undefined);

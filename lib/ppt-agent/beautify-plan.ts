@@ -35,6 +35,16 @@ export type BeautifyPlan = {
   pageDiagnoses: BeautifyPageDiagnosis[];
   exportNotes: string[];
   createdAt: string;
+  intensity: "preserve" | "standard" | "deep";
+  sourceAssetId?: string;
+  fidelityContract: {
+    preserveAllSourceSlides: boolean;
+    preserveBrandObjects: boolean;
+    preservePageOrder: boolean;
+    allowSplitMerge: boolean;
+    requireBeforeAfterRender: boolean;
+    requireNamedTargetEdits: boolean;
+  };
 };
 
 function clamp(value: number) {
@@ -140,7 +150,12 @@ function rewriteActionsForPage(role: string, issues: BeautifyPageDiagnosis["dete
   return [...actions].slice(0, 5);
 }
 
-export function createBeautifyPlan(input: { analysis?: DocumentAnalysis; prompt: string }): BeautifyPlan | undefined {
+export function createBeautifyPlan(input: {
+  analysis?: DocumentAnalysis;
+  prompt: string;
+  intensity?: "preserve" | "standard" | "deep";
+  sourceAssetId?: string;
+}): BeautifyPlan | undefined {
   const analysis = input.analysis;
   if (!analysis || analysis.sourceKind !== "pptx") return undefined;
 
@@ -179,6 +194,7 @@ export function createBeautifyPlan(input: { analysis?: DocumentAnalysis; prompt:
   const diagnosisScore = clamp(38 + parsedScore + structureScore + visualScore - riskCount * 8 - warnCount * 3);
   const level: BeautifyPlan["level"] = diagnosisScore >= 78 ? "可直接美化" : diagnosisScore >= 58 ? "需要重排" : "需要补资料";
 
+  const intensity = input.intensity || "standard";
   return {
     sourceFileName: analysis.fileName,
     sourceKind: analysis.sourceKind,
@@ -208,6 +224,16 @@ export function createBeautifyPlan(input: { analysis?: DocumentAnalysis; prompt:
       "若原稿图片无法解析，会以可替换视觉占位保留位置和说明。",
       "低置信页面会在评审中枢中标记，建议导出前逐页确认。"
     ],
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    intensity,
+    sourceAssetId: input.sourceAssetId,
+    fidelityContract: {
+      preserveAllSourceSlides: intensity !== "deep",
+      preserveBrandObjects: true,
+      preservePageOrder: intensity !== "deep",
+      allowSplitMerge: intensity === "deep",
+      requireBeforeAfterRender: true,
+      requireNamedTargetEdits: true,
+    },
   };
 }

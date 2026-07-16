@@ -11,6 +11,9 @@ export type UploadedFile = {
   status: "uploading" | "uploaded" | "error";
   mimeType?: string;
   analysis?: DocumentAnalysis;
+  assetId?: string;
+  sha256?: string;
+  storageStatus?: "persisted" | "temporary";
 };
 
 type UploadPPTCardProps = {
@@ -62,13 +65,19 @@ export function UploadPPTCard({ uploadedFile, onUploaded, compact = false, fileK
         size?: number;
         type?: string;
         analysis?: DocumentAnalysis;
+        assetId?: string;
+        sha256?: string;
+        storageStatus?: "persisted" | "temporary";
       };
       onUploaded({
         name: data.fileName || file.name,
         size: data.size || file.size,
         status: "uploaded",
         mimeType: data.type || file.type,
-        analysis: data.analysis
+        analysis: data.analysis,
+        assetId: data.assetId,
+        sha256: data.sha256,
+        storageStatus: data.storageStatus
       });
     } catch {
       onUploaded({ name: file.name, size: file.size, status: "error", mimeType: file.type });
@@ -170,6 +179,7 @@ export function UploadPPTCard({ uploadedFile, onUploaded, compact = false, fileK
             {uploadedFile.analysis ? (
               <div className="mt-3 rounded-2xl bg-[#f8fafc] px-3 py-2 text-xs leading-5 text-muted">
                 已解析 {uploadedFile.analysis.pageCount} 页 / {uploadedFile.analysis.blockCount} 个内容块
+                {uploadedFile.storageStatus ? ` · ${uploadedFile.storageStatus === "persisted" ? "原文件已保存" : "临时解析"}` : ""}
                 <div className="mt-1 line-clamp-2">{uploadedFile.analysis.summary}</div>
               </div>
             ) : null}

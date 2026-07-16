@@ -41,9 +41,13 @@ function isOutOfBounds(element: RenderElement, scene: RenderScene) {
 
 function densityMetric(scene: RenderScene, layout: LayoutContract | undefined): SceneDensityMetric {
   const canvasArea = scene.canvas.width * scene.canvas.height;
-  const occupiedArea = scene.elements.reduce((sum, element) => sum + Math.max(0, element.bounds.width * element.bounds.height), 0);
+  const occupiedArea = scene.elements.reduce((sum, element) => {
+    const area = Math.max(0, element.bounds.width * element.bounds.height);
+    if (element.kind !== "shape") return sum + area;
+    return area < canvasArea * 0.7 ? sum + area * 0.32 : sum;
+  }, 0);
   const textLength = scene.elements.reduce((sum, element) => sum + (element.kind === "text" ? element.text.length : 0), 0);
-  const capacity = Math.max(1, layout?.constraints.maxCharacters || 420);
+  const capacity = Math.max(1, scene.composition?.maxCharacters || layout?.constraints.maxCharacters || 420);
   const occupiedAreaRatio = Math.min(1, occupiedArea / canvasArea);
   const textCapacityRatio = Math.min(1.5, textLength / capacity);
   return {
@@ -62,9 +66,10 @@ export function validateRenderScenesV2(scenes: RenderScene[], layouts: LayoutCon
     const layout = layoutById.get(scene.layoutId);
     for (const element of scene.elements) {
       if (isOutOfBounds(element, scene)) issues.push({ issueId: `${scene.sceneId}:bounds:${element.elementId}`, sceneId: scene.sceneId, slideId: scene.slideId, severity: "error", code: "OUT_OF_BOUNDS", message: "元素超出幻灯片画布", elementIds: [element.elementId] });
+      if (element.kind === "image" && !element.slotId) issues.push({ issueId: `${scene.sceneId}:anchor:${element.elementId}`, sceneId: scene.sceneId, slideId: scene.slideId, severity: "error", code: "UNANCHORED_VISUAL", message: "图片没有绑定版式锚点", elementIds: [element.elementId] });
       if (element.kind === "text" && element.role !== "meta" && !element.editable) issues.push({ issueId: `${scene.sceneId}:editable:${element.elementId}`, sceneId: scene.sceneId, slideId: scene.slideId, severity: "error", code: "UNEDITABLE_CORE_CONTENT", message: "核心文本必须保持可编辑", elementIds: [element.elementId] });
       if (element.kind === "text") {
-        const minimum = element.role === "caption" ? layout?.constraints.minCaptionFontPt || 10 : element.role === "body" ? layout?.constraints.minBodyFontPt || 16 : 0;
+        const minimum = element.role === "caption" ? layout?.constraints.minCaptionFontPt || 10 : element.role === "body" ? Math.max(layout?.constraints.minBodyFontPt || 16, scene.composition?.bodyMinPt || 16) : 0;
         if (minimum && (element.fontSizePt || 0) < minimum) issues.push({ issueId: `${scene.sceneId}:font:${element.elementId}`, sceneId: scene.sceneId, slideId: scene.slideId, severity: "warning", code: "FONT_TOO_SMALL", message: `${element.role === "body" ? "正文" : "注释"}字号低于 ${minimum}pt`, elementIds: [element.elementId] });
         const estimatedHeight = estimatedTextHeight(element);
         if (estimatedHeight > element.bounds.height) issues.push({ issueId: `${scene.sceneId}:overflow:${element.elementId}`, sceneId: scene.sceneId, slideId: scene.slideId, severity: estimatedHeight > element.bounds.height * 1.25 ? "error" : "warning", code: "TEXT_OVERFLOW", message: `预计文本高度 ${estimatedHeight.toFixed(2)}in 超出文本框 ${element.bounds.height.toFixed(2)}in`, elementIds: [element.elementId] });
@@ -73,13 +78,30 @@ export function validateRenderScenesV2(scenes: RenderScene[], layouts: LayoutCon
     const visible = scene.elements.filter((element) => element.kind !== "shape");
     for (let left = 0; left < visible.length; left += 1) for (let right = left + 1; right < visible.length; right += 1) {
       const amount = overlapAmount(visible[left].bounds, visible[right].bounds);
-      if (amount > 0) issues.push({ issueId: `${scene.sceneId}:overlap:${visible[left].elementId}:${visible[right].elementId}`, sceneId: scene.sceneId, slideId: scene.slideId, severity: "warning", code: "OVERLAP", message: `可见内容重叠约 ${amount.toFixed(2)}in`, elementIds: [visible[left].elementId, visible[right].elementId] });
+      if (amount > 0) {
+        const imageCollision = visible[left].kind === "image" || visible[right].kind === "image";
+        issues.push({ issueId: `${scene.sceneId}:overlap:${visible[left].elementId}:${visible[right].elementId}`, sceneId: scene.sceneId, slideId: scene.slideId, severity: imageCollision ? "error" : "warning", code: "OVERLAP", message: `${imageCollision ? "图片与页面内容" : "可见内容"}重叠约 ${amount.toFixed(2)}in`, elementIds: [visible[left].elementId, visible[right].elementId] });
+      }
     }
+    const hasSafeBodyReflow = scene.elements.some((element) => element.slotId?.startsWith(`${scene.layoutId}:generatedBody`));
     for (const slot of layout?.slots.filter((candidate) => candidate.required) || []) {
-      if (!scene.elements.some((element) => element.slotId === slot.slotId)) issues.push({ issueId: `${scene.sceneId}:slot:${slot.slotId}`, sceneId: scene.sceneId, slideId: scene.slideId, severity: "warning", code: "EMPTY_REQUIRED_SLOT", message: `必需槽位“${slot.name}”没有绑定可见内容`, elementIds: [] });
+      const satisfiedByReflow = hasSafeBodyReflow && ["body", "interaction", "formula"].includes(slot.kind);
+      if (!satisfiedByReflow && !scene.elements.some((element) => element.slotId === slot.slotId)) issues.push({ issueId: `${scene.sceneId}:slot:${slot.slotId}`, sceneId: scene.sceneId, slideId: scene.slideId, severity: slot.kind === "image" ? "error" : "warning", code: "EMPTY_REQUIRED_SLOT", message: `必需槽位“${slot.name}”没有绑定可见内容`, elementIds: [] });
     }
     const metric = density.find((item) => item.sceneId === scene.sceneId)!;
-    if (metric.textCapacityRatio > 1.05) issues.push({ issueId: `${scene.sceneId}:density:high`, sceneId: scene.sceneId, slideId: scene.slideId, severity: "warning", code: "TEXT_OVERFLOW", message: `页面文本容量达到版式预算的 ${Math.round(metric.textCapacityRatio * 100)}%`, elementIds: [] });
+    const bodyBlocks = scene.elements.filter((element) => element.kind === "text" && element.role === "body").length;
+    if (metric.textCapacityRatio > 1.05 || (scene.composition && bodyBlocks > scene.composition.maxBlocks)) issues.push({ issueId: `${scene.sceneId}:density:high`, sceneId: scene.sceneId, slideId: scene.slideId, severity: metric.textCapacityRatio > 1.25 ? "error" : "warning", code: "DENSITY_BUDGET_EXCEEDED", message: `页面超过构图预算：文字 ${Math.round(metric.textCapacityRatio * 100)}%，内容块 ${bodyBlocks}/${scene.composition?.maxBlocks || layout?.constraints.maxItems || 0}`, elementIds: [] });
+    const minimumOccupiedRatio = scene.composition?.densityLevel === "dense" ? 0.3 : scene.composition?.densityLevel === "balanced" ? 0.22 : 0.14;
+    if (scene.page > 1 && metric.occupiedAreaRatio < minimumOccupiedRatio) issues.push({ issueId: `${scene.sceneId}:density:low`, sceneId: scene.sceneId, slideId: scene.slideId, severity: "warning", code: "UNDERFILLED_COMPOSITION", message: `页面有效占用仅 ${Math.round(metric.occupiedAreaRatio * 100)}%，低于当前构图建议的 ${Math.round(minimumOccupiedRatio * 100)}%`, elementIds: [] });
+  }
+  for (let start = 0; start <= scenes.length - 3; start += 1) {
+    const window = scenes.slice(start, start + 3);
+    const families = window.map((scene) => scene.composition?.family || scene.layoutId);
+    if (new Set(families).size === 1) {
+      const scene = window.at(-1)!;
+      issues.push({ issueId: `${scene.sceneId}:composition:repeat`, sceneId: scene.sceneId, slideId: scene.slideId, severity: "warning", code: "REPETITIVE_COMPOSITION", message: `连续 3 页重复使用构图“${families[0]}”`, elementIds: [] });
+      break;
+    }
   }
   const errorCount = issues.filter((issue) => issue.severity === "error").length;
   const warningCount = issues.length - errorCount;

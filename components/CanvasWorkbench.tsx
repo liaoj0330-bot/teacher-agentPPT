@@ -509,6 +509,15 @@ function CanvasControlBar({
 
 type CanvasWorkbenchProps = { entryMode?: "general" | "teacher" };
 
+type VisualGenerationProgress = {
+  total: number;
+  completed: number;
+  succeeded: number;
+  failed: number;
+  failedTargets: Array<{ key: string; index: number; title: string }>;
+  active: boolean;
+};
+
 export function CanvasWorkbench({ entryMode = "general" }: CanvasWorkbenchProps = {}) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
@@ -528,6 +537,7 @@ export function CanvasWorkbench({ entryMode = "general" }: CanvasWorkbenchProps 
   const [isApplyingReviewFixes, setIsApplyingReviewFixes] = useState(false);
   const [isPresenting, setIsPresenting] = useState(false);
   const [isGeneratingVisuals, setIsGeneratingVisuals] = useState(false);
+  const [visualGenerationProgress, setVisualGenerationProgress] = useState<VisualGenerationProgress | null>(null);
   const [generatedVisuals, setGeneratedVisuals] = useState<GeneratedVisuals>({ slides: {} });
   const [lastExportGate, setLastExportGate] = useState<ExportGatePayload | null>(null);
   const [provider, setProvider] = useState<"openai" | "local" | null>(null);
@@ -597,12 +607,18 @@ export function CanvasWorkbench({ entryMode = "general" }: CanvasWorkbenchProps 
     // base is stale (409), so editing must happen from the current version. This flag
     // drives the read-only banner + disabled edit affordances in the studio.
     setIsViewingCurrentVersion(data.isCurrent !== false);
+    setGeneratedVisuals({ slides: data.renderManifest ?? {} });
+    setTeacherRenderArtifactId(data.renderManifestArtifactId ?? null);
     setProject((current) => ensureProjectQuality({
       ...current,
       title: data.contentPlan?.teacherContext?.topic || data.slides?.[0]?.title || current.title,
       deckSpec: data.deckSpec,
       slides: data.slides || current.slides,
-      contentPlan: data.contentPlan || current.contentPlan
+      contentPlan: data.contentPlan || current.contentPlan,
+      sourceDocuments: Array.isArray(data.sourceDocuments) ? data.sourceDocuments as CanvasProject["sourceDocuments"] : current.sourceDocuments,
+      reviewCenter: data.teacherScoreV3
+        ? { ...(current.reviewCenter || {}), teacherScoreV3: data.teacherScoreV3 } as CanvasProject["reviewCenter"]
+        : current.reviewCenter
     }));
     setWorkspaceIdentity((current) => {
       if (!current) return current;
@@ -1764,16 +1780,19 @@ export function CanvasWorkbench({ entryMode = "general" }: CanvasWorkbenchProps 
     }
   };
 
-  const generateVisuals = async (options?: { maxSlideVisuals?: number; reason?: "manual" | "export" }): Promise<GeneratedVisuals> => {
+  const generateVisuals = async (options?: { maxSlideVisuals?: number; reason?: "manual" | "export"; retryOnlyFailed?: boolean }): Promise<GeneratedVisuals> => {
     if (isGeneratingVisuals) return generatedVisuals;
     setIsGeneratingVisuals(true);
-    showToast({ type: "info", message: options?.reason === "export" ? "导出前正在调用 image2 准备封面和关键页视觉" : "正在调用 image2 生成封面和关键页视觉" });
+    const isTeacherCourseware = workspaceType === "teacher_courseware";
+    showToast({ type: "info", message: isTeacherCourseware ? "正在按页面规划逐页调用 image2 生成课堂视觉" : options?.reason === "export" ? "导出前正在调用 image2 准备封面和关键页视觉" : "正在调用 image2 生成封面和关键页视觉" });
     try {
       const profile = getDesignProfile(project);
       const maxSlideVisuals = Math.max(1, Math.min(options?.maxSlideVisuals ?? (profile.pptType === "product_proposal" ? 5 : 3), 5));
-      const targets = [
-        { key: "cover", slide: project.slides[0], index: 0 },
-        ...project.slides
+      let targets = isTeacherCourseware
+        ? project.slides.map((slide, index) => ({ key: index === 0 ? "cover" : slide.id || String(index), slide, index }))
+        : [
+            { key: "cover", slide: project.slides[0], index: 0 },
+            ...project.slides
           .slice(1)
           .filter((slide) => {
             if (!planVisualAsset(slide, project.slides.indexOf(slide)).shouldGenerate) return false;
@@ -1783,13 +1802,23 @@ export function CanvasWorkbench({ entryMode = "general" }: CanvasWorkbenchProps 
             return profile.pptType === "product_proposal" ? productLayouts.includes(layout) : travelLayouts.includes(layout);
           })
           .slice(0, maxSlideVisuals)
-          .map((slide, index) => ({ key: slide.id || String(index + 1), slide, index: index + 1 }))
-      ];
+          .map((slide) => ({ key: slide.id || String(project.slides.indexOf(slide)), slide, index: project.slides.indexOf(slide) }))
+          ];
+
+      if (options?.retryOnlyFailed && visualGenerationProgress?.failedTargets.length) {
+        const failedKeys = new Set(visualGenerationProgress.failedTargets.map((target) => target.key));
+        targets = targets.filter((target) => failedKeys.has(target.key));
+      }
+      if (!targets.length) return generatedVisuals;
+      const initialProgress = options?.retryOnlyFailed && visualGenerationProgress
+        ? { ...visualGenerationProgress, completed: 0, succeeded: 0, failed: 0, failedTargets: [], active: true }
+        : { total: targets.length, completed: 0, succeeded: 0, failed: 0, failedTargets: [], active: true };
+      setVisualGenerationProgress(initialProgress);
 
       const nextVisuals: GeneratedVisuals = { ...generatedVisuals, slides: { ...(generatedVisuals.slides || {}) } };
-      let usedLocalFallback = false;
-
-      for (const target of targets) {
+      const results = await Promise.allSettled(targets.map(async (target) => {
+        let requestSucceeded = false;
+        try {
         const assetPlan = target.slide ? planVisualAsset(target.slide, target.index) : undefined;
         const profilePrompt = target.slide ? visualPromptForSlide(profile, project, target.slide, target.index) : profile.imageStyle;
         const scenePrompt = target.index === 0
@@ -1812,49 +1841,80 @@ export function CanvasWorkbench({ entryMode = "general" }: CanvasWorkbenchProps 
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            context: workspaceType === "teacher_courseware" ? "teacher_courseware" : undefined,
-            slideRole: target.index === 0 ? "cover" : "content",
+            context: isTeacherCourseware ? "teacher_courseware" : undefined,
+            slideRole: target.index === 0 ? "cover" : target.slide?.pageIntent || "content",
             title: target.slide?.title || project.title,
             prompt: visualPrompt,
             size: "1024x1024"
           })
         });
 
-        if (!response.ok) {
-          throw new Error("generate image failed");
+        const data = await response.json().catch(() => null) as { image?: string; message?: string } | null;
+        if (!response.ok || !data?.image) {
+          throw new Error(data?.message || `image generation failed (${response.status})`);
         }
-        const data = (await response.json()) as { image?: string; provider?: "openai" | "local"; message?: string };
-        if (!data.image) {
-          throw new Error("empty image");
+        requestSucceeded = true;
+        return { target, image: data.image };
+        } finally {
+          setVisualGenerationProgress((current) => current ? {
+            ...current,
+            completed: Math.min(current.total, current.completed + 1),
+            succeeded: current.succeeded + (requestSucceeded ? 1 : 0),
+            failed: current.failed + (requestSucceeded ? 0 : 1)
+          } : current);
         }
-        if (data.provider === "local") {
-          usedLocalFallback = true;
-        }
+      }));
 
-        if (target.key === "cover") {
-          nextVisuals.cover = data.image;
-        } else {
-          nextVisuals.slides = { ...(nextVisuals.slides || {}), [String(target.index)]: data.image, [target.slide?.id || String(target.index)]: data.image };
+      let generatedCount = 0;
+      let failedCount = 0;
+      const failedTargets: VisualGenerationProgress["failedTargets"] = [];
+      results.forEach((result, resultIndex) => {
+        if (result.status === "rejected") {
+          failedCount += 1;
+          const target = targets[resultIndex];
+          failedTargets.push({ key: target.key, index: target.index, title: target.slide?.title || project.title });
+          return;
         }
-      }
+        generatedCount += 1;
+        const { target, image } = result.value;
+        if (target.key === "cover") nextVisuals.cover = image;
+        else nextVisuals.slides = { ...(nextVisuals.slides || {}), [String(target.index)]: image, [target.slide?.id || String(target.index)]: image };
+      });
+
+      setVisualGenerationProgress((current) => ({
+        total: targets.length,
+        completed: targets.length,
+        succeeded: generatedCount,
+        failed: failedCount,
+        failedTargets,
+        active: false
+      }));
+
+      if (!generatedCount) throw new Error("all image requests failed");
 
       setGeneratedVisuals(nextVisuals);
       // Teacher courseware: record a real render_manifest artifact + new version on the
       // server. Client images remain for immediate preview, but the server version is truth.
-      if (workspaceType === "teacher_courseware" && options?.reason !== "export") {
-        const committed = await commitTeacherVersion("generate_visuals", {});
+      if (isTeacherCourseware && options?.reason !== "export") {
+        const renderManifest = Object.fromEntries(project.slides.flatMap((slide, index) => {
+          const image = index === 0
+            ? nextVisuals.cover
+            : nextVisuals.slides?.[String(index)] || nextVisuals.slides?.[slide.id];
+          return slide.id && image ? [[slide.id, image]] : [];
+        }));
+        const committed = await commitTeacherVersion("generate_visuals", { renderManifest });
         showToast({
-          type: committed ? (usedLocalFallback ? "info" : "success") : "error",
+          type: committed ? (failedCount ? "info" : "success") : "error",
           message: committed
-            ? (usedLocalFallback ? "image2 暂不可用，已接入本地视觉占位，并写入服务器版本" : "AI视觉已生成，并写入服务器版本 render_manifest")
+            ? (failedCount ? `已生成 ${generatedCount} 张课堂视觉，${failedCount} 张失败未写入；成功项已写入服务器版本` : `已并发生成 ${generatedCount} 张课堂视觉，并写入服务器版本 render_manifest`)
             : "视觉已生成，但服务器版本写入失败"
         });
         return nextVisuals;
       }
-      showToast({ type: usedLocalFallback ? "info" : "success", message: usedLocalFallback ? "image2 暂不可用，已接入本地视觉占位" : "AI视觉已生成，导出 PPTX 会自动使用" });
+      showToast({ type: failedCount ? "info" : "success", message: failedCount ? `已并发生成 ${generatedCount} 张 AI 视觉，${failedCount} 张失败未写入` : `已并发生成 ${generatedCount} 张 AI 视觉，导出 PPTX 会自动使用` });
       return nextVisuals;
     } catch {
-      showToast({ type: "error", message: "AI视觉生成失败，已保留本地占位视觉" });
+      showToast({ type: "error", message: "AI视觉生成失败，已保留当前可编辑版式" });
       return generatedVisuals;
     } finally {
       setIsGeneratingVisuals(false);
@@ -1871,7 +1931,7 @@ export function CanvasWorkbench({ entryMode = "general" }: CanvasWorkbenchProps 
         showToast({ type: "info", message: "自检建议复核，正在继续导出 PPTX" });
       }
       let exportVisuals = generatedVisuals;
-      const existingVisualCount = (exportVisuals.cover ? 1 : 0) + Object.keys(exportVisuals.slides || {}).length;
+      const existingVisualCount = project.slides.reduce((count, slide, index) => count + (index === 0 ? (exportVisuals.cover ? 1 : 0) : (exportVisuals.slides?.[String(index)] || exportVisuals.slides?.[slide.id || ""] ? 1 : 0)), 0);
       if (workspaceType === "teacher_courseware" && !workspaceIdentity) {
         throw new Error("当前教师课件缺少服务器版本身份，不能导出");
       }
@@ -1933,7 +1993,9 @@ export function CanvasWorkbench({ entryMode = "general" }: CanvasWorkbenchProps 
       document.body.appendChild(link);
       link.click();
       link.remove();
-      window.URL.revokeObjectURL(url);
+      // Allow the browser to start consuming the blob before releasing it.
+      // Immediate revocation can cancel downloads in headless Chromium.
+      window.setTimeout(() => window.URL.revokeObjectURL(url), 1000);
       const latestCredits = response.headers.get("X-AI-PPT-Credits");
       if (latestCredits) {
         setPoints(Number(latestCredits));
@@ -2034,6 +2096,7 @@ export function CanvasWorkbench({ entryMode = "general" }: CanvasWorkbenchProps 
                 isSavingSlide={isSavingSlide}
                 teacherExportMeta={teacherExportMeta}
                 onGenerateVisuals={generateVisuals}
+                visualGenerationProgress={visualGenerationProgress}
                 onApplyReviewFixes={() => void applyReviewFixes()}
                 onApplyPageReviewFixes={(pageIndex, slideId) => void applyPageReviewFixes(pageIndex, slideId)}
                 teacherVersions={teacherVersions}

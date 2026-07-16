@@ -23,6 +23,30 @@ export type TeacherCoursewareTask = {
   textbook?: string;
   /** Chapter or unit reference within the textbook */
   chapter?: string;
+  textbookIdentity?: {
+    displayName: string;
+    publisher?: string;
+    editionYear?: string;
+    volume?: string;
+    isbn?: string;
+    sourceAssetId?: string;
+    verificationStatus: "catalog_verified" | "asset_verified" | "teacher_confirmed" | "unverified";
+  };
+  chapterIdentity?: {
+    unit?: string;
+    chapter?: string;
+    lesson?: string;
+    pageStart?: number;
+    pageEnd?: number;
+    verificationStatus: "catalog_verified" | "asset_verified" | "teacher_confirmed" | "unverified";
+  };
+  sourcePolicy?: "uploaded_only" | "trusted_catalog" | "web_supplement";
+  beautifyOptions?: {
+    intensity: "preserve" | "standard" | "deep";
+    sourceAssetId?: string;
+    preserveBrand: boolean;
+    preserveOrder: boolean;
+  };
   // 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
   uploadedFiles: unknown[];
   pastedMaterials: string;

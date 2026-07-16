@@ -13,6 +13,11 @@ function rectStyle(bounds: VisualRect, scene: RenderScene): CSSProperties {
   };
 }
 
+function cssColor(value: string | undefined, fallback: string) {
+  if (!value) return fallback;
+  return value.startsWith("#") ? value : `#${value}`;
+}
+
 function chartRows(data: unknown) {
   if (!Array.isArray(data)) return [];
   return data.slice(0, 6).map((item, index) => {
@@ -30,14 +35,15 @@ function SceneElement({ element, scene }: { element: RenderElement; scene: Rende
 
   if (element.kind === "text") {
     const pt = element.fontSizePt || (element.role === "title" ? 28 : 17);
+    const colors = scene.composition?.colors;
     return (
       <div
         className={cn(
-          "absolute overflow-hidden whitespace-pre-line text-[#172033]",
+          "absolute overflow-hidden whitespace-pre-line",
           element.role === "title" ? "font-bold leading-tight" : "font-medium leading-[1.45]",
           element.role === "meta" && "text-[#667085]"
         )}
-        style={{ ...common, fontSize: `clamp(10px, ${(pt / 72 / scene.canvas.height) * 100}cqh, ${pt * 1.35}px)` }}
+        style={{ ...common, color: element.role === "meta" ? cssColor(colors?.muted, "#667085") : cssColor(colors?.ink, "#172033"), fontSize: `clamp(10px, ${(pt / 72 / scene.canvas.height) * 100}cqh, ${pt * 1.35}px)` }}
       >
         {element.text}
       </div>
@@ -80,12 +86,11 @@ function SceneElement({ element, scene }: { element: RenderElement; scene: Rende
 export function BrowserSceneRenderer({ scene, className }: { scene: RenderScene; className?: string }) {
   return (
     <div
-      className={cn("relative h-full w-full overflow-hidden bg-[linear-gradient(135deg,#fbfdff_0%,#f2f6fd_100%)]", className)}
-      style={{ containerType: "size" }}
+      className={cn("relative h-full w-full overflow-hidden", className)}
+      style={{ containerType: "size", backgroundColor: cssColor(scene.composition?.colors.background, "#F7FAFF") }}
       data-render-scene-id={scene.sceneId}
       data-render-layout-id={scene.layoutId}
     >
-      <div className="absolute right-[-5%] top-[-14%] h-[55%] w-[32%] rounded-full bg-[#dce9ff]/60" />
       {scene.elements.map((element) => (
         <div className="contents" data-element-id={element.elementId} data-slot-id={element.slotId || ""} key={element.elementId}>
           <SceneElement element={element} scene={scene} />

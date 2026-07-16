@@ -40,7 +40,7 @@ const results = (payload.groups || []).flatMap((group) => group.results || []);
 if (payload.status === "ok") {
   assert(results.length > 0, "status ok but no results returned");
   assert(results.every((item) => /^https?:\/\//.test(item.url || "")), "all results must have traceable http(s) URLs");
-  assert(results.every((item) => item.sourceName === "bing"), "all results must be marked as bing provider results");
+  assert(results.every((item) => String(item.sourceName || "").startsWith("bing")), "all results must be marked as bing provider results");
   assert(results.some((item) => item.sourceType === "official"), "expected at least one official source classification");
   assert(results.some((item) => String(item.snippet || "").length >= 700), "expected at least one enriched readable content snippet");
   for (const group of payload.groups || []) {

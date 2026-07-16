@@ -13,6 +13,7 @@ import type { ContentPlan } from "@/lib/ppt-agent/content-plan";
 import type { SlidePagePlan } from "@/lib/ppt-agent/slide-page-plan";
 import type { LayoutPlan } from "@/lib/ppt-agent/layout-plan";
 import type { DeckSpec, DesignSlide } from "@/lib/canvas-data";
+import type { SourceDocument } from "@/lib/ppt-agent/evidence-types";
 
 export type CoursewareVersionInsertResult = {
   projectId: string;
@@ -274,6 +275,7 @@ export type ExportSourceResult =
       deckSpec: DeckSpec;
       slides: DesignSlide[];
       evidence: unknown[];
+      sourceDocuments: SourceDocument[];
       teacherTask: TeacherCoursewareTask;
       /**
        * Frozen ContentPlan snapshot. Needed by the export renderer to route to
@@ -285,6 +287,8 @@ export type ExportSourceResult =
       engineeringStatus: string;
       teacherReadiness: string;
       lifecycleStatus: string;
+      /** Latest committed provider-backed visuals, keyed by frozen slide id. */
+      renderManifest: Record<string, string>;
     }
   | { ok: false; reason: "not_found" | "forbidden" | "corrupt_snapshot" };
 
@@ -309,12 +313,15 @@ export async function loadExportSource(
   let deckSpec: DeckSpec | null = null;
   let slides: DesignSlide[] = [];
   let evidence: unknown[] = [];
+  let sourceDocuments: SourceDocument[] = [];
   let contentPlan: ContentPlan | null = null;
   let teacherTask: TeacherCoursewareTask | null = null;
+  let renderManifest: Record<string, string> = {};
   try {
     deckSpec = JSON.parse(version.deckSpecSnapshot) as DeckSpec;
     slides = JSON.parse(version.slideContentSnapshot) as DesignSlide[];
     evidence = JSON.parse(version.evidenceSnapshot) as unknown[];
+    sourceDocuments = JSON.parse(version.sourceDocumentsSnapshot) as SourceDocument[];
     teacherTask = JSON.parse(version.teacherTaskSnapshot) as TeacherCoursewareTask;
     // contentPlan is a render hint only; a corrupt one degrades to null rather
     // than failing the whole export (deckSpec + slides remain authoritative).
@@ -330,6 +337,21 @@ export async function loadExportSource(
     return { ok: false, reason: "corrupt_snapshot" };
   }
 
+  const visualArtifact = await db.coursewareArtifact.findFirst({
+    where: { versionId: version.id, artifactType: "render_manifest", status: "ready" },
+    orderBy: { createdAt: "desc" },
+  });
+  if (visualArtifact?.manifestJson) {
+    try {
+      const manifest = JSON.parse(visualArtifact.manifestJson) as { visuals?: unknown };
+      if (manifest.visuals && typeof manifest.visuals === "object" && !Array.isArray(manifest.visuals)) {
+        renderManifest = Object.fromEntries(Object.entries(manifest.visuals).filter(([, value]) => typeof value === "string")) as Record<string, string>;
+      }
+    } catch {
+      renderManifest = {};
+    }
+  }
+
   return {
     ok: true,
     projectId: version.projectId,
@@ -338,12 +360,14 @@ export async function loadExportSource(
     deckSpec,
     slides,
     evidence: Array.isArray(evidence) ? evidence : [],
+    sourceDocuments: Array.isArray(sourceDocuments) ? sourceDocuments : [],
     teacherTask,
     contentPlan: contentPlan && typeof contentPlan === "object" ? contentPlan : null,
     deckSpecHash: version.deckSpecHash,
     engineeringStatus: version.engineeringStatus,
     teacherReadiness: version.teacherReadiness,
     lifecycleStatus: version.lifecycleStatus,
+    renderManifest,
   };
 }
 
@@ -547,6 +571,9 @@ export type FullVersionResult =
       lifecycleStatus: string;
       isCurrent: boolean;
       createdAt: string;
+      /** Latest provider-backed visuals attached to this immutable version. */
+      renderManifest: Record<string, string>;
+      renderManifestArtifactId: string | null;
     }
   | { ok: false; reason: "not_found" | "forbidden" };
 
@@ -573,6 +600,19 @@ export async function loadFullVersion(
   const task = safeParse<TeacherCoursewareTask | null>(version.teacherTaskSnapshot, null);
   const sourceDocuments = safeParse<unknown[]>(version.sourceDocumentsSnapshot, []);
   const evidence = safeParse<unknown[]>(version.evidenceSnapshot, []);
+  let renderManifest: Record<string, string> = {};
+  const visualArtifact = await db.coursewareArtifact.findFirst({
+    where: { versionId: version.id, artifactType: "render_manifest", status: "ready" },
+    orderBy: { createdAt: "desc" },
+  });
+  if (visualArtifact?.manifestJson) {
+    const manifest = safeParse<{ visuals?: unknown }>(visualArtifact.manifestJson, {});
+    if (manifest.visuals && typeof manifest.visuals === "object" && !Array.isArray(manifest.visuals)) {
+      renderManifest = Object.fromEntries(
+        Object.entries(manifest.visuals).filter(([, value]) => typeof value === "string")
+      ) as Record<string, string>;
+    }
+  }
 
   return {
     ok: true,
@@ -594,6 +634,8 @@ export async function loadFullVersion(
     lifecycleStatus: version.lifecycleStatus,
     isCurrent: version.id === version.project.currentVersionId,
     createdAt: version.createdAt.toISOString(),
+    renderManifest,
+    renderManifestArtifactId: visualArtifact?.id ?? null,
   };
 }
 

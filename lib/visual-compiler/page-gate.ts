@@ -16,7 +16,7 @@ export type PageGateDecision = {
 
 function retryStage(issues: VisualQAIssue[]): PageGateDecision["retryFrom"] {
   if (issues.some((issue) => issue.code === "UNEDITABLE_CORE_CONTENT" || issue.code === "OUT_OF_BOUNDS")) return "render";
-  if (issues.some((issue) => issue.code === "OVERLAP" || issue.code === "TEXT_OVERFLOW" || issue.code === "FONT_TOO_SMALL")) return "layout";
+  if (issues.some((issue) => issue.code === "OVERLAP" || issue.code === "TEXT_OVERFLOW" || issue.code === "FONT_TOO_SMALL" || issue.code === "DENSITY_BUDGET_EXCEEDED" || issue.code === "REPETITIVE_COMPOSITION")) return "layout";
   return "content";
 }
 

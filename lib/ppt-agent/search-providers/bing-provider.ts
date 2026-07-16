@@ -49,10 +49,10 @@ function classifySourceType(input: { url: string; title: string; snippet?: strin
   if (/news|36kr|sina|sohu|qq\.com|163\.com|thepaper|财新|新闻/.test(`${host} ${text}`)) return "news";
   if (/zhihu|csdn|juejin|jianshu|reddit|stackoverflow|medium|blog|博客|社区|论坛/.test(`${host} ${text}`)) return "community";
   if (/(\.gov\.cn$|\.edu\.cn$|\.ac\.cn$|gov\.cn$|edu\.cn$)/i.test(host) || /政府|人民政府|官方|官网|official/.test(text)) return "official";
+  if (/ctrip|tripadvisor|trip\.com|mafengwo|travel|tour|文旅|旅游|景区/.test(`${host} ${text}`)) return "travel";
   const hostStem = host.split(".").filter(Boolean).at(-2) || "";
   if (hostStem.length >= 4 && new RegExp(`\\b${hostStem.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(text)) return "official";
   if (/docs?\.|documentation|developer|manual|help|support|github\.com|gitbook|readthedocs|文档|指南/.test(`${host} ${text}`)) return "encyclopedia";
-  if (/ctrip|trip|mafengwo|travel|tour|文旅|旅游|景区/.test(`${host} ${text}`)) return "travel";
   return "search";
 }
 

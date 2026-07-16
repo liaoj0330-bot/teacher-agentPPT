@@ -477,7 +477,7 @@
     "deduction": "当前内容没有明确引用或说明「评价标准」，关键判断缺少可核验依据。",
     "autoSuggestion": "补充「评价标准」相关资料，并在对应页面添加 source-note 或证据块。",
     "createdAt": "2026-06-30T10:07:19.278Z",
-    "hits": 26
+    "hits": 60
   },
   {
     "id": "courseware-research-source-too-thin",
@@ -489,7 +489,7 @@
     "deduction": "当前只有 1 条资料源，无法支撑高可信度交付。",
     "autoSuggestion": "先执行公开检索或上传 PDF / Word / PPT / TXT 资料，再重新生成或重新评分。",
     "createdAt": "2026-06-30T10:07:19.278Z",
-    "hits": 36
+    "hits": 37
   },
   {
     "id": "courseware-fallback-source-heavy",
@@ -789,7 +789,7 @@
     "deduction": "本页存在未支撑主张：目的地资料、官方开放信息",
     "autoSuggestion": "为该页补充上传资料、公开链接、数据口径，或改写为待确认判断。",
     "createdAt": "2026-06-30T12:17:54.449Z",
-    "hits": 73
+    "hits": 74
   },
   {
     "id": "travel_guide-evidence-unsupported-2",
@@ -801,7 +801,7 @@
     "deduction": "本页存在未支撑主张：地图、官方开放信息",
     "autoSuggestion": "为该页补充上传资料、公开链接、数据口径，或改写为待确认判断。",
     "createdAt": "2026-06-30T12:17:54.449Z",
-    "hits": 73
+    "hits": 74
   },
   {
     "id": "travel_guide-evidence-unsupported-3",
@@ -813,7 +813,7 @@
     "deduction": "本页存在未支撑主张：景点信息",
     "autoSuggestion": "为该页补充上传资料、公开链接、数据口径，或改写为待确认判断。",
     "createdAt": "2026-06-30T12:17:54.449Z",
-    "hits": 73
+    "hits": 74
   },
   {
     "id": "travel_guide-evidence-unsupported-4",
@@ -825,7 +825,7 @@
     "deduction": "本页存在未支撑主张：预约规则、天气备选",
     "autoSuggestion": "为该页补充上传资料、公开链接、数据口径，或改写为待确认判断。",
     "createdAt": "2026-06-30T12:17:54.449Z",
-    "hits": 57
+    "hits": 58
   },
   {
     "id": "travel_guide-evidence-unsupported-5",
@@ -837,7 +837,7 @@
     "deduction": "本页存在未支撑主张：清单",
     "autoSuggestion": "为该页补充上传资料、公开链接、数据口径，或改写为待确认判断。",
     "createdAt": "2026-06-30T12:17:54.449Z",
-    "hits": 57
+    "hits": 58
   },
   {
     "id": "project_report-evidence-blocking-3",
@@ -897,7 +897,7 @@
     "deduction": "本页存在未支撑主张：行动清单、责任口径",
     "autoSuggestion": "为该页补充上传资料、公开链接、数据口径，或改写为待确认判断。",
     "createdAt": "2026-06-30T13:16:03.665Z",
-    "hits": 55
+    "hits": 56
   },
   {
     "id": "financial_analysis-evidence-blocking-1",
@@ -1053,7 +1053,7 @@
     "deduction": "本页证据覆盖率 0%，来源置信度 0%，不足以支撑强事实表达。",
     "autoSuggestion": "补充可追溯来源；如果暂时没有来源，把结论改成建议、假设或待确认。",
     "createdAt": "2026-06-30T13:16:04.738Z",
-    "hits": 226
+    "hits": 259
   },
   {
     "id": "product_proposal-evidence-blocking-1",
@@ -1389,7 +1389,7 @@
     "deduction": "本页证据覆盖率 0%，来源置信度 86%，不足以支撑强事实表达。",
     "autoSuggestion": "补充可追溯来源；如果暂时没有来源，把结论改成建议、假设或待确认。",
     "createdAt": "2026-06-30T14:23:43.252Z",
-    "hits": 151
+    "hits": 184
   },
   {
     "id": "travel_guide-evidence-low-confidence-1",
@@ -1401,7 +1401,7 @@
     "deduction": "本页证据覆盖率 100%，来源置信度 28%，不足以支撑强事实表达。",
     "autoSuggestion": "补充可追溯来源；如果暂时没有来源，把结论改成建议、假设或待确认。",
     "createdAt": "2026-06-30T16:15:37.276Z",
-    "hits": 17
+    "hits": 18
   },
   {
     "id": "travel_guide-evidence-low-confidence-2",
@@ -1413,7 +1413,7 @@
     "deduction": "本页证据覆盖率 100%，来源置信度 28%，不足以支撑强事实表达。",
     "autoSuggestion": "补充可追溯来源；如果暂时没有来源，把结论改成建议、假设或待确认。",
     "createdAt": "2026-06-30T16:15:37.276Z",
-    "hits": 17
+    "hits": 18
   },
   {
     "id": "project_report-evidence-low-confidence-1",
@@ -1797,7 +1797,7 @@
     "deduction": "页面没有明确支撑策划主张「这一页要把「知识框架与关键关系」转成可检查的判断，而不是停留在普通信息罗列。」，容易变成只列信息。",
     "autoSuggestion": "请优化第 2 页：标题观点化，围绕「这一页要把「知识框架与关键关系」转成可检查的判断，而不是停留在普通信息罗列。」，补齐教材、知识点、案例，避免背景、意义、方案、总结、空泛口号。",
     "createdAt": "2026-07-11T09:00:31.890Z",
-    "hits": 128
+    "hits": 129
   },
   {
     "id": "courseware-evidence-low-confidence-3",
@@ -1809,7 +1809,7 @@
     "deduction": "本页证据覆盖率 100%，来源置信度 50%，不足以支撑强事实表达。",
     "autoSuggestion": "补充可追溯来源；如果暂时没有来源，把结论改成建议、假设或待确认。",
     "createdAt": "2026-07-11T12:41:29.908Z",
-    "hits": 111
+    "hits": 144
   },
   {
     "id": "courseware-evidence-low-confidence-4",
@@ -1821,7 +1821,7 @@
     "deduction": "本页证据覆盖率 100%，来源置信度 50%，不足以支撑强事实表达。",
     "autoSuggestion": "补充可追溯来源；如果暂时没有来源，把结论改成建议、假设或待确认。",
     "createdAt": "2026-07-11T12:41:29.908Z",
-    "hits": 111
+    "hits": 144
   },
   {
     "id": "courseware-evidence-low-confidence-5",
@@ -1833,7 +1833,7 @@
     "deduction": "本页证据覆盖率 100%，来源置信度 50%，不足以支撑强事实表达。",
     "autoSuggestion": "补充可追溯来源；如果暂时没有来源，把结论改成建议、假设或待确认。",
     "createdAt": "2026-07-11T12:41:29.908Z",
-    "hits": 111
+    "hits": 144
   },
   {
     "id": "courseware-evidence-low-confidence-6",
@@ -1845,7 +1845,7 @@
     "deduction": "本页证据覆盖率 100%，来源置信度 50%，不足以支撑强事实表达。",
     "autoSuggestion": "补充可追溯来源；如果暂时没有来源，把结论改成建议、假设或待确认。",
     "createdAt": "2026-07-11T12:41:29.908Z",
-    "hits": 111
+    "hits": 120
   },
   {
     "id": "courseware-weak-claim-3",
@@ -1857,7 +1857,7 @@
     "deduction": "页面没有明确支撑策划主张「只有讲清「新知与学生已有知识之间存在可说明的连接。」，高中高一才会相信面向高中高一的数学课件具备继续推进的价值。」，容易变成只列信息。",
     "autoSuggestion": "请优化第 3 页：标题观点化，围绕「只有讲清「新知与学生已有知识之间存在可说明的连接。」，高中高一才会相信面向高中高一的数学课件具备继续推进的价值。」，补齐一次函数的概念与图像、课堂教材、学生作答，避免商务汇报语义、内部规划字段上屏。",
     "createdAt": "2026-07-11T14:26:55.624Z",
-    "hits": 82
+    "hits": 83
   },
   {
     "id": "courseware-weak-claim-4",
@@ -1869,7 +1869,7 @@
     "deduction": "页面没有明确支撑策划主张「定义与关键变量应当用证据和结构说明结论，让后续页面可以自然进入行动或决策。」，容易变成只列信息。",
     "autoSuggestion": "请优化第 4 页：标题观点化，围绕「定义与关键变量应当用证据和结构说明结论，让后续页面可以自然进入行动或决策。」，补齐一次函数的概念与图像、课堂教材、学生作答，避免商务汇报语义、内部规划字段上屏。",
     "createdAt": "2026-07-13T04:21:47.130Z",
-    "hits": 16
+    "hits": 17
   },
   {
     "id": "courseware-weak-claim-6",
@@ -1917,7 +1917,7 @@
     "deduction": "页面没有明确支撑策划主张「函数的单调性必须先证明「学生知道本课研究对象与学习方向。」，否则高中高一无法形成让学生理解概念、建立多种表示联系并完成可检查练习的判断。」，容易变成只列信息。",
     "autoSuggestion": "请优化第 1 页：标题观点化，围绕「函数的单调性必须先证明「学生知道本课研究对象与学习方向。」，否则高中高一无法形成让学生理解概念、建立多种表示联系并完成可检查练习的判断。」，补齐函数的单调性、课堂教材、学生作答，避免商务汇报语义、内部规划字段上屏。",
     "createdAt": "2026-07-14T08:15:19.217Z",
-    "hits": 59
+    "hits": 60
   },
   {
     "id": "company_profile-missing-page-5",
@@ -1929,7 +1929,7 @@
     "deduction": "「企业介绍」必须出现承担「市场覆盖」作用的页面，否则无法证明：公司服务范围和增长空间清楚。",
     "autoSuggestion": "新增或改写一页「市场布局与服务网络」，页面角色为「市场覆盖」，重点证明「公司服务范围和增长空间清楚。」。",
     "createdAt": "2026-07-14T14:47:29.538Z",
-    "hits": 1
+    "hits": 4
   },
   {
     "id": "company_profile-missing-page-7",
@@ -1941,7 +1941,7 @@
     "deduction": "「企业介绍」必须出现承担「优势判断」作用的页面，否则无法证明：说明为什么选择这家公司。",
     "autoSuggestion": "新增或改写一页「核心优势与差异化」，页面角色为「优势判断」，重点证明「说明为什么选择这家公司。」。",
     "createdAt": "2026-07-14T14:47:29.538Z",
-    "hits": 1
+    "hits": 4
   },
   {
     "id": "company_profile-slide-count-low",
@@ -1965,7 +1965,7 @@
     "deduction": "当前只有 1 条资料源，无法支撑高可信度交付。",
     "autoSuggestion": "先执行公开检索或上传 PDF / Word / PPT / TXT 资料，再重新生成或重新评分。",
     "createdAt": "2026-07-14T14:47:29.538Z",
-    "hits": 1
+    "hits": 4
   },
   {
     "id": "company_profile-evidence-unsupported-1",
@@ -1977,7 +1977,7 @@
     "deduction": "本页存在未支撑主张：官网、企业资料",
     "autoSuggestion": "为该页补充上传资料、公开链接、数据口径，或改写为待确认判断。",
     "createdAt": "2026-07-14T14:47:29.538Z",
-    "hits": 1
+    "hits": 4
   },
   {
     "id": "company_profile-evidence-unsupported-2",
@@ -1989,7 +1989,7 @@
     "deduction": "本页存在未支撑主张：历史、数据",
     "autoSuggestion": "为该页补充上传资料、公开链接、数据口径，或改写为待确认判断。",
     "createdAt": "2026-07-14T14:47:29.538Z",
-    "hits": 1
+    "hits": 4
   },
   {
     "id": "company_profile-evidence-unsupported-3",
@@ -2001,7 +2001,7 @@
     "deduction": "本页存在未支撑主张：官网、资质",
     "autoSuggestion": "为该页补充上传资料、公开链接、数据口径，或改写为待确认判断。",
     "createdAt": "2026-07-14T14:47:29.538Z",
-    "hits": 1
+    "hits": 4
   },
   {
     "id": "company_profile-evidence-unsupported-4",
@@ -2013,6 +2013,54 @@
     "deduction": "本页存在未支撑主张：资质证书、官网",
     "autoSuggestion": "为该页补充上传资料、公开链接、数据口径，或改写为待确认判断。",
     "createdAt": "2026-07-14T14:47:29.538Z",
+    "hits": 4
+  },
+  {
+    "id": "courseware-missing-evidence-3",
+    "pptType": "courseware",
+    "pptTypeLabel": "课程课件",
+    "dimensionKey": "evidence",
+    "dimensionName": "证据支撑",
+    "condition": "如果 课程课件 缺少「练习题」相关页面或内容块",
+    "deduction": "当前内容没有明确引用或说明「练习题」，关键判断缺少可核验依据。",
+    "autoSuggestion": "补充「练习题」相关资料，并在对应页面添加 source-note 或证据块。",
+    "createdAt": "2026-07-15T00:07:33.902Z",
+    "hits": 34
+  },
+  {
+    "id": "courseware-weak-claim-5",
+    "pptType": "courseware",
+    "pptTypeLabel": "课程课件",
+    "dimensionKey": "logic",
+    "dimensionName": "主线逻辑",
+    "condition": "如果出现扣分项：第 5 页：教师引导与学生学习活动必须先证明「课堂互动不是单向讲解。」，否则初…",
+    "deduction": "页面没有明确支撑策划主张「教师引导与学生学习活动必须先证明「课堂互动不是单向讲解。」，否则初中八年级无法形成让学生理解概念、建立多种表示联系并完成可检查练习的判断。」，容易变成只列信息。",
+    "autoSuggestion": "请优化第 5 页：标题观点化，围绕「教师引导与学生学习活动必须先证明「课堂互动不是单向讲解。」，否则初中八年级无法形成让学生理解概念、建立多种表示联系并完成可检查练习的判断。」，补齐一次函数、教材章节、学生课堂产出，避免商务汇报语义、内部规划字段上屏。",
+    "createdAt": "2026-07-15T00:07:33.903Z",
     "hits": 1
+  },
+  {
+    "id": "courseware-missing-page-2",
+    "pptType": "courseware",
+    "pptTypeLabel": "课程课件",
+    "dimensionKey": "page_planning",
+    "dimensionName": "页面策划",
+    "condition": "如果 课程课件 缺少「概念」相关页面或内容块",
+    "deduction": "「课程课件」必须出现承担「讲解」作用的页面，否则无法证明：概念可理解。",
+    "autoSuggestion": "新增或改写一页「核心概念拆解」，页面角色为「讲解」，重点证明「概念可理解。」。",
+    "createdAt": "2026-07-15T00:22:08.708Z",
+    "hits": 24
+  },
+  {
+    "id": "company_profile-evidence-unsupported-5",
+    "pptType": "company_profile",
+    "pptTypeLabel": "企业介绍",
+    "dimensionKey": "evidence",
+    "dimensionName": "证据支撑",
+    "condition": "如果 企业介绍 缺少「来源口径」相关页面或内容块",
+    "deduction": "本页存在未支撑主张：来源口径",
+    "autoSuggestion": "为该页补充上传资料、公开链接、数据口径，或改写为待确认判断。",
+    "createdAt": "2026-07-16T00:30:34.462Z",
+    "hits": 3
   }
 ]

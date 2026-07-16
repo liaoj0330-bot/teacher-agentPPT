@@ -21,6 +21,30 @@ model User {
   creditLedger CreditLedger[]
   pptSessions         PptSession[]
   coursewareProjects  CoursewareProject[]
+  sourceAssets        SourceAsset[]
+}
+
+// Original user-supplied documents are durable product assets. Parsed summaries
+// alone are not sufficient for textbook citations or faithful PPT beautification.
+model SourceAsset {
+  id           String   @id
+  userId       String
+  fileName     String
+  mimeType     String   @default("")
+  fileType     String
+  byteSize     Int
+  sha256       String
+  storagePath  String
+  parseStatus  String   @default("pending")
+  parser       String   @default("")
+  analysisJson String   @default("{}")
+  metadataJson String   @default("{}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, sha256])
 }
 
 model AuthSession {

@@ -4,10 +4,6 @@ function configured(value: string | undefined) {
   return Boolean(value && value.trim());
 }
 
-function configuredKeys(...values: Array<string | undefined>) {
-  return [...new Set(values.flatMap((value) => (value || "").split(/[;,\r\n]+/)).map((value) => value.trim()).filter(Boolean))];
-}
-
 function hostLabel(value: string | undefined) {
   if (!value) return "未配置";
   try {
@@ -18,46 +14,28 @@ function hostLabel(value: string | undefined) {
 }
 
 function imageConfig() {
-  const arkKey = process.env.ARK_API_KEY || process.env.VOLCENGINE_API_KEY;
-  if (configured(arkKey)) {
-    return {
-      configured: true,
-      provider: "volcengine",
-      baseUrl: process.env.ARK_BASE_URL || "https://ark.cn-beijing.volces.com/api/v3",
-      model: process.env.ARK_IMAGE_MODEL || "doubao-seedream-5-0-260128",
-      endpoint: "/images/generations"
-    };
-  }
-  const provider = process.env.SANDUN_IMAGE_PROVIDER || "";
-  const usePinchuan = provider.toLowerCase() === "pinchuan" || configured(process.env.PINCHUAN_API_KEYS || process.env.PINCHUAN_API_KEY);
-  const apiKeys = usePinchuan
-    ? configuredKeys(process.env.PINCHUAN_API_KEYS, process.env.PINCHUAN_API_KEY, process.env.OPENAI_API_KEY)
-    : configuredKeys(process.env.OPENAI_IMAGE_API_KEYS, process.env.OPENAI_API_KEY);
+  const configuredLimit = Number(process.env.OPENAI_IMAGE_CONCURRENCY || "3");
   return {
-    configured: apiKeys.length > 0,
-    keyPoolSize: apiKeys.length,
-    concurrencyLimit: Math.min(2, Math.max(1, Math.floor(Number(process.env.SANDUN_IMAGE_CONCURRENCY || "1") || 1))),
-    provider: usePinchuan ? "pinchuan" : configured(process.env.OPENAI_API_KEY) ? "openai-compatible" : "local-fallback",
-    baseUrl: usePinchuan
-      ? process.env.PINCHUAN_API_BASE_URL || process.env.OPENAI_IMAGE_BASE_URL || process.env.OPENAI_BASE_URL || "https://pinchuanapi.tech"
-      : process.env.OPENAI_IMAGE_BASE_URL || process.env.OPENAI_BASE_URL || "https://api.openai.com",
-    model: usePinchuan ? process.env.SANDUN_IMAGE_MODEL || process.env.OPENAI_IMAGE_MODEL || "gpt-image-2" : process.env.OPENAI_IMAGE_MODEL || "gpt-image-1",
-    endpoint: usePinchuan ? process.env.SANDUN_IMAGE_ENDPOINT || "/v1/images/generations" : "/v1/images/generations"
+    configured: configured(process.env.OPENAI_IMAGE_API_KEY),
+    keyPoolSize: configured(process.env.OPENAI_IMAGE_API_KEY) ? 1 : 0,
+    concurrencyLimit: Number.isFinite(configuredLimit) ? Math.min(3, Math.max(1, Math.floor(configuredLimit))) : 3,
+    provider: configured(process.env.OPENAI_IMAGE_API_KEY) ? "openai-compatible" : "unconfigured",
+    baseUrl: process.env.OPENAI_IMAGE_BASE_URL || "https://api.xcode.hk",
+    model: process.env.OPENAI_IMAGE_MODEL || "gpt-image-2",
+    endpoint: process.env.OPENAI_IMAGE_ENDPOINT || "/v1/images/generations",
+    transport: "sse"
   };
 }
 export async function GET() {
-  const textViaPinchuan = !configured(process.env.OPENAI_API_KEY) && configured(process.env.PINCHUAN_API_KEY);
-  const textBaseUrl = textViaPinchuan
-    ? process.env.PINCHUAN_API_BASE_URL || "https://pinchuanapi.tech"
-    : process.env.OPENAI_BASE_URL || "https://api.openai.com";
-  const textModel = textViaPinchuan ? process.env.SANDUN_TEXT_MODEL || process.env.OPENAI_MODEL || "gpt-5.5" : process.env.OPENAI_MODEL || "gpt-5.5";
-  const hasApiKey = configured(process.env.OPENAI_API_KEY) || configured(process.env.PINCHUAN_API_KEY);
+  const textBaseUrl = process.env.OPENAI_BASE_URL || "https://api.openai.com";
+  const textModel = process.env.OPENAI_MODEL || "gpt-5.5";
+  const hasApiKey = configured(process.env.OPENAI_API_KEY);
   const image = imageConfig();
 
   return NextResponse.json({
     text: {
       configured: hasApiKey,
-      provider: hasApiKey ? textViaPinchuan ? "pinchuan-compatible" : "openai-compatible" : "local-fallback",
+      provider: hasApiKey ? "openai-compatible" : "local-fallback",
       host: hostLabel(textBaseUrl),
       model: textModel
     },
@@ -68,7 +46,8 @@ export async function GET() {
       provider: image.provider,
       host: hostLabel(image.baseUrl),
       model: image.model,
-      endpoint: image.endpoint
+      endpoint: image.endpoint,
+      transport: image.transport
     },
     upload: {
       parser: "local-python",

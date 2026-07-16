@@ -23,6 +23,7 @@ export type LayoutSlotContract = {
   maxCharacters?: number;
   maxItems?: number;
   acceptedAspectRatios?: number[];
+  fontSizePt?: number;
 };
 
 export type LayoutContract = {
@@ -57,12 +58,24 @@ export type RenderScene = {
   slideId: string;
   page: number;
   layoutId: string;
+  composition?: {
+    recipeId: string;
+    label: string;
+    family: string;
+    densityLevel: "sparse" | "balanced" | "dense";
+    maxCharacters: number;
+    maxBlocks: number;
+    titlePt: number;
+    bodyMinPt: number;
+    visualStrategy: string;
+    colors: { background: string; ink: string; muted: string; accent: string; soft: string; line: string };
+  };
   canvas: VisualCanvas;
   elements: RenderElement[];
   evidenceSourceIds: string[];
 };
 
-export type VisualQAIssueCode = "OUT_OF_BOUNDS" | "OVERLAP" | "TEXT_OVERFLOW" | "FONT_TOO_SMALL" | "EMPTY_REQUIRED_SLOT" | "UNEDITABLE_CORE_CONTENT";
+export type VisualQAIssueCode = "OUT_OF_BOUNDS" | "OVERLAP" | "TEXT_OVERFLOW" | "FONT_TOO_SMALL" | "EMPTY_REQUIRED_SLOT" | "UNEDITABLE_CORE_CONTENT" | "UNANCHORED_VISUAL" | "DENSITY_BUDGET_EXCEEDED" | "UNDERFILLED_COMPOSITION" | "REPETITIVE_COMPOSITION";
 export type VisualQAIssue = { issueId: string; sceneId: string; slideId: string; severity: "error" | "warning"; code: VisualQAIssueCode; message: string; elementIds: string[] };
 export type VisualQAReport = { schemaVersion: "teacher-visual-qa/v1"; status: "passed" | "review_required" | "failed"; sceneCount: number; errorCount: number; warningCount: number; issues: VisualQAIssue[] };
 export type VisualCompileInput = { design: VisualDesignSpec; layouts: LayoutContract[]; scenes: RenderScene[] };

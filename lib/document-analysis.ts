@@ -20,6 +20,14 @@ export type DocumentPage = {
   blocks: DocumentBlock[];
 };
 
+export type DocumentChunk = {
+  id: string;
+  text: string;
+  page?: number;
+  slide?: number;
+  heading?: string;
+};
+
 export type DocumentAnalysis = {
   fileName: string;
   fileType: string;
@@ -32,6 +40,9 @@ export type DocumentAnalysis = {
   sourceKind: "pdf" | "docx" | "pptx" | "text" | "image" | "unknown";
   parseStatus?: "parsed" | "partial" | "failed" | "unsupported";
   warnings?: string[];
+  parser?: "officeparser" | "python" | "native";
+  chunks?: DocumentChunk[];
+  metadata?: Record<string, unknown>;
 };
 
 export type UploadedArtifact = {
@@ -40,6 +51,9 @@ export type UploadedArtifact = {
   status: "uploading" | "uploaded" | "error";
   mimeType?: string;
   analysis?: DocumentAnalysis;
+  assetId?: string;
+  sha256?: string;
+  storageStatus?: "persisted" | "temporary";
 };
 
 export function emptyAnalysis(fileName: string, fileType = "unknown"): DocumentAnalysis {
@@ -68,6 +82,9 @@ export function compactAnalysisForPrompt(analysis: DocumentAnalysis | undefined,
     blockCount: analysis.blockCount,
     summary: analysis.summary,
     outlineSuggestions: analysis.outlineSuggestions.slice(0, 10),
+    parser: analysis.parser,
+    chunks: (analysis.chunks || []).slice(0, 60),
+    metadata: analysis.metadata,
     pages: analysis.pages.slice(0, maxPages).map((page) => ({
       page: page.page,
       title: page.title,

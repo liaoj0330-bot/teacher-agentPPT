@@ -9,6 +9,7 @@ import { bingProvider } from "@/lib/ppt-agent/search-providers/bing-provider";
 import { braveProvider } from "@/lib/ppt-agent/search-providers/brave-provider";
 import { serperProvider } from "@/lib/ppt-agent/search-providers/serper-provider";
 import { tavilyProvider } from "@/lib/ppt-agent/search-providers/tavily-provider";
+import { enforceSearchRelevance } from "@/lib/ppt-agent/search-relevance";
 
 const providers: Partial<Record<PublicSearchProviderName, PublicSearchProvider>> = {
   tavily: tavilyProvider,
@@ -41,8 +42,9 @@ export async function runPublicSearch(query: PublicSearchQuery) {
       warnings: ["PUBLIC_SEARCH_PROVIDER 未配置为可用 provider。"]
     });
   }
-  return provider.search({
+  const response = await provider.search({
     ...query,
     maxResults: query.maxResults || config.maxResults
   });
+  return enforceSearchRelevance(response);
 }

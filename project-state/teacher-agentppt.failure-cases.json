@@ -1,6 +1,6 @@
 {
   "schemaVersion": "teacher-agentppt-failure-library/v1",
-  "updatedAt": "2026-07-15T05:10:00+08:00",
+  "updatedAt": "2026-07-16T14:30:00+08:00",
   "cases": [
     {
       "id": "FC-001-WRONG-ENTRY",
@@ -145,6 +145,69 @@
       "detection": "导出前运行 RenderScene 与 Visual QA；检查每个槽位估算文本高度和页面角色对应 layoutId",
       "resolution": "按比例把 blocks 均匀分配到有效文本槽；调整 chapter_prep 角色的锁定布局映射",
       "prevention": "teacher-render-scene:test 加上多块内容分配回归，完整按钮验收必须导出 HTTP 200"
+    },
+    {
+      "id": "FC-017-SYNCHRONOUS-LONG-IMAGE-JOB",
+      "status": "candidate",
+      "fingerprint": "逐页图片单张需 1–2 分钟，整套生成长期占用单个 HTTP 或浏览器等待，最终超时或无响应",
+      "rootCause": "分钟级外部任务被设计成同步请求，没有任务状态机",
+      "detection": "比较单页供应商耗时、总页数、接口超时和客户端等待窗口",
+      "resolution": "异步提交 taskId，后台受控并发执行，前端轮询或订阅进度",
+      "prevention": "长任务接口时延门禁 + 中断后任务仍可查询回归"
+    },
+    {
+      "id": "FC-018-SILENT-PROVIDER-FALLBACK",
+      "status": "candidate",
+      "fingerprint": "接口返回成功或页面出现图片，但实际来自本地 fallback 而非指定远程供应商",
+      "rootCause": "成功语义没有区分远程成功、降级和失败",
+      "detection": "核对 provider、requestId、响应类型、图片字节和版本资产记录",
+      "resolution": "统一结果枚举 remote_success/fallback/failed；真实模式下可配置禁止 fallback",
+      "prevention": "供应商契约测试与 UI 来源标识断言"
+    },
+    {
+      "id": "FC-019-WHOLE-DECK-RETRY",
+      "status": "candidate",
+      "fingerprint": "某一页失败后整套图片从第一页重新生成，重复消耗模型额度和时间",
+      "rootCause": "页面状态和资产未及时持久化，任务没有幂等键",
+      "detection": "检查同一版本同一页面是否出现重复供应商调用和多个无效资产",
+      "resolution": "以 versionId + slideId + promptHash 建立幂等任务；只重试 failed 页面",
+      "prevention": "中途失败恢复测试必须证明已完成页面零重复调用"
+    },
+    {
+      "id": "FC-020-LOCAL-ARTIFACT-AS-PRODUCT-PROOF",
+      "status": "candidate",
+      "fingerprint": "真实网页链失败后改用 Python/PIL 生成单个 PPTX，并把文件存在描述为产品闭环",
+      "rootCause": "替代交付物与产品真实路径的验收层级混淆",
+      "detection": "检查产物是否经过主入口、远程模型、CoursewareVersion、RenderScene 和 Artifact 链",
+      "resolution": "本地产物只登记为样例；产品完成必须回到主入口真实链验收",
+      "prevention": "产物证据必须标记 sourcePath 和 acceptanceScope"
+    },
+    {
+      "id": "FC-021-PPTX-PARSE-ONLY-ACCEPTANCE",
+      "status": "candidate",
+      "fingerprint": "只确认 PPTX 可解析、页数和图片尺寸，就宣告视觉成品完成",
+      "rootCause": "结构检查替代了渲染和人类可见质量检查",
+      "detection": "检查是否存在逐页渲染图、空白页、文字溢出、重叠和图片版本一致性报告",
+      "resolution": "导出后自动渲染逐页 PNG 并执行结构、视觉和版本一致性门禁",
+      "prevention": "没有 render report 时成品状态不得超过 verification"
+    },
+    {
+      "id": "FC-022-UNBOUNDED-IMAGE-ACCEPTANCE-COST",
+      "status": "candidate",
+      "fingerprint": "为了判断图片是否稳定而重复运行完整课件，短时间产生大量成功图片和重试，供应商余额被快速消耗",
+      "rootCause": "没有在真实模型验收前设置预算、最大成功图片数和停止条件；把完整流程当作最小探针",
+      "detection": "统计本轮计划图片数、成功图片数、上游 attempts、预计费用、剩余额度和重复 slideId",
+      "resolution": "按单张探针、小批次并发、一次完整流程三级放量；每轮写明预算和最大成功图片数",
+      "prevention": "真实图片测试默认最大成功 1 张；扩大前必须显式批准预算，已完成资产使用幂等键复用"
+    },
+    {
+      "id": "FC-023-SUBJECT-SELECTOR-AS-QUALITY-PROOF",
+      "status": "candidate",
+      "fingerprint": "界面能够选择物理、化学等学科，就把产品描述为能够稳定完成这些学科的教学策划",
+      "rootCause": "输入支持、通用策划和学科深度验收没有分层",
+      "detection": "检查是否有真实教材、学科动作、禁用词、事实正确性、页面差异和教师验收报告",
+      "resolution": "建立跨学科真实教材矩阵；每个学科验证独有教学动作，而不只比较标题",
+      "prevention": "README、状态卡和产品文案必须分别标记 supported、partially_verified、verified"
     }
   ]
 }

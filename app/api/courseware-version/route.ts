@@ -3,6 +3,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { loadFullVersion } from "@/lib/courseware-version";
 import type { CommitInput } from "@/lib/courseware-commit";
 import { commitCoursewareVersion, COMMIT_OPERATIONS } from "@/lib/courseware-commit";
+import { scoreTeacherDeckV3 } from "@/lib/teacher-deck-scoring-v3";
+import type { SourceDocument, SlideEvidenceMap } from "@/lib/ppt-agent/evidence-types";
 
 /**
  * GET /api/courseware-version?projectId=&versionId=
@@ -30,6 +32,17 @@ export async function GET(request: Request) {
     const status = source.reason === "forbidden" ? 403 : 404;
     return NextResponse.json({ message: `无法读取版本：${source.reason}` }, { status });
   }
+  const teacherScoreV3 = scoreTeacherDeckV3({
+    scene: "teacher_courseware",
+    task: source.task,
+    sources: source.sourceDocuments as SourceDocument[],
+    evidenceMaps: source.evidence as SlideEvidenceMap[],
+    slides: source.slides.map((slide, index) => ({ page: index + 1, id: slide.id, role: slide.pageIntent, title: slide.title, body: slide.subtitle, bullets: slide.bullets, layout: slide.layout })),
+    engineering: { geometryPassed: source.engineeringStatus === "passed" },
+    subjectReview: { completed: false },
+    imageSemanticReview: { completed: false },
+    teacherTrial: { trialCompleted: source.teacherReadiness === "ready_for_teacher", reviewedByTeacher: source.teacherReadiness === "ready_for_teacher" },
+  });
 
   return NextResponse.json({
     projectId: source.projectId,
@@ -50,6 +63,9 @@ export async function GET(request: Request) {
     deckSpecHash: source.deckSpecHash,
     isCurrent: source.isCurrent,
     createdAt: source.createdAt,
+    renderManifest: source.renderManifest,
+    renderManifestArtifactId: source.renderManifestArtifactId,
+    teacherScoreV3,
   });
 }
 

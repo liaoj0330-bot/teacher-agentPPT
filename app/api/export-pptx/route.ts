@@ -12,7 +12,15 @@ import { loadExportSource, writeCoursewareArtifact } from "@/lib/courseware-vers
 import { computeDeckSpecHash } from "@/lib/deck-spec";
 import { buildExportVisualTruth } from "@/lib/visual-compiler/export-visual-truth";
 import { addRenderScenesToPptx } from "@/lib/visual-compiler/pptx-scene-renderer";
+import { inspectPptxArtifact } from "@/lib/visual-compiler/pptx-artifact-qa";
+import { validateVisualManifest } from "@/lib/visual-compiler/visual-manifest";
+import { evaluateVisualDelivery } from "@/lib/visual-compiler/visual-delivery-policy";
 import type { RenderScene } from "@/lib/visual-compiler/contracts";
+import { scoreTeacherDeckV2 } from "@/lib/teacher-deck-scoring";
+import { scoreTeacherDeckV3 } from "@/lib/teacher-deck-scoring-v3";
+import type { SlideEvidenceMap } from "@/lib/ppt-agent/evidence-types";
+import { prisma } from "@/lib/db";
+import { clonePptxPreservingSource, comparePptxStructure } from "@/lib/pptx-automizer-adapter";
 
 const W = 13.333;
 const H = 7.5;
@@ -1100,7 +1108,7 @@ async function renderDeckToBuffer(
 
   let pageCount = 0;
   if (visualScenes?.length) {
-    addRenderScenesToPptx(pptx, visualScenes);
+    addRenderScenesToPptx(pptx, visualScenes, visuals);
     pageCount = visualScenes.length;
   } else if (project.contentPlan?.playbookId === "teacher_math_science_v1") {
     addTeacherMathCover(pptx, project, profile, slides[0], visuals);
@@ -1332,6 +1340,90 @@ async function handleVersionedExport(body: {
     );
   }
 
+  if (artifactType === "pptx" && taskContext.generationMode === "optimize_existing" && taskContext.beautifyOptions?.intensity === "preserve") {
+    const sourceAssetId = taskContext.beautifyOptions.sourceAssetId;
+    const sourceAsset = sourceAssetId ? await prisma.sourceAsset.findFirst({ where: { id: sourceAssetId, userId: user.id, fileType: "pptx" } }) : null;
+    if (!sourceAsset) {
+      return NextResponse.json({ message: "保守优化缺少可追溯的原始 PPTX，请重新上传原稿", reason: "beautify_source_asset_missing" }, { status: 422 });
+    }
+    const buffer = await clonePptxPreservingSource(sourceAsset.storagePath);
+    const fidelity = await comparePptxStructure(sourceAsset.storagePath, buffer);
+    if (!fidelity.ok) {
+      await writeCoursewareArtifact({ projectId: source.projectId, versionId: source.versionId, artifactType: "pptx", status: "failed", sourceDeckSpecHash: source.deckSpecHash, errorDetail: `beautify_fidelity_failed:${fidelity.issues.join(",")}`, manifestJson: { fidelity, commercialReady: false } });
+      return NextResponse.json({ message: "原稿保真检查失败，已阻止导出", reason: "beautify_fidelity_failed", fidelity }, { status: 422 });
+    }
+    const fileName = `${cleanFileName(taskContext.topic || sourceAsset.fileName.replace(/\.pptx$/i, ""))}-保真优化版.pptx`;
+    const artifact = await writeCoursewareArtifact({
+      projectId: source.projectId,
+      versionId: source.versionId,
+      artifactType: "pptx",
+      status: "ready",
+      sourceDeckSpecHash: source.deckSpecHash,
+      storagePath: fileName,
+      manifestJson: { deliveryClass: decision.deliveryClass, beautifyEngine: "pptx-automizer", beautifyIntensity: "preserve", sourceAssetId, fidelity, commercialReady: false },
+    });
+    return new NextResponse(buffer as BodyInit, { headers: {
+      "Content-Type": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      "Content-Disposition": `attachment; filename="Teacher-PPT.pptx"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
+      "X-Courseware-Artifact-Id": artifact.artifactId,
+      "X-Delivery-Class": decision.deliveryClass,
+      "X-Deck-Spec-Hash": source.deckSpecHash,
+      "X-Page-Count": String(fidelity.candidate.slideCount),
+    } });
+  }
+
+  const expectedVisualIds = source.slides.map((slide) => slide.id).filter((id): id is string => Boolean(id));
+  const visualDelivery = evaluateVisualDelivery(expectedVisualIds, source.renderManifest);
+  const { committedVisualIds, missingVisualIds, mode: visualDeliveryMode } = visualDelivery;
+  if (!visualDelivery.allowed) {
+    await writeCoursewareArtifact({
+      projectId: source.projectId,
+      versionId: source.versionId,
+      artifactType,
+      status: "failed",
+      sourceDeckSpecHash: source.deckSpecHash,
+      errorDetail: `render_manifest_incomplete:${missingVisualIds.length}`,
+      manifestJson: {
+        reason: "render_manifest_incomplete",
+        expectedVisuals: expectedVisualIds.length,
+        committedVisuals: expectedVisualIds.length - missingVisualIds.length,
+        missingVisualIds,
+        commercialReady: false
+      }
+    });
+    return NextResponse.json(
+      {
+        message: `页面视觉未完整生成：已有 ${expectedVisualIds.length - missingVisualIds.length}/${expectedVisualIds.length} 页，请先重试失败页`,
+        reason: "render_manifest_incomplete",
+        expectedVisuals: expectedVisualIds.length,
+        committedVisuals: expectedVisualIds.length - missingVisualIds.length,
+        missingVisualIds
+      },
+      { status: 422 }
+    );
+  }
+
+  // A deck with no generated images is valid: the Scene compiler renders
+  // editable native teaching visuals. Once any generated image is committed,
+  // the manifest must remain all-or-nothing so partial generation is never
+  // presented as a complete visual deck.
+  const visualManifestQA = validateVisualManifest(visualDeliveryMode === "native_fallback" ? [] : expectedVisualIds, source.renderManifest);
+  if (!visualManifestQA.ok) {
+    await writeCoursewareArtifact({
+      projectId: source.projectId,
+      versionId: source.versionId,
+      artifactType,
+      status: "failed",
+      sourceDeckSpecHash: source.deckSpecHash,
+      errorDetail: `render_manifest_invalid:${visualManifestQA.issues.length}`,
+      manifestJson: { reason: "render_manifest_invalid", visualManifestQA, commercialReady: false }
+    });
+    return NextResponse.json(
+      { message: "页面视觉包含空图、占位图或不可读取的图片，已阻止导出", reason: "render_manifest_invalid", visualManifestQA },
+      { status: 422 }
+    );
+  }
+
   // 5. Reconstruct a render input from the FROZEN data only. The client-submitted
   //    project / slides / DeckSpec are never consulted here. contentPlan is a
   //    render hint (playbook routing + teacherContext labels); deckSpec + slides
@@ -1349,7 +1441,7 @@ async function handleVersionedExport(body: {
   // Build renderer-independent visual truth from the same frozen DeckSpec and
   // slides used by the PPTX renderer. Hard geometry/editability failures block
   // delivery before a misleading artifact can be recorded as ready.
-  const visualTruth = buildExportVisualTruth(source.deckSpec, source.slides);
+  const visualTruth = buildExportVisualTruth(source.deckSpec, source.slides, source.renderManifest);
   if (visualTruth.qa.status === "failed") {
     await writeCoursewareArtifact({
       projectId: source.projectId,
@@ -1358,16 +1450,20 @@ async function handleVersionedExport(body: {
       status: "failed",
       sourceDeckSpecHash: source.deckSpecHash,
       errorDetail: `visual_qa_failed:${visualTruth.qa.errorCount}`,
-      manifestJson: { visualTruth, deliveryClass: decision.deliveryClass, commercialReady: false }
+      manifestJson: { visualTruth, visualManifestQA, deliveryClass: decision.deliveryClass, commercialReady: false }
     });
     return NextResponse.json({ message: "视觉编译检查失败，已阻止导出", reason: "visual_qa_failed", visualQA: visualTruth.qa }, { status: 422 });
   }
 
   // 6. Render + record. Any render failure is recorded as a failed artifact.
+  // Provider-backed visuals are read from the committed version artifact; the
+  // request body cannot replace them with stale or uncommitted images.
+  const visuals: ExportVisuals | undefined = Object.keys(source.renderManifest).length
+    ? { slides: source.renderManifest }
+    : undefined;
   let buffer: Buffer;
   let pageCount: number;
   try {
-    const visuals = body.visuals as ExportVisuals | undefined;
     const rendered = await renderDeckToBuffer(renderProject, profile, source.slides, [], visuals, visualTruth.scenes);
     buffer = rendered.buffer;
     pageCount = rendered.pageCount;
@@ -1380,10 +1476,61 @@ async function handleVersionedExport(body: {
       status: "failed",
       sourceDeckSpecHash: source.deckSpecHash,
       errorDetail: `渲染失败：${detail}`,
-      manifestJson: { visualTruth, deliveryClass: decision.deliveryClass, commercialReady: false }
+      manifestJson: { visualTruth, visualManifestQA, deliveryClass: decision.deliveryClass, commercialReady: false }
     });
     return NextResponse.json({ message: "PPTX 渲染失败", reason: "render_failed", detail }, { status: 500 });
   }
+
+  const artifactQA = await inspectPptxArtifact(buffer, visualTruth.scenes);
+  if (!artifactQA.ok) {
+    await writeCoursewareArtifact({
+      projectId: source.projectId,
+      versionId: source.versionId,
+      artifactType,
+      status: "failed",
+      sourceDeckSpecHash: source.deckSpecHash,
+      errorDetail: `pptx_artifact_qa_failed:${artifactQA.issues.length}`,
+      manifestJson: { visualTruth, visualManifestQA, artifactQA, deliveryClass: decision.deliveryClass, commercialReady: false }
+    });
+    return NextResponse.json({ message: "PPTX 原生对象检查失败，已阻止交付", reason: "pptx_artifact_qa_failed", artifactQA }, { status: 422 });
+  }
+
+  const exportScoreV2 = scoreTeacherDeckV2({
+    scene: "teacher_courseware",
+    topic: renderProject.title,
+    slides: source.slides.map((slide, index) => ({ page: index + 1, id: slide.id, role: slide.pageIntent, title: slide.title, body: slide.subtitle, bullets: slide.bullets, layout: slide.layout })),
+    engineering: {
+      rendered: false,
+      screenshots: false,
+      ooxmlEditable: artifactQA.ooxmlEditable,
+      geometryPassed: visualTruth.qa.status === "passed",
+      editableObjectCoverage: artifactQA.editableObjectCoverage,
+      imageCoverageMax: artifactQA.imageCoverageMax,
+      nativeTextObjects: artifactQA.nativeTextObjects
+    },
+    visualReview: { completed: false },
+    teacherTrial: { trialCompleted: source.teacherReadiness === "ready_for_teacher", reviewedByTeacher: source.teacherReadiness === "ready_for_teacher" }
+  });
+  const exportScoreV3 = scoreTeacherDeckV3({
+    scene: "teacher_courseware",
+    topic: renderProject.title,
+    task: source.teacherTask,
+    sources: source.sourceDocuments,
+    evidenceMaps: source.evidence as SlideEvidenceMap[],
+    slides: source.slides.map((slide, index) => ({ page: index + 1, id: slide.id, role: slide.pageIntent, title: slide.title, body: slide.subtitle, bullets: slide.bullets, layout: slide.layout })),
+    engineering: {
+      rendered: false,
+      screenshots: false,
+      ooxmlEditable: artifactQA.ooxmlEditable,
+      geometryPassed: visualTruth.qa.status === "passed",
+      editableObjectCoverage: artifactQA.editableObjectCoverage,
+      imageCoverageMax: artifactQA.imageCoverageMax,
+      nativeTextObjects: artifactQA.nativeTextObjects,
+    },
+    subjectReview: { completed: false },
+    imageSemanticReview: { completed: false },
+    teacherTrial: { trialCompleted: source.teacherReadiness === "ready_for_teacher", reviewedByTeacher: source.teacherReadiness === "ready_for_teacher" },
+  });
 
   // 7. Write the real CoursewareArtifact for the successful PPTX.
   const fileName = `${cleanFileName(renderProject.title || "AI-PPT-Agent")}.pptx`;
@@ -1401,6 +1548,11 @@ async function handleVersionedExport(body: {
       teacherReadiness: source.teacherReadiness,
       deckSpecHash: source.deckSpecHash,
       versionNumber: source.versionNumber,
+      visualDeliveryMode,
+      visualManifestQA,
+      artifactQA,
+      exportScoreV2,
+      exportScoreV3,
       visualTruth,
       commercialReady: false
     }
@@ -1416,7 +1568,7 @@ async function handleVersionedExport(body: {
       status: "ready",
       sourceDeckSpecHash: source.deckSpecHash,
       sourceArtifactId: pptxArtifact.artifactId,
-      manifestJson: { pageCount, visualTruth, deliveryClass: decision.deliveryClass, commercialReady: false }
+      manifestJson: { pageCount, visualDeliveryMode, visualTruth, visualManifestQA, artifactQA, exportScoreV2, deliveryClass: decision.deliveryClass, commercialReady: false }
     });
   }
 
@@ -1429,7 +1581,8 @@ async function handleVersionedExport(body: {
       "X-Artifact-Id": pptxArtifact.artifactId,
       "X-Deck-Spec-Hash": source.deckSpecHash,
       "X-Visual-QA": visualTruth.qa.status,
-      "X-Page-Count": String(pageCount)
+      "X-Page-Count": String(pageCount),
+      "X-Visual-Delivery-Mode": visualDeliveryMode
     }
   });
 }

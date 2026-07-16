@@ -32,6 +32,9 @@ export type EvidencePriority = "high" | "medium" | "low";
 
 export type SourceDocument = {
   sourceId: string;
+  assetId?: string;
+  sha256?: string;
+  storageStatus?: "persisted" | "temporary";
   sourceType: SourceDocumentType;
   fileType: SourceFileType;
   title: string;
@@ -48,6 +51,7 @@ export type SourceDocument = {
   confidence: number;
   parseStatus: SourceParseStatus;
   warnings: string[];
+  chunks?: Array<{ id: string; text: string; page?: number; slide?: number; heading?: string }>;
 };
 
 export type EvidenceBlock = {

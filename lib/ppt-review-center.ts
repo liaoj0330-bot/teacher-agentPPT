@@ -8,6 +8,7 @@ import type { LayoutPlan } from "@/lib/ppt-agent/layout-plan";
 import { detectPPTTypeContract } from "@/lib/ppt-agent/type-contracts";
 import type { RecommendedVisualForm, SlidePagePlan } from "@/lib/ppt-agent/slide-page-plan";
 import type { TeacherDeckScoreReportV2 } from "@/lib/teacher-deck-scoring";
+import type { TeacherDeckScoreReportV3 } from "@/lib/teacher-deck-scoring-v3";
 import { findInternalFieldMatches, findScaffoldMatches } from "@/lib/ppt-agent/slide-content-validator";
 import { compactForDesign, getDesignProfile, layoutForSlide, profileForPrompt, visualPromptForSlide } from "@/lib/ppt-design-system";
 import { pptTypeLabels, pptTypeRuleSeeds, type PPTType, type RequiredPageSeed, type RuleDimensionSeed } from "@/lib/ppt-review-rulebase";
@@ -169,6 +170,7 @@ export type ReviewCenterState = {
   lastPageFixSummary?: PageReviewFixSummary;
   /** Development-only diagnostic. It is never a formal Review Center conclusion or export gate. */
   teacherScoreV2Shadow?: TeacherDeckScoreReportV2;
+  teacherScoreV3?: TeacherDeckScoreReportV3;
 };
 
 const persistedRulesPath = path.join(process.cwd(), "data", "ppt-review-rules.json");

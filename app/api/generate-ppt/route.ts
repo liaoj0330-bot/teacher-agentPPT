@@ -8,6 +8,7 @@ import { ensureProjectQuality } from "@/lib/project-quality";
 import { attachDeckSpec } from "@/lib/deck-spec";
 import { applyContentPlanToReviewCenter, applyEvidenceReportToReviewCenter, applyLayoutPlansToReviewCenter, applyPlanningAuditToProject, applySlidePagePlansToReviewCenter, detectPPTType, initializeReviewCenter, persistDeductionRules, reviewGeneratedProject } from "@/lib/ppt-review-center";
 import { scoreTeacherDeckV2 } from "@/lib/teacher-deck-scoring";
+import { scoreTeacherDeckV3 } from "@/lib/teacher-deck-scoring-v3";
 import { createContentPlan } from "@/lib/ppt-agent/content-planner";
 import { createDeckLayoutPlans } from "@/lib/ppt-agent/deck-layout-planner";
 import { createBeautifyPlan } from "@/lib/ppt-agent/beautify-plan";
@@ -417,7 +418,12 @@ export async function POST(request: Request) {
 
   const typeDetection = detectPPTType(prompt, uploadedAssets);
   const beautifyPlan = mode === "beautify"
-    ? createBeautifyPlan({ analysis: getUploadedAnalysis(uploadedFile), prompt })
+    ? createBeautifyPlan({
+        analysis: getUploadedAnalysis(uploadedFile),
+        prompt,
+        intensity: teacherTask?.beautifyOptions?.intensity,
+        sourceAssetId: teacherTask?.beautifyOptions?.sourceAssetId,
+      })
     : undefined;
   const { contentPlan, validation: contentPlanValidation } = createContentPlan({
     prompt,
@@ -618,6 +624,18 @@ export async function POST(request: Request) {
     })),
     teacherTrial: { trialCompleted: false, reviewedByTeacher: false }
   }) : undefined;
+  const teacherScoreV3 = scenario === "teacher_courseware" ? scoreTeacherDeckV3({
+    scene: scenario,
+    topic: prompt,
+    task: teacherTask,
+    sources: sourceDocuments,
+    evidenceMaps: slideEvidenceMaps,
+    slides: plannedProject.slides.map((slide, index) => ({
+      page: index + 1, id: slide.id, role: slide.pageIntent, title: slide.title,
+      body: slide.subtitle, bullets: slide.bullets, layout: slide.layout
+    })),
+    teacherTrial: { trialCompleted: false, reviewedByTeacher: false },
+  }) : undefined;
   persistDeductionRules(postReview);
   const finalProject = ensureProjectQuality(attachDeckSpec({
     ...plannedProject,
@@ -639,7 +657,8 @@ export async function POST(request: Request) {
     reviewCenter: {
       ...reviewCenter,
       postReview,
-      teacherScoreV2Shadow
+      teacherScoreV2Shadow,
+      teacherScoreV3
     }
   }, { ...reviewCenter, postReview }));
 
@@ -677,6 +696,7 @@ export async function POST(request: Request) {
         teacherReadiness: trReadiness,
         requestedProjectId,
         requestType: requestedProjectId ? "regenerate" : "initial_generate",
+        sourceDocuments,
       });
     } catch (e) {
       // Non-blocking: CoursewareVersion creation failure does not block the response
@@ -691,6 +711,7 @@ export async function POST(request: Request) {
           ...finalProject.quality,
           engineeringScore: finalProject.quality.score,
           teacherReadinessScore: teacherScoreV2Shadow.scores.pedagogy,
+          classroomReadinessScore: teacherScoreV3?.scores.total,
           commercialReady: false as const,
         }
       : finalProject.quality;

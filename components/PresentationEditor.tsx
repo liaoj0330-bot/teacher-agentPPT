@@ -10,7 +10,7 @@ import type { ExportGateResult } from "@/lib/export-quality-gate";
 import { layoutLabel } from "@/lib/ppt-labels";
 import { cn } from "@/lib/utils";
 import { BrowserSceneRenderer } from "@/components/BrowserSceneRenderer";
-import { buildProjectVisualTruth } from "@/lib/visual-compiler/project-visual-truth";
+import { buildProjectVisualTruth, mapGeneratedVisualsToSlides } from "@/lib/visual-compiler/project-visual-truth";
 
 type GeneratedVisuals = {
   cover?: string;
@@ -455,11 +455,11 @@ export function SlideCanvas({ project, activeIndex, generatedVisuals, compact = 
   const visualTruth = useMemo(() => {
     if (!isTeacherCourseware || !project.deckSpec) return null;
     try {
-      return buildProjectVisualTruth(project.deckSpec, project.slides);
+      return buildProjectVisualTruth(project.deckSpec, project.slides, mapGeneratedVisualsToSlides(project.slides, generatedVisuals));
     } catch {
       return null;
     }
-  }, [isTeacherCourseware, project.deckSpec, project.slides]);
+  }, [generatedVisuals, isTeacherCourseware, project.deckSpec, project.slides]);
   const scene = visualTruth?.scenes.find((item) => item.slideId === slide?.id) || visualTruth?.scenes[activeIndex];
 
   return (

@@ -13,13 +13,13 @@ function slotKind(value: string): LayoutSlotKind {
   const normalized = clean(value);
   if (/title|ctrtitle/.test(normalized)) return "title";
   if (/subtitle/.test(normalized)) return "subtitle";
-  if (/pic|image|photo/.test(normalized)) return "image";
+  if (/pic|image|photo|visual|illustration/.test(normalized)) return "image";
   if (/chart|graph/.test(normalized)) return "chart";
   if (/table/.test(normalized)) return "table";
   if (/formula|equation/.test(normalized)) return "formula";
-  if (/student|practice|answer|feedback|interaction/.test(normalized)) return "interaction";
-  if (/body|content|text|obj/.test(normalized)) return "body";
-  if (/date|footer|sldnum|slide number|meta/.test(normalized)) return "meta";
+  if (/student|practice|answer|feedback|interaction|check|decision|action|prompt|question|assignment|task|peer/.test(normalized)) return "interaction";
+  if (/date|footer|sldnum|slide number|meta|source|evidence|pagecount/.test(normalized)) return "meta";
+  if (/body|content|text|obj|claim|point|card|row|case|step|structure|thread|audience|goal|tag|metric|layer|module|owner|input|output|milestone|note|hint|risk|severity|result|index|keyword|conclusion|definition|known|property|context|legend|extension/.test(normalized)) return "body";
   return "unknown";
 }
 

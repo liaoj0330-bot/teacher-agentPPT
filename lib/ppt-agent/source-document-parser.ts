@@ -80,6 +80,9 @@ function textFromAnalysis(analysis: DocumentAnalysis | undefined) {
 
 function makeDocument(input: {
   sourceId: string;
+  assetId?: string;
+  sha256?: string;
+  storageStatus?: SourceDocument["storageStatus"];
   sourceType: SourceDocumentType;
   fileType?: SourceFileType;
   title: string;
@@ -91,10 +94,14 @@ function makeDocument(input: {
   confidence?: number;
   parseStatus?: SourceParseStatus;
   warnings?: string[];
+  chunks?: SourceDocument["chunks"];
 }): SourceDocument {
   const rawText = cleanBodyText(cleanText(input.rawText), input.fileType || "unknown");
   return {
     sourceId: input.sourceId,
+    assetId: input.assetId,
+    sha256: input.sha256,
+    storageStatus: input.storageStatus,
     sourceType: input.sourceType,
     fileType: input.fileType || "unknown",
     title: cleanText(input.title, input.fileName || input.url || input.sourceId),
@@ -107,7 +114,8 @@ function makeDocument(input: {
     extractedAt: new Date().toISOString(),
     confidence: clampEvidenceScore(input.confidence ?? 50),
     parseStatus: input.parseStatus || (rawText ? "parsed" : "partial"),
-    warnings: (input.warnings || []).map((item) => cleanText(item)).filter(Boolean)
+    warnings: (input.warnings || []).map((item) => cleanText(item)).filter(Boolean),
+    chunks: input.chunks,
   };
 }
 
@@ -145,7 +153,10 @@ function uploadedAssetToDocument(asset: unknown, index: number): SourceDocument 
   ].filter(Boolean);
 
   return makeDocument({
-    sourceId: cleanText(record.id, safeId("uploaded-source", index)),
+    sourceId: cleanText(record.assetId || record.id, safeId("uploaded-source", index)),
+    assetId: cleanText(record.assetId),
+    sha256: cleanText(record.sha256),
+    storageStatus: record.storageStatus === "persisted" ? "persisted" : "temporary",
     sourceType: "uploaded_file",
     fileType,
     title: name,
@@ -154,7 +165,8 @@ function uploadedAssetToDocument(asset: unknown, index: number): SourceDocument 
     rawText,
     confidence: parseStatus === "parsed" ? 86 : parseStatus === "partial" ? 58 : 34,
     parseStatus,
-    warnings
+    warnings,
+    chunks: analysis?.chunks,
   });
 }
 

@@ -20,7 +20,9 @@ function chartRows(data: unknown) {
   });
 }
 
-function addTextElement(slide: pptxgen.Slide, element: Extract<RenderElement, { kind: "text" }>) {
+type SceneColors = NonNullable<RenderScene["composition"]>["colors"];
+
+function addTextElement(slide: pptxgen.Slide, element: Extract<RenderElement, { kind: "text" }>, colors?: SceneColors) {
   slide.addText(element.text || "", {
     x: element.bounds.x,
     y: element.bounds.y,
@@ -29,11 +31,11 @@ function addTextElement(slide: pptxgen.Slide, element: Extract<RenderElement, { 
     fontFace: "Microsoft YaHei",
     fontSize: element.fontSizePt || (element.role === "title" ? 28 : 17),
     bold: element.role === "title",
-    color: element.role === "meta" ? COLORS.muted : COLORS.ink,
+    color: (element.role === "meta" ? colors?.muted : colors?.ink) || (element.role === "meta" ? COLORS.muted : COLORS.ink),
     margin: 0.04,
-    breakLine: true,
+    wrap: true,
     valign: element.role === "title" ? "middle" : "top",
-    fit: "shrink"
+    paraSpaceAfter: element.role === "body" ? 5 : 0
   });
 }
 
@@ -69,8 +71,8 @@ function addChartElement(pptx: pptxgen, slide: pptxgen.Slide, element: Extract<R
   });
 }
 
-function addElement(pptx: pptxgen, slide: pptxgen.Slide, element: RenderElement) {
-  if (element.kind === "text") return addTextElement(slide, element);
+function addElement(pptx: pptxgen, slide: pptxgen.Slide, element: RenderElement, colors?: SceneColors) {
+  if (element.kind === "text") return addTextElement(slide, element, colors);
   if (element.kind === "table") return addTableElement(pptx, slide, element);
   if (element.kind === "chart") return addChartElement(pptx, slide, element);
   if (element.kind === "image") {
@@ -83,13 +85,30 @@ function addElement(pptx: pptxgen, slide: pptxgen.Slide, element: RenderElement)
 }
 
 /** Render every scene as native, editable PowerPoint objects. */
-export function addRenderScenesToPptx(pptx: pptxgen, scenes: RenderScene[]) {
+export function addRenderScenesToPptx(
+  pptx: pptxgen,
+  scenes: RenderScene[],
+  visuals?: { cover?: string; slides?: Record<string, string> }
+) {
   [...scenes].sort((left, right) => left.page - right.page).forEach((scene) => {
     const slide = pptx.addSlide();
-    slide.background = { color: "F7FAFF" };
-    slide.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: scene.canvas.width, h: scene.canvas.height, fill: { color: "F7FAFF" }, line: { color: "F7FAFF" } });
-    slide.addShape(pptx.ShapeType.ellipse, { x: scene.canvas.width - 4.3, y: -1.05, w: 4.8, h: 4.1, fill: { color: "DCE9FF", transparency: 42 }, line: { color: "DCE9FF", transparency: 100 } });
-    [...scene.elements].sort((left, right) => left.zIndex - right.zIndex).forEach((element) => addElement(pptx, slide, element));
+    const colors = scene.composition?.colors;
+    const background = colors?.background || "F7FAFF";
+    slide.background = { color: background };
+    slide.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: scene.canvas.width, h: scene.canvas.height, fill: { color: background }, line: { color: background } });
+    const hasAnchoredVisual = scene.elements.some((element) => element.kind === "image");
+    const visual = hasAnchoredVisual ? undefined : scene.page === 1
+      ? visuals?.cover || visuals?.slides?.[scene.slideId] || visuals?.slides?.[String(scene.page)]
+      : visuals?.slides?.[scene.slideId] || visuals?.slides?.[String(scene.page)] || visuals?.slides?.[String(scene.page - 1)];
+    if (visual) {
+      const isCover = scene.page === 1;
+      const bounds = isCover
+        ? { x: 7.45, y: 0.95, w: 5.1, h: 5.7 }
+        : { x: 8.55, y: 1.78, w: 4.08, h: 3.96 };
+      slide.addImage({ data: visual, x: bounds.x, y: bounds.y, w: bounds.w, h: bounds.h, sizing: { type: "cover", x: bounds.x, y: bounds.y, w: bounds.w, h: bounds.h } });
+      slide.addShape(pptx.ShapeType.rect, { x: bounds.x, y: bounds.y, w: bounds.w, h: bounds.h, fill: { color: "FFFFFF", transparency: 100 }, line: { color: COLORS.line, width: 1 } });
+    }
+    [...scene.elements].sort((left, right) => left.zIndex - right.zIndex).forEach((element) => addElement(pptx, slide, element, colors));
     slide.addText(String(scene.page).padStart(2, "0"), { x: scene.canvas.width - 0.9, y: scene.canvas.height - 0.42, w: 0.45, h: 0.2, fontFace: "Microsoft YaHei", fontSize: 8, bold: true, color: COLORS.muted, align: "right", margin: 0 });
   });
 }

@@ -22,7 +22,6 @@ import {
 import { computeDeckSpecHash } from "@/lib/deck-spec";
 import { refineProject } from "@/lib/project-refine";
 import { scoreTeacherDeckV2 } from "@/lib/teacher-deck-scoring";
-import { createTopicVisualDataUri } from "@/lib/visual-assets";
 import type {
   CanvasProject,
   DeckSpec,
@@ -89,6 +88,8 @@ export type CommitInput = {
     sourceDocuments?: SourceDocumentMeta[];
     /** classroom_interaction: a note describing the live interaction. */
     interactionNote?: string;
+    /** generate_visuals: provider-returned image URLs/data URIs keyed by slide ID. */
+    renderManifest?: Record<string, string>;
     /** the chat/request text this version was generated from (provenance). */
     basis?: string;
   };
@@ -128,9 +129,8 @@ type Readiness = "pending" | "review_required" | "ready_for_teacher" | "failed";
 /**
  * Recompute teacher readiness for edited slides. Engineering evidence is a
  * separate, carried-forward concern (see engineeringStatus): here we score only
- * the *content* the edit actually touched, feeding the scorer the base's
- * already-verified engineering flags so its two engineering P0s ("缺少真实渲染
- * 截图证据" / "缺少原生OOXML可编辑性证据") don't mask content regressions.
+ * the content the edit actually touched. Engineering findings remain unsatisfied
+ * until the export artifact itself supplies real OOXML/render evidence.
  *
  * Three honest outcomes:
  *   - content P0 present            → "failed"  (export blocked)
@@ -157,14 +157,10 @@ function recomputeReadiness(
       bullets: slide.bullets,
       layout: slide.layout,
     })),
-    // Carry base engineering evidence forward as satisfied so only content
-    // signals remain. This does not fabricate engineeringStatus (which is
-    // inherited verbatim); it isolates the content verdict.
-    engineering: { rendered: true, screenshots: true, ooxmlEditable: true },
-    visualReview: { completed: true },
     teacherTrial: { trialCompleted: submitted, reviewedByTeacher: submitted },
   });
-  if (report.p0.length > 0) return "failed";
+  const contentP0 = report.p0.filter((item) => !/真实渲染截图|OOXML可编辑性/.test(item));
+  if (contentP0.length > 0) return "failed";
   if (submitted) return "ready_for_teacher";
   return "review_required";
 }
@@ -183,11 +179,20 @@ function syncDeckSpec(
   const slideSpecs = deckSpec.slideSpecs.map((spec) => {
     const slide = byId.get(spec.slideId || "") || byId.get(spec.id);
     if (!slide) return spec;
+    const layoutChanged = Boolean(slide.layout && slide.layout !== spec.layoutIntent);
     const visibleBlocks: VisibleContentBlock[] = [
       ...(slide.subtitle ? [{ type: "point" as const, title: "核心说明", body: slide.subtitle, priority: "must" as const }] : []),
       ...(slide.bullets || []).map((body, index) => ({ type: "point" as const, title: `要点 ${index + 1}`, body, priority: "must" as const })),
     ];
-    return { ...spec, title: slide.title, finalTitle: slide.title, visibleBlocks, layoutIntent: slide.layout || spec.layoutIntent };
+    return {
+      ...spec,
+      title: slide.title,
+      finalTitle: slide.title,
+      visibleBlocks,
+      layoutIntent: slide.layout || spec.layoutIntent,
+      selectedLayout: layoutChanged ? undefined : spec.selectedLayout,
+      layoutFamily: layoutChanged ? undefined : spec.layoutFamily
+    };
   });
   const contentHash = computeDeckSpecHash(slideSpecs);
   return { ...deckSpec, slideSpecs, contentHash };
@@ -471,15 +476,14 @@ export async function commitCoursewareVersion(
       break;
     }
     case "generate_visuals": {
+      const supplied = payload.renderManifest && typeof payload.renderManifest === "object"
+        ? payload.renderManifest
+        : {};
       renderManifest = {};
-      for (let i = 0; i < slides.length; i++) {
+      for (let i = 0; i < slides.length; i += 1) {
         const slide = slides[i];
-        renderManifest[slide.id] = createTopicVisualDataUri({
-          title: slide.title,
-          subtitle: slide.subtitle,
-          index: i,
-          topic: base.task?.topic,
-        });
+        const image = typeof supplied[slide.id] === "string" ? supplied[slide.id].trim() : "";
+        if (image) renderManifest[slide.id] = image;
       }
       break;
     }

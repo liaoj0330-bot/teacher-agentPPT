@@ -34,9 +34,9 @@ const moduleFor = (slide: NonNullable<TeacherDeckScoreInputV2["slides"]>[number]
   if (explicit) return explicit;
   const role = `${slide.role || ""} ${slide.title || ""}`;
   if (/目标|导入/.test(role)) return "M02";
-  if (/概念|定义|解释/.test(role)) return "M04";
-  if (/例题|讲解|步骤/.test(role)) return "M07";
-  if (/练习|反馈|互动/.test(role)) return "M08";
+  if (/概念|定义|解释|算理|方法|表示/.test(role)) return "M04";
+  if (/例题|讲解|步骤|示范/.test(role)) return "M07";
+  if (/练习|反馈|互动|纠错|再练习/.test(role)) return "M08";
   if (/总结|迁移|作业/.test(role)) return "M09";
   return undefined;
 };

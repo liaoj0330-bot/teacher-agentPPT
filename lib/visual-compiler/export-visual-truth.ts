@@ -1,8 +1,8 @@
 import type { DeckSpec, DesignSlide } from "@/lib/canvas-data";
 import { buildProjectVisualTruth } from "@/lib/visual-compiler/project-visual-truth";
 
-export function buildExportVisualTruth(deckSpec: DeckSpec, slides: DesignSlide[]) {
-  const { scenes, qa, pageGates } = buildProjectVisualTruth(deckSpec, slides);
+export function buildExportVisualTruth(deckSpec: DeckSpec, slides: DesignSlide[], visuals?: Record<string, string>) {
+  const { scenes, qa, pageGates } = buildProjectVisualTruth(deckSpec, slides, visuals);
   return {
     schemaVersion: "teacher-export-visual-truth/v1" as const,
     sceneCount: scenes.length,

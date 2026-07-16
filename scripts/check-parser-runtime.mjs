@@ -3,6 +3,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
+import { parseOffice } from "officeparser";
+import PptxGenJS from "pptxgenjs";
 
 const execFileAsync = promisify(execFile);
 const repoRoot = process.cwd();
@@ -92,11 +94,49 @@ async function checkParse(python) {
   }
 }
 
+async function checkOfficeParser() {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "sandun-officeparser-check-"));
+  const samplePath = path.join(tmpDir, "sample.pptx");
+  try {
+    const pptx = new PptxGenJS();
+    const slide = pptx.addSlide();
+    slide.addText("source-document structured parser check", {
+      x: 0.8,
+      y: 0.8,
+      w: 8,
+      h: 0.6,
+    });
+    await pptx.writeFile({ fileName: samplePath });
+    const ast = await parseOffice(samplePath, {
+      fileType: "pptx",
+      ignoreSlideMasters: true,
+    });
+    const serialized = JSON.stringify(ast.content || []);
+    const slideCount = (ast.content || []).filter((node) => node.type === "slide").length;
+    return {
+      ok: slideCount === 1 && serialized.includes("source-document structured parser check"),
+      parser: "officeparser",
+      sourceKind: ast.type,
+      slideCount,
+      warningCount: ast.warnings?.length || 0,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      parser: "officeparser",
+      error: error instanceof Error ? error.message : String(error),
+    };
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+}
+
 const report = {
   status: "failed",
   checkedAt: new Date().toISOString(),
   repoRoot,
   checks: {
+    primaryParser: { ok: false, parser: "officeparser" },
     pythonExists: false,
     parseScriptExists: fs.existsSync(scriptPath),
     requirementsExists: fs.existsSync(requirementsPath),
@@ -105,9 +145,14 @@ const report = {
   },
   python: "",
   pythonVersion: "",
-  guidance: "Run scripts/setup-parser-python.ps1, then run npm run p1g:parser-check again.",
+  guidance: "officeparser is the required production parser; Python is an optional legacy fallback.",
   errors: []
 };
+
+report.checks.primaryParser = await checkOfficeParser();
+if (!report.checks.primaryParser.ok) {
+  report.errors.push(`Primary officeparser check failed: ${report.checks.primaryParser.error || "unknown error"}`);
+}
 
 const found = await findPython();
 report.python = found.python;
@@ -119,17 +164,13 @@ report.pythonAttempts = found.attempts.map((attempt) => ({
 }));
 report.checks.pythonExists = Boolean(found.python);
 
-if (!report.checks.parseScriptExists) report.errors.push(`Missing parser script: ${scriptPath}`);
-if (!report.checks.requirementsExists) report.errors.push(`Missing requirements file: ${requirementsPath}`);
-if (!found.python) report.errors.push("Python runtime was not found.");
-
 if (found.python && report.checks.parseScriptExists && report.checks.requirementsExists) {
   report.checks.imports = await Promise.all(["pdfplumber", "docx", "pptx"].map((moduleName) => checkImport(found.python, moduleName)));
   report.checks.tinyParse = await checkParse(found.python);
   for (const item of report.checks.imports) {
-    if (!item.ok) report.errors.push(`Missing Python dependency import: ${item.module}`);
+    if (!item.ok) report.errors.push(`Broken optional Python fallback dependency: ${item.module}`);
   }
-  if (!report.checks.tinyParse.ok) report.errors.push(`Parser script failed tiny parse: ${report.checks.tinyParse.error || "unknown error"}`);
+  if (!report.checks.tinyParse.ok) report.errors.push(`Optional Python fallback failed tiny parse: ${report.checks.tinyParse.error || "unknown error"}`);
 }
 
 report.status = report.errors.length ? "failed" : "ok";

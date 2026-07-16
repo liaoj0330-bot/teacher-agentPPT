@@ -57,7 +57,12 @@ type TeacherForm = {
   topic: string;
   duration: string;
   textbook: string;
+  publisher: string;
+  editionYear: string;
+  volume: string;
   chapter: string;
+  unit: string;
+  pageRange: string;
   teachingRequirements: string;
 };
 
@@ -68,7 +73,12 @@ const initialForm: TeacherForm = {
   topic: "",
   duration: "45分钟",
   textbook: "",
+  publisher: "",
+  editionYear: "",
+  volume: "上册",
   chapter: "",
+  unit: "",
+  pageRange: "",
   teachingRequirements: "",
 };
 
@@ -92,6 +102,14 @@ const textbookPresets: Record<string, string[]> = {
   英语: ["人教版英语", "外研版英语", "北师大版英语"],
   物理: ["人教版物理", "北师大版物理"],
   化学: ["人教版化学", "鲁教版化学"],
+};
+
+const publisherPresets: Record<string, string[]> = {
+  数学: ["人民教育出版社", "北京师范大学出版社", "江苏凤凰教育出版社"],
+  语文: ["人民教育出版社"],
+  英语: ["人民教育出版社", "外语教学与研究出版社", "北京师范大学出版社"],
+  物理: ["人民教育出版社", "北京师范大学出版社"],
+  化学: ["人民教育出版社", "山东教育出版社"],
 };
 
 const chapterPresets: Record<string, string[]> = {
@@ -192,6 +210,7 @@ export function TeacherPptBetaPrototype() {
   const [visualMode, setVisualMode] =
     useState<TeacherVisualMode>("teaching_grid");
   const [theme, setTheme] = useState<TeacherTheme>("book_blue");
+  const [beautifyIntensity, setBeautifyIntensity] = useState<"preserve" | "standard" | "deep">("standard");
   const [pastedMaterials, setPastedMaterials] = useState("");
   const [chatInput, setChatInput] = useState("");
   const [chatMessages, setChatMessages] = useState<TeacherMessage[]>([]);
@@ -221,6 +240,7 @@ export function TeacherPptBetaPrototype() {
         lessonType?: TeacherLessonType;
         visualMode?: TeacherVisualMode;
         theme?: TeacherTheme;
+        beautifyIntensity?: "preserve" | "standard" | "deep";
         pastedMaterials?: string;
         step?: GuideStep;
         chatMessages?: TeacherMessage[];
@@ -235,6 +255,7 @@ export function TeacherPptBetaPrototype() {
       if (saved.lessonType) setLessonType(saved.lessonType);
       if (saved.visualMode) setVisualMode(saved.visualMode);
       if (saved.theme) setTheme(saved.theme);
+      if (saved.beautifyIntensity) setBeautifyIntensity(saved.beautifyIntensity);
       if (typeof saved.pastedMaterials === "string")
         setPastedMaterials(saved.pastedMaterials);
       if (Array.isArray(saved.chatMessages)) setChatMessages(saved.chatMessages);
@@ -284,6 +305,7 @@ export function TeacherPptBetaPrototype() {
       setLessonType("concept_building");
       setVisualMode("teaching_grid");
       setTheme("book_blue");
+      setBeautifyIntensity("standard");
       setPastedMaterials("");
       setChatMessages([]);
       setChatInput("");
@@ -317,6 +339,7 @@ export function TeacherPptBetaPrototype() {
         lessonType,
         visualMode,
         theme,
+        beautifyIntensity,
         pastedMaterials,
         step,
         chatMessages,
@@ -338,6 +361,7 @@ export function TeacherPptBetaPrototype() {
     setLessonType("concept_building");
     setVisualMode("teaching_grid");
     setTheme("book_blue");
+    setBeautifyIntensity("standard");
     setPastedMaterials("");
     setChatMessages([]);
     setChatInput("");
@@ -397,21 +421,53 @@ export function TeacherPptBetaPrototype() {
     }
   };
 
-  const buildTeacherTask = (): TeacherCoursewareTask => ({
-    scenario: "teacher_courseware", planningMode: "professional",
-    generationMode: taskKind === "chapter" ? "chapter_prep" : taskKind === "materials" ? "lesson_plan" : "optimize_existing",
-    ...form, lessonType, templateId: lessonType === "concept_building" ? A1_TEMPLATE_ID : undefined,
-    uploadedFiles: uploadedFile ? [uploadedFile] : [], pastedMaterials, teacherStyle: { visualMode, theme },
-  });
+  const buildTeacherTask = (): TeacherCoursewareTask => {
+    const pageNumbers = form.pageRange.match(/\d+/g)?.map(Number) || [];
+    const sourceAssetId = uploadedFile?.assetId;
+    const verificationStatus = sourceAssetId
+      ? "asset_verified" as const
+      : form.textbook.trim() && form.chapter.trim()
+        ? "teacher_confirmed" as const
+        : "unverified" as const;
+    return {
+      scenario: "teacher_courseware", planningMode: "professional",
+      generationMode: taskKind === "chapter" ? "chapter_prep" : taskKind === "materials" ? "lesson_plan" : "optimize_existing",
+      ...form, lessonType, templateId: lessonType === "concept_building" ? A1_TEMPLATE_ID : undefined,
+      textbookIdentity: {
+        displayName: form.textbook,
+        publisher: form.publisher,
+        editionYear: form.editionYear,
+        volume: form.volume,
+        sourceAssetId,
+        verificationStatus,
+      },
+      chapterIdentity: {
+        unit: form.unit,
+        chapter: form.chapter,
+        pageStart: pageNumbers[0],
+        pageEnd: pageNumbers[1] || pageNumbers[0],
+        verificationStatus,
+      },
+      sourcePolicy: sourceAssetId ? "uploaded_only" : "web_supplement",
+      beautifyOptions: taskKind === "polish" ? {
+        intensity: beautifyIntensity,
+        sourceAssetId,
+        preserveBrand: true,
+        preserveOrder: beautifyIntensity !== "deep",
+      } : undefined,
+      uploadedFiles: uploadedFile ? [uploadedFile] : [], pastedMaterials, teacherStyle: { visualMode, theme },
+    };
+  };
 
   async function preparePlan() {
     if (!taskKind || !requiredReady || state === "calling") return;
-    if (needsFile && uploadedFile?.status !== "uploaded") { setState("error"); setMessage("Please upload the required file first."); return; }
-    setState("calling"); setMessage("Building the teaching plan from your curriculum inputs?");
+    if (needsFile && uploadedFile?.status !== "uploaded") { setState("error"); setMessage("请先上传当前任务所需的文件。"); return; }
+    if (taskKind === "chapter" && (!form.textbook.trim() || !form.chapter.trim())) { setState("error"); setMessage("章节备课必须确认教材版本和章节。"); return; }
+    setState("calling"); setMessage("正在根据教材依据建立教学大纲…");
     try {
       const response = await fetch("/api/teacher-courseware-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ teacherTask: buildTeacherTask() }) });
       const data = await response.json();
-      if (!response.ok || !data?.deckPlan) throw new Error(data?.message || "The planning service did not return a plan.");
+      if (!response.ok || !data?.deckPlan) throw new Error(data?.message || "规划服务没有返回可确认的大纲。");
       setDeckPlan(data.deckPlan as TeacherDeckPlan); setStep("plan"); setState("idle");
     } catch (error) { setState("error"); setMessage(error instanceof Error ? error.message : "Planning failed."); }
   }
@@ -543,7 +599,7 @@ export function TeacherPptBetaPrototype() {
 
   return (
     <main className="flex min-h-dvh overflow-hidden bg-[#f4f6fa] text-ink lg:h-dvh">
-      <section className="relative min-h-[52dvh] flex-1 overflow-hidden bg-[radial-gradient(#d7ddea_1.15px,transparent_1.15px)] bg-[size:26px_26px] lg:min-h-0">
+      <section className="relative hidden min-h-[52dvh] flex-1 overflow-hidden bg-[radial-gradient(#d7ddea_1.15px,transparent_1.15px)] bg-[size:26px_26px] lg:block lg:min-h-0">
         <div className="absolute left-4 top-4 z-10 flex items-center gap-3 rounded-[24px] border border-line bg-white/95 px-3 py-3 shadow-sm backdrop-blur">
           <span className="flex size-10 items-center justify-center rounded-2xl bg-ink text-white">
             <Wand2 className="size-5" />
@@ -605,7 +661,7 @@ export function TeacherPptBetaPrototype() {
           教学任务会保留在当前课件版本中
         </div>
       </section>
-      <aside className="flex h-[48dvh] w-full shrink-0 flex-col border-t border-line bg-white lg:h-full lg:w-[500px] lg:border-l lg:border-t-0">
+      <aside className="flex h-dvh w-full shrink-0 flex-col bg-white lg:h-full lg:w-[500px] lg:border-l lg:border-line">
         <header className="flex h-[76px] shrink-0 items-center justify-between border-b border-line px-5">
           <button
             type="button"
@@ -649,6 +705,7 @@ export function TeacherPptBetaPrototype() {
                     <button
                       key={item.id}
                       type="button"
+                      data-testid={`teacher-task-${item.id}`}
                       onClick={() => chooseTask(item.id)}
                       className="flex w-full items-center gap-3 rounded-2xl border border-line bg-white p-4 text-left hover:border-[#a8c9ff]"
                     >
@@ -742,20 +799,50 @@ export function TeacherPptBetaPrototype() {
           {step === "curriculum" ? (
             <div>
               <div className="rounded-[22px] bg-[#f8fafc] p-4 text-sm leading-7 text-[#344054]">
-                这节课依据什么教材和章节？再告诉我希望学生学会什么。
+                {taskKind === "polish" ? "选择原稿改造强度。系统会保留原文件，并在导出前检查内容保真和母版继承。" : "这节课依据什么教材和章节？再告诉我希望学生学会什么。"}
               </div>
-              <div className="mt-5 grid grid-cols-2 gap-3">
-                <label className="block text-xs font-semibold text-[#475467]">
-                  教材版本
-                  <input list="teacher-textbook-presets" value={form.textbook} onChange={(event) => update("textbook", event.target.value)} placeholder="可选择或输入教材版本" className="mt-2 h-10 w-full rounded-xl border border-line bg-white px-3 text-sm outline-none focus:border-[#2f7cff]" />
-                  <datalist id="teacher-textbook-presets">{(textbookPresets[form.subject] || ["人教版", "北师大版", "苏教版"]).map((item) => <option key={item} value={item} />)}</datalist>
-                </label>
-                <label className="block text-xs font-semibold text-[#475467]">
-                  章节/单元
-                  <input list="teacher-chapter-presets" value={form.chapter} onChange={(event) => update("chapter", event.target.value)} placeholder="可选择或输入章节" className="mt-2 h-10 w-full rounded-xl border border-line bg-white px-3 text-sm outline-none focus:border-[#2f7cff]" />
-                  <datalist id="teacher-chapter-presets">{(chapterPresets[form.subject] || ["第一单元", "第二单元", "专题复习"]).map((item) => <option key={item} value={item} />)}</datalist>
-                </label>
-              </div>
+              {taskKind === "polish" ? (
+                <div className="mt-5 grid grid-cols-3 gap-2">
+                  {([
+                    { id: "preserve", label: "保守优化", copy: "不改页序和内容结构" },
+                    { id: "standard", label: "标准重排", copy: "允许压缩文字和换版" },
+                    { id: "deep", label: "深度重构", copy: "允许拆页、合页和重组" },
+                  ] as const).map((item) => (
+                    <button key={item.id} type="button" onClick={() => setBeautifyIntensity(item.id)} className={cn("min-h-24 border p-3 text-left", beautifyIntensity === item.id ? "border-[#2f7cff] bg-[#f5f9ff]" : "border-line")}>
+                      <b className="text-xs">{item.label}</b>
+                      <span className="mt-2 block text-[11px] leading-4 text-muted">{item.copy}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <div className="mt-5 grid grid-cols-2 gap-3">
+                    <label className="block text-xs font-semibold text-[#475467]">
+                      教材版本
+                      <input list="teacher-textbook-presets" value={form.textbook} onChange={(event) => update("textbook", event.target.value)} placeholder="可选择或输入教材版本" className="mt-2 h-10 w-full rounded-xl border border-line bg-white px-3 text-sm outline-none focus:border-[#2f7cff]" />
+                      <datalist id="teacher-textbook-presets">{(textbookPresets[form.subject] || ["人教版", "北师大版", "苏教版"]).map((item) => <option key={item} value={item} />)}</datalist>
+                    </label>
+                    <label className="block text-xs font-semibold text-[#475467]">
+                      出版社
+                      <input list="teacher-publisher-presets" value={form.publisher} onChange={(event) => update("publisher", event.target.value)} placeholder="出版社" className="mt-2 h-10 w-full rounded-xl border border-line bg-white px-3 text-sm outline-none focus:border-[#2f7cff]" />
+                      <datalist id="teacher-publisher-presets">{(publisherPresets[form.subject] || ["人民教育出版社"]).map((item) => <option key={item} value={item} />)}</datalist>
+                    </label>
+                  </div>
+                  <div className="mt-3 grid grid-cols-3 gap-3">
+                    <Field label="版本年份" value={form.editionYear} onChange={(value) => update("editionYear", value)} placeholder="例如 2024" />
+                    <SelectField label="册次" value={form.volume} options={["上册", "下册", "全一册", "选修"]} onChange={(value) => update("volume", value)} />
+                    <Field label="页码" value={form.pageRange} onChange={(value) => update("pageRange", value)} placeholder="例如 32-37" />
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    <Field label="单元" value={form.unit} onChange={(value) => update("unit", value)} placeholder="例如 第三单元" />
+                    <label className="block text-xs font-semibold text-[#475467]">
+                      章节/课时
+                      <input list="teacher-chapter-presets" value={form.chapter} onChange={(event) => update("chapter", event.target.value)} placeholder="可选择或输入章节" className="mt-2 h-10 w-full rounded-xl border border-line bg-white px-3 text-sm outline-none focus:border-[#2f7cff]" />
+                      <datalist id="teacher-chapter-presets">{(chapterPresets[form.subject] || ["第一单元", "第二单元", "专题复习"]).map((item) => <option key={item} value={item} />)}</datalist>
+                    </label>
+                  </div>
+                </>
+              )}
               <label className="mt-3 block text-xs font-semibold text-[#475467]">
                 教学要求
                 <textarea
@@ -788,7 +875,14 @@ export function TeacherPptBetaPrototype() {
               ) : null}
               <button
                 type="button"
-                onClick={() => setStep("style")}
+                onClick={() => {
+                  if (taskKind === "chapter" && (!form.textbook.trim() || !form.chapter.trim())) {
+                    setState("error");
+                    setMessage("章节备课必须确认教材版本和章节。");
+                    return;
+                  }
+                  setStep("style");
+                }}
                 className="mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#2f7cff] text-sm font-semibold text-white"
               >
                 继续
