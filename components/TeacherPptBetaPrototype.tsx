@@ -638,10 +638,12 @@ export function TeacherPptBetaPrototype() {
           projectId: compilingPlan.projectId,
         }),
       });
-      const data =
-        (await response.json()) as Partial<WorkspaceBootstrapPayload> & {
-          message?: string;
-        };
+      const data = await response.json().catch(() => null) as (Partial<WorkspaceBootstrapPayload> & {
+        message?: string;
+      }) | null;
+      if (!data) {
+        throw new Error(`生成服务返回了空响应（HTTP ${response.status}），请重试；若仍失败，请从内测入口提交反馈`);
+      }
       if (!response.ok || !data.project)
         throw new Error(data.message || `服务返回 HTTP ${response.status}`);
       if (

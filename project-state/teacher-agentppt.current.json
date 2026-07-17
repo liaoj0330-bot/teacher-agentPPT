@@ -160,6 +160,7 @@
     "sixSubjectRealPath": "mathematics, chemistry, biology, history, geography and English passed 6/6 through auth, parsed acceptance source, plan confirmation, generation, review, durable version, PPTX export/download hash match and reopen; 93 pages and 42 lesson events, image API calls=0",
       "teacherTrialUI": "structured teacher trial form submits persisted reviewer-bound evidence and keeps pre-class workflow review separate from the 5 teacher-trial points",
       "privateBetaOperations": "machine-readable wave-100/wave-300/wave-1000 policy defines eight-subject eligibility, no-image defaults, quotas, feedback triage, support SLA, rollback, go/no-go metrics, privacy retention and named roles; a persisted context-aware teacher feedback entry now passes API E2E, while operator RBAC/queue and cloud evidence remain blocked",
+      "shortLessonGeneration": "kindergarten small-class mathematics topic 数字1-10 with a confirmed seven-page/30-minute plan now returns HTTP 200 with slidePagePlan/layoutPlan/contentDrafts/projectSlides all 7; the prior dynamic-template pagePlanId overrun is covered by regression and image API calls=0",
       "browserGolden": "physics and Chinese browser production chains passed with ready_for_teacher and consoleErrors=[]",
     "remainingExternalGates": ["WPS/PowerPoint target-machine opening", "real teacher 45-minute trials", "cloud deployment and persistent operations"],
     "commands": [
@@ -181,6 +182,7 @@
         "npm run teacher-private-beta:check",
         "npm run teacher-beta-operations-ui:test",
         "npm run teacher-feedback:e2e",
+        "npm run teacher-short-plan:e2e",
         "npm run teacher-six-subject:e2e",
       "npm run teacher-two-subject-delivery:e2e",
       "npm run teacher-two-subject-browser:e2e"

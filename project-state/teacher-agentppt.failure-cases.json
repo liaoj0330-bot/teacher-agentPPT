@@ -1,6 +1,6 @@
 {
   "schemaVersion": "teacher-agentppt-failure-library/v1",
-  "updatedAt": "2026-07-17T06:20:00+08:00",
+  "updatedAt": "2026-07-18T07:15:00+08:00",
   "cases": [
     {
       "id": "FC-001-WRONG-ENTRY",
@@ -262,6 +262,15 @@
       "detection": "记录 requestfailed、页面错误页文本、chunk URL 和 HTTP 状态，再判断业务按钮",
       "resolution": "生产构建验收；开发态脚本增加静态资源预检、一次受控重载和失败截图",
       "prevention": "入口健康、资源健康、业务状态三层断言"
+    },
+    {
+      "id": "FC-030-DYNAMIC-DRAFT-PLAN-OVERRUN",
+      "status": "active_rule",
+      "fingerprint": "短课时确认 7 页，但内容生成器仍遍历 9 页基础模板，第 8 页读取不存在的 pagePlanId 并返回 500；前端显示 Unexpected end of JSON input。",
+      "rootCause": "动态内容模板页数没有与教师确认的 SlidePagePlan 数量裁齐，前端同时假设错误响应一定是 JSON。",
+      "detection": "比较 contentPlan.slidePlan、slidePagePlans、layoutPlans、contentDrafts 四层数量，并检查非 9 页方案的 generate-ppt 服务端日志。",
+      "resolution": "扩展后按确认计划数量裁齐动态内容页，并按 pagePlanId 匹配版式；前端对空响应安全降级为带 HTTP 状态的可操作提示。",
+      "prevention": "25/30/45/60/90 分钟与 7/9/14/16/18/22 页组合必须验证四层数量一致，短方案真实接口回归不得返回 500。"
     }
   ]
 }

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { deriveLessonPresentationStrategy } from "../lib/ppt-agent/lesson-presentation-strategy.ts";
+import { limitDynamicTeacherPages } from "../lib/ppt-agent/dynamic-page-alignment.ts";
 
 const physicsRequirements = "包含实验观察、方向判断、纠错和迁移练习。";
 const chineseRequirements = "围绕关键段落细读，完成朗读、批注、证据回扣和表达迁移。";
@@ -21,7 +22,12 @@ assert.ok(physics45.minimumPageCount > 9, "a nine-page 45-minute deck must fail 
 assert.ok(physics45.drivers.length >= 3, "the strategy must explain why pages were added");
 assert.notEqual(plain45.recommendedPageCount, physics45.recommendedPageCount, "page count must respond to lesson complexity, not duration alone");
 
+const nineTemplatePages = Array.from({ length: 9 }, (_, index) => `template-${index + 1}`);
+const alignedShortLessonPages = limitDynamicTeacherPages(nineTemplatePages, 7);
+assert.deepEqual(alignedShortLessonPages, nineTemplatePages.slice(0, 7), "a confirmed seven-page lesson must not read page/layout plans at indexes 8 or 9");
+
 console.log(JSON.stringify({
   pass: true,
   cases: { plain45, physics45, chinese45, physics25, physics60, physics90 },
+  confirmedShortLesson: { templatePages: nineTemplatePages.length, plannedPages: alignedShortLessonPages.length },
 }, null, 2));

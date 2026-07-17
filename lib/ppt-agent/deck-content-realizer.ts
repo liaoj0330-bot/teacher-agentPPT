@@ -6,6 +6,7 @@ import type { DeckContentQualityReport, SlideContentDraft } from "@/lib/ppt-agen
 import { createSlideContentDraft } from "@/lib/ppt-agent/slide-content-realizer";
 import { validateSlideContentDraft, validateSlideContentDrafts } from "@/lib/ppt-agent/slide-content-validator";
 import type { SlideSection } from "@/lib/canvas-data";
+import { limitDynamicTeacherPages } from "@/lib/ppt-agent/dynamic-page-alignment";
 
 export type DeckContentRealizerInput = {
   contentPlan: ContentPlan;
@@ -616,9 +617,9 @@ function teacherMathDynamicDrafts(input: DeckContentRealizerInput): SlideContent
     topic,
     [context?.textbook, context?.chapter].filter(Boolean).join(" · ") || `${subject}教材`,
   );
-  return pages.map((page, index) => {
+  return limitDynamicTeacherPages(pages, input.slidePagePlans.length).map((page, index) => {
     const pagePlan = input.slidePagePlans[index];
-    const layoutPlan = input.layoutPlans[index];
+    const layoutPlan = input.layoutPlans.find((plan) => plan.pagePlanId === pagePlan.pagePlanId) || input.layoutPlans[index];
     return {
       contentDraftId: `teacher-math-dynamic-draft-${index + 1}`,
       planId: input.contentPlan.planId, pagePlanId: pagePlan.pagePlanId, layoutPlanId: layoutPlan.layoutPlanId,
@@ -988,9 +989,9 @@ function teacherGeneralDynamicDrafts(input: DeckContentRealizerInput): SlideCont
     }
   }
   extendDynamicTeacherPages(pages, input, topic, source);
-  return pages.map((page, index) => {
+  return limitDynamicTeacherPages(pages, input.slidePagePlans.length).map((page, index) => {
     const pagePlan = input.slidePagePlans[index];
-    const layoutPlan = input.layoutPlans[index];
+    const layoutPlan = input.layoutPlans.find((plan) => plan.pagePlanId === pagePlan.pagePlanId) || input.layoutPlans[index];
     return {
       contentDraftId: `teacher-general-draft-${index + 1}`,
       planId: input.contentPlan.planId,
