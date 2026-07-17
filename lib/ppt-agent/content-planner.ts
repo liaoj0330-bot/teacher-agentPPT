@@ -4,6 +4,7 @@ import type { ContentPlan, ContentPlanPPTType } from "@/lib/ppt-agent/content-pl
 import { detectScenarioPlaybookType, getScenarioPlaybook, playbookTypeFromCoreType, type ScenarioPlaybook } from "@/lib/ppt-agent/scenario-playbooks";
 import { validateContentPlan } from "@/lib/ppt-agent/content-plan-validator";
 import { deriveLessonPresentationStrategy } from "@/lib/ppt-agent/lesson-presentation-strategy";
+import { resolveInitialSubjectCoverage } from "@/lib/ppt-agent/subject-coverage-matrix";
 import { cleanText } from "@/lib/text-sanitize";
 
 type PlannerMode = "quick" | "professional";
@@ -485,6 +486,8 @@ function teacherLessonRoute(context: ReturnType<typeof teacherCoursewareContext>
   const topic = cleanText(context?.topic, "本课主题");
   const equipment = cleanText(context?.classroomConstraints?.equipment);
   const noExperimentEquipment = /无|没有|不可用|仅投影/.test(equipment);
+  const initialCoverage = resolveInitialSubjectCoverage(subject);
+  if (initialCoverage) return initialCoverage.lesson.route.map((event) => ({ ...event }));
   if (/物理/.test(subject)) {
     return [
       { type: "opening", title: "现象导入与问题提出", weight: 3, teacherAction: `呈现与“${topic}”有关的可观察现象，只提出需要解释的矛盾，不先给结论。`, studentAction: "独立观察并记录现象、变化条件和自己的初步解释。", expectedResponse: "学生能区分观察到的事实与尚待验证的解释。", evidenceOfLearning: "一条现象记录和一个可研究问题。", fallbackAction: "缩减变量，只保留一组对照现象并重新提问。" },
@@ -593,6 +596,7 @@ function buildTeacherLessonBlueprint(
   const isPhysics = /物理/.test(subject);
   const isChinese = /语文/.test(subject);
   const isMath = /数学/.test(subject);
+  const initialCoverage = resolveInitialSubjectCoverage(subject);
   const learnerProfile = context?.learnerProfile || {};
   const classroomConstraints = context?.classroomConstraints || {};
   const teacherBaseline = cleanText(learnerProfile.baseline);
@@ -605,11 +609,13 @@ function buildTeacherLessonBlueprint(
     teachingRequirements: context?.teachingRequirements,
     generationMode: context?.generationMode,
   });
-  const architecture = isPhysics ? "experiment_inquiry" : isChinese ? "close_reading" : isMath ? "concept_building" : "general_lesson";
+  const architecture = isPhysics ? "experiment_inquiry" : isChinese ? "close_reading" : initialCoverage?.lesson.architecture || (isMath ? "concept_building" : "general_lesson");
   const architectureReason = isPhysics
     ? "本课的理解应从现象和实验记录出发，再建构规律并完成方向判断，不能先展示结论。"
     : isChinese
       ? "本课必须以原文词句为证据，通过细读、朗读和表达迁移形成理解，不能停留在故事复述。"
+      : initialCoverage
+        ? initialCoverage.lesson.architectureReason
       : isMath
         ? "本课需要从已有知识和表征活动进入概念，再用示例、练习和反馈完成建构。"
         : "本课采用问题进入、理解建构、方法示范、练习反馈和迁移收束的完整课堂闭环。";
@@ -644,12 +650,12 @@ function buildTeacherLessonBlueprint(
       ? `学生不是背诵“${topic}”，而是能从证据建构规律并独立完成方向判断。`
       : isChinese
         ? `学生不是复述“${topic}”的故事，而是能用原文细节解释人物情感并迁移表达方法。`
-        : `学生能理解“${topic}”、说明依据并完成一次独立迁移。`,
+        : initialCoverage?.lesson.lessonPromise || `学生能理解“${topic}”、说明依据并完成一次独立迁移。`,
     drivingQuestion: isPhysics
       ? "变化发生时，新的物理作用为什么这样响应，我们怎样用证据判断方向？"
       : isChinese
         ? "作者为什么选择这些具体词句和细节，它们怎样让人物与情感变得可见？"
-        : `怎样证明我们真正理解并能使用“${topic}”？`,
+        : initialCoverage?.lesson.drivingQuestion || `怎样证明我们真正理解并能使用“${topic}”？`,
     learnerAssumptions: [
       teacherBaseline || (isPhysics ? "学生具备本节所需的基础磁场与磁通量概念。" : isChinese ? "学生已经通读课文并能概括主要事件。" : "学生具备本课所需的基本前置知识。"),
       teacherDifficulties || (isPhysics ? "学生能使用右手螺旋定则，但观察方向可能混淆。" : isChinese ? "学生能够圈画词句，但文本证据与情感解释之间可能缺少联系。" : "常见困难尚待教师确认。"),

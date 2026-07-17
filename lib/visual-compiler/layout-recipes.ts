@@ -16,9 +16,27 @@ export type SceneCompositionFamily =
   | "physics-direction-workbench"
   | "chinese-close-reading"
   | "chinese-evidence-path"
-  | "chinese-expression-studio";
+  | "chinese-expression-studio"
+  | "math-equation-workbench"
+  | "math-problem-steps"
+  | "math-graph-lab"
+  | "chemistry-reaction-bench"
+  | "chemistry-particle-model"
+  | "chemistry-safety-lab"
+  | "biology-structure-map"
+  | "biology-process-cycle"
+  | "biology-observation-lab"
+  | "history-timeline-source"
+  | "history-cause-map"
+  | "history-debate-forum"
+  | "geography-map-fieldwork"
+  | "geography-systems-chain"
+  | "geography-data-dashboard"
+  | "english-language-drill"
+  | "english-dialogue-studio"
+  | "english-reading-evidence";
 
-export type TeacherSubjectVisualProfile = "physics" | "chinese" | "general";
+export type TeacherSubjectVisualProfile = "physics" | "chinese" | "math" | "chemistry" | "biology" | "history" | "geography" | "english" | "general";
 
 export type LayoutRecipeContext = {
   subject?: TeacherSubjectVisualProfile;
@@ -42,6 +60,33 @@ export type LayoutRecipe = {
 };
 
 const title = { x: 0.72, y: 0.42, width: 11.89, height: 0.78 };
+
+function makeSubjectRecipe(input: {
+  recipeId: string;
+  label: string;
+  family: Exclude<SceneCompositionFamily, "cover-hero" | "objectives-triad" | "context-visual-left" | "concept-editorial" | "comparison-stage" | "worked-example" | "practice-workspace" | "misconception-repair" | "summary-checkout" | "physics-experiment-bench" | "physics-reasoning-chain" | "physics-direction-workbench" | "chinese-close-reading" | "chinese-evidence-path" | "chinese-expression-studio">;
+  useWhen: string;
+  avoidWhen: string;
+  visualStrategy: string;
+  colors: LayoutRecipe["colors"];
+}): LayoutRecipe {
+  return {
+    recipeId: input.recipeId,
+    label: input.label,
+    family: input.family,
+    useWhen: input.useWhen,
+    avoidWhen: input.avoidWhen,
+    densityBudget: { level: "balanced", maxCharacters: 360, maxBlocks: 5 },
+    typographyBudget: { titlePt: 32, bodyMinPt: 16, bodyPreferredPt: 18, captionMinPt: 10 },
+    visualStrategy: input.visualStrategy,
+    visualBounds: { x: 7.72, y: 1.55, width: 4.78, height: 4.86 },
+    textBounds: [
+      { x: 0.78, y: 1.55, width: 6.45, height: 2.18 },
+      { x: 0.78, y: 4.04, width: 6.45, height: 2.37 }
+    ],
+    colors: input.colors
+  };
+}
 
 const recipes: Record<SceneCompositionFamily, LayoutRecipe> = {
   "cover-hero": {
@@ -252,7 +297,25 @@ const recipes: Record<SceneCompositionFamily, LayoutRecipe> = {
       { x: 5.32, y: 4.83, width: 7.21, height: 1.57 }
     ],
     colors: { background: "FAF8FC", ink: "2C2430", muted: "716779", accent: "7A4D8C", soft: "F0E6F4", line: "DAC9E1" }
-  }
+  },
+  "math-equation-workbench": makeSubjectRecipe({ recipeId: "teacher-math-equation-workbench/v1", label: "数学等式工作台", family: "math-equation-workbench", useWhen: "方程、函数、证明的关系建立", avoidWhen: "纯总结页", visualStrategy: "条件与等式变形并列，关系块承载推理", colors: { background: "F6FAFF", ink: "16253D", muted: "5D6B82", accent: "1F6FEB", soft: "E4F0FF", line: "B9D2F4" } }),
+  "math-problem-steps": makeSubjectRecipe({ recipeId: "teacher-math-problem-steps/v1", label: "数学例题阶梯", family: "math-problem-steps", useWhen: "例题、分步计算、纠错迁移", avoidWhen: "新课情境导入", visualStrategy: "阶梯式步骤和检验回路呈现解题过程", colors: { background: "FFF9F3", ink: "2B241C", muted: "766B5E", accent: "D97706", soft: "FFF0D8", line: "EBCB99" } }),
+  "math-graph-lab": makeSubjectRecipe({ recipeId: "teacher-math-graph-lab/v1", label: "数学图像实验室", family: "math-graph-lab", useWhen: "函数图像、坐标、统计概率", avoidWhen: "纯文字背诵", visualStrategy: "坐标轴、变量变化与观察结论同屏", colors: { background: "F8FBF8", ink: "1F3327", muted: "61756A", accent: "218739", soft: "E3F3E5", line: "B9DDBC" } }),
+  "chemistry-reaction-bench": makeSubjectRecipe({ recipeId: "teacher-chemistry-reaction-bench/v1", label: "化学反应台", family: "chemistry-reaction-bench", useWhen: "实验现象、反应条件、方程式", avoidWhen: "章节复习总表", visualStrategy: "反应物、条件、现象和生成物形成观察链", colors: { background: "F5FBFA", ink: "16312E", muted: "607875", accent: "0F8A78", soft: "DDF3ED", line: "B7DDD4" } }),
+  "chemistry-particle-model": makeSubjectRecipe({ recipeId: "teacher-chemistry-particle-model/v1", label: "化学微观模型", family: "chemistry-particle-model", useWhen: "微观粒子、结构解释、守恒", avoidWhen: "记忆作业页", visualStrategy: "粒子群和反应前后对照解释宏观现象", colors: { background: "FAF8FF", ink: "27213A", muted: "706A83", accent: "7C3AED", soft: "EEE7FF", line: "D5C8F5" } }),
+  "chemistry-safety-lab": makeSubjectRecipe({ recipeId: "teacher-chemistry-safety-lab/v1", label: "化学实验安全", family: "chemistry-safety-lab", useWhen: "器材规范、危险预判、实验评价", avoidWhen: "概念首次定义", visualStrategy: "器材、风险点和规范动作三段呈现", colors: { background: "FFF9F6", ink: "3A231D", muted: "7B675F", accent: "C2410C", soft: "FFE8DF", line: "F0C4B4" } }),
+  "biology-structure-map": makeSubjectRecipe({ recipeId: "teacher-biology-structure-map/v1", label: "生物结构地图", family: "biology-structure-map", useWhen: "细胞、器官、结构与功能", avoidWhen: "实验数据复盘", visualStrategy: "中心结构配合标注分区和功能证据", colors: { background: "F5FBF8", ink: "18342A", muted: "60786D", accent: "15803D", soft: "DCF4E5", line: "B6DFC4" } }),
+  "biology-process-cycle": makeSubjectRecipe({ recipeId: "teacher-biology-process-cycle/v1", label: "生物过程循环", family: "biology-process-cycle", useWhen: "生命过程、反馈调节、遗传流程", avoidWhen: "单个名词释义", visualStrategy: "循环节点和条件箭头承载生命过程", colors: { background: "F7FAFF", ink: "1D2E49", muted: "62718A", accent: "2563EB", soft: "E6F0FF", line: "BDD2F2" } }),
+  "biology-observation-lab": makeSubjectRecipe({ recipeId: "teacher-biology-observation-lab/v1", label: "生物观察实验", family: "biology-observation-lab", useWhen: "观察记录、实验变量、证据归纳", avoidWhen: "课后作业清单", visualStrategy: "观察窗口与变量、记录、结论证据栏并列", colors: { background: "FFFCF5", ink: "2F2A1E", muted: "776E59", accent: "A16207", soft: "FFF0C9", line: "E8D39A" } }),
+  "history-timeline-source": makeSubjectRecipe({ recipeId: "teacher-history-timeline-source/v1", label: "历史时序证据", family: "history-timeline-source", useWhen: "年代、事件演进、史料定位", avoidWhen: "单一观点辩论", visualStrategy: "时间线与史料卡片并置", colors: { background: "FBF8F1", ink: "33291D", muted: "7A6B56", accent: "9A5B13", soft: "F4E8D1", line: "DEC9A7" } }),
+  "history-cause-map": makeSubjectRecipe({ recipeId: "teacher-history-cause-map/v1", label: "历史因果地图", family: "history-cause-map", useWhen: "背景、原因、影响、比较", avoidWhen: "单纯年代记忆", visualStrategy: "中心事件向前后展开原因与影响", colors: { background: "F8FAFC", ink: "263344", muted: "657386", accent: "475569", soft: "E8EEF5", line: "C5D2E0" } }),
+  "history-debate-forum": makeSubjectRecipe({ recipeId: "teacher-history-debate-forum/v1", label: "历史观点论坛", family: "history-debate-forum", useWhen: "史料解读、观点论证、课堂辩论", avoidWhen: "基础事实导入", visualStrategy: "左右观点台与中央证据台区分材料和判断", colors: { background: "FAF8FC", ink: "30273B", muted: "716982", accent: "8B5CF6", soft: "F0E9FF", line: "D7C8F3" } }),
+  "geography-map-fieldwork": makeSubjectRecipe({ recipeId: "teacher-geography-map-fieldwork/v1", label: "地理地图考察", family: "geography-map-fieldwork", useWhen: "地图判读、区域定位、地理考察", avoidWhen: "纯概念总结", visualStrategy: "地图定位与观察记录、空间证据并列", colors: { background: "F4FBFA", ink: "183936", muted: "5F7772", accent: "0F766E", soft: "DDF3EF", line: "B8DDD7" } }),
+  "geography-systems-chain": makeSubjectRecipe({ recipeId: "teacher-geography-systems-chain/v1", label: "地理系统链", family: "geography-systems-chain", useWhen: "自然过程、人地关系、区域系统", avoidWhen: "单点读图题", visualStrategy: "输入、过程、反馈三段链路表达要素作用", colors: { background: "F8FBFF", ink: "1E3147", muted: "60748A", accent: "0369A1", soft: "E0F2FE", line: "B7D9ED" } }),
+  "geography-data-dashboard": makeSubjectRecipe({ recipeId: "teacher-geography-data-dashboard/v1", label: "地理数据看板", family: "geography-data-dashboard", useWhen: "统计图表、人口资源、比较分析", avoidWhen: "情境故事开场", visualStrategy: "图表、指标和数据结论并列", colors: { background: "FFFDF5", ink: "302A1C", muted: "796F55", accent: "B45309", soft: "FFF1C7", line: "E6D39D" } }),
+  "english-language-drill": makeSubjectRecipe({ recipeId: "teacher-english-language-drill/v1", label: "英语语言操练", family: "english-language-drill", useWhen: "词汇、句型、语法操练", avoidWhen: "长篇阅读理解", visualStrategy: "输入、替换、输出三格操练台", colors: { background: "F4FAFF", ink: "1D3049", muted: "61748B", accent: "2563EB", soft: "E2EFFF", line: "BBD2F0" } }),
+  "english-dialogue-studio": makeSubjectRecipe({ recipeId: "teacher-english-dialogue-studio/v1", label: "英语对话工作室", family: "english-dialogue-studio", useWhen: "问答、角色扮演、交际任务", avoidWhen: "单词默写页", visualStrategy: "左右对话气泡配交际任务卡", colors: { background: "FFF9F5", ink: "35251D", muted: "78675D", accent: "EA580C", soft: "FFE8DC", line: "F0C5B5" } }),
+  "english-reading-evidence": makeSubjectRecipe({ recipeId: "teacher-english-reading-evidence/v1", label: "英语阅读证据", family: "english-reading-evidence", useWhen: "阅读篇章、信息定位、表达迁移", avoidWhen: "纯语音操练", visualStrategy: "篇章证据与定位、解释、复述任务并列", colors: { background: "F8FAF6", ink: "233222", muted: "687565", accent: "4D7C0F", soft: "EBF5DE", line: "C9E0B1" } })
 };
 
 function recipeText(spec: SlideSpec, layoutId = "") {
@@ -280,19 +343,25 @@ function chooseRecipe(candidates: SceneCompositionFamily[], context: LayoutRecip
       recipe: recipes[family],
       score: 100 - index * 12
         - (family === context.previousFamily ? 20 : 0)
-        - (context.familyUseCounts?.[family] || 0) * 3
+        - (context.familyUseCounts?.[family] || 0) * 12
     }))
     .sort((left, right) => right.score - left.score)[0].recipe;
 }
 
 export function inferTeacherSubjectVisualProfile(text: string): TeacherSubjectVisualProfile {
   const value = text.toLowerCase();
-  const physicsScore = (/物理/.test(value) ? 8 : 0)
-    + ([/磁通量/, /楞次/, /电磁/, /磁场/, /感应电流/, /线圈/, /右手螺旋/, /受力/, /运动状态/].filter((term) => term.test(value)).length * 2);
-  const chineseScore = (/语文/.test(value) ? 8 : 0)
-    + ([/课文/, /词句/, /段落/, /朗读/, /批注/, /人物/, /情感/, /动作描写/, /文本证据/, /朱自清/, /背影/].filter((term) => term.test(value)).length * 2);
-  if (physicsScore >= 4 && physicsScore > chineseScore) return "physics";
-  if (chineseScore >= 4 && chineseScore > physicsScore) return "chinese";
+  const scores: Array<[TeacherSubjectVisualProfile, number]> = [
+    ["physics", (/物理/.test(value) ? 8 : 0) + [/磁通量/, /楞次/, /电磁/, /磁场/, /感应电流/, /线圈/, /右手螺旋/, /受力/, /运动状态/].filter((term) => term.test(value)).length * 2],
+    ["chinese", (/语文/.test(value) ? 8 : 0) + [/课文/, /词句/, /段落/, /朗读/, /批注/, /人物/, /情感/, /动作描写/, /文本证据/, /朱自清/, /背影/].filter((term) => term.test(value)).length * 2],
+    ["math", (/数学/.test(value) ? 8 : 0) + [/方程/, /函数/, /几何/, /坐标/, /证明/, /概率/, /统计/, /解析式/].filter((term) => term.test(value)).length * 2],
+    ["chemistry", (/化学/.test(value) ? 8 : 0) + [/反应物/, /生成物/, /化学方程式/, /分子/, /原子/, /离子/, /试剂/, /溶液/, /实验安全/].filter((term) => term.test(value)).length * 2],
+    ["biology", (/生物/.test(value) ? 8 : 0) + [/细胞/, /器官/, /遗传/, /生态/, /光合作用/, /生命活动/, /显微镜/, /结构与功能/].filter((term) => term.test(value)).length * 2],
+    ["history", (/历史/.test(value) ? 8 : 0) + [/史料/, /朝代/, /年代/, /历史事件/, /背景/, /影响/, /改革/, /文明/].filter((term) => term.test(value)).length * 2],
+    ["geography", (/地理/.test(value) ? 8 : 0) + [/地图/, /区域/, /气候/, /地形/, /人口/, /资源/, /经纬度/, /人地关系/].filter((term) => term.test(value)).length * 2],
+    ["english", (/英语|english/.test(value) ? 8 : 0) + [/vocabulary/, /grammar/, /dialogue/, /reading/, /speaking/, /词汇/, /句型/, /对话/, /阅读/].filter((term) => term.test(value)).length * 2]
+  ];
+  const [profile, score] = scores.sort((left, right) => right[1] - left[1])[0];
+  if (score >= 4) return profile;
   return "general";
 }
 
@@ -343,6 +412,42 @@ export function resolveLayoutRecipe(spec: SlideSpec, layoutId = "", context: Lay
     if (/仿写|表达|写作|片段|迁移|分享|修改|短答|练习|任务/.test(value)) {
       return chooseRecipe(["chinese-expression-studio", "practice-workspace", "chinese-evidence-path"], context);
     }
+  }
+
+  if (context.subject === "math") {
+    if (/图像|坐标|统计|概率|作图|变化趋势/.test(value)) return chooseRecipe(["math-graph-lab", "math-equation-workbench", "math-problem-steps"], context);
+    if (/例题|计算|解题|变式|纠错|检验|练习/.test(value)) return chooseRecipe(["math-problem-steps", "math-equation-workbench", "math-graph-lab"], context);
+    return chooseRecipe(["math-equation-workbench", "math-problem-steps", "math-graph-lab"], context);
+  }
+
+  if (context.subject === "chemistry") {
+    if (/安全|规范|器材|风险|操作/.test(value)) return chooseRecipe(["chemistry-safety-lab", "chemistry-reaction-bench", "chemistry-particle-model"], context);
+    if (/微观|粒子|分子|原子|离子|结构|守恒/.test(value)) return chooseRecipe(["chemistry-particle-model", "chemistry-reaction-bench", "chemistry-safety-lab"], context);
+    return chooseRecipe(["chemistry-reaction-bench", "chemistry-particle-model", "chemistry-safety-lab"], context);
+  }
+
+  if (context.subject === "biology") {
+    if (/观察|实验|变量|显微镜|记录/.test(value)) return chooseRecipe(["biology-observation-lab", "biology-structure-map", "biology-process-cycle"], context);
+    if (/过程|循环|调节|代谢|遗传|生态/.test(value)) return chooseRecipe(["biology-process-cycle", "biology-structure-map", "biology-observation-lab"], context);
+    return chooseRecipe(["biology-structure-map", "biology-process-cycle", "biology-observation-lab"], context);
+  }
+
+  if (context.subject === "history") {
+    if (/观点|辩论|评价|论证|不同看法/.test(value)) return chooseRecipe(["history-debate-forum", "history-timeline-source", "history-cause-map"], context);
+    if (/原因|背景|影响|因果|比较/.test(value)) return chooseRecipe(["history-cause-map", "history-timeline-source", "history-debate-forum"], context);
+    return chooseRecipe(["history-timeline-source", "history-cause-map", "history-debate-forum"], context);
+  }
+
+  if (context.subject === "geography") {
+    if (/数据|统计|图表|人口|资源|指标/.test(value)) return chooseRecipe(["geography-data-dashboard", "geography-map-fieldwork", "geography-systems-chain"], context);
+    if (/过程|系统|循环|人地|影响|反馈/.test(value)) return chooseRecipe(["geography-systems-chain", "geography-map-fieldwork", "geography-data-dashboard"], context);
+    return chooseRecipe(["geography-map-fieldwork", "geography-systems-chain", "geography-data-dashboard"], context);
+  }
+
+  if (context.subject === "english") {
+    if (/阅读|篇章|定位|主旨|细节|reading|text/.test(value)) return chooseRecipe(["english-reading-evidence", "english-language-drill", "english-dialogue-studio"], context);
+    if (/对话|角色|问答|交际|口语|dialogue|speaking|role/.test(value)) return chooseRecipe(["english-dialogue-studio", "english-language-drill", "english-reading-evidence"], context);
+    return chooseRecipe(["english-language-drill", "english-dialogue-studio", "english-reading-evidence"], context);
   }
 
   if (/情境|导入|前置|已有知识|context|prior/.test(value)) return recipes["context-visual-left"];

@@ -5,6 +5,7 @@ import type { CommitInput } from "@/lib/courseware-commit";
 import { commitCoursewareVersion, COMMIT_OPERATIONS } from "@/lib/courseware-commit";
 import { scoreTeacherDeckV3 } from "@/lib/teacher-deck-scoring-v3";
 import type { SourceDocument, SlideEvidenceMap } from "@/lib/ppt-agent/evidence-types";
+import { findTeacherTrialEvidence, validateTeacherTrialEvidence } from "@/lib/teacher-trial-evidence";
 
 /**
  * GET /api/courseware-version?projectId=&versionId=
@@ -32,16 +33,19 @@ export async function GET(request: Request) {
     const status = source.reason === "forbidden" ? 403 : 404;
     return NextResponse.json({ message: `无法读取版本：${source.reason}` }, { status });
   }
+  const teacherTrialValidation = validateTeacherTrialEvidence(findTeacherTrialEvidence(source.sourceDocuments));
   const teacherScoreV3 = scoreTeacherDeckV3({
     scene: "teacher_courseware",
     task: source.task,
     sources: source.sourceDocuments as SourceDocument[],
     evidenceMaps: source.evidence as SlideEvidenceMap[],
     slides: source.slides.map((slide, index) => ({ page: index + 1, id: slide.id, role: slide.pageIntent, title: slide.title, body: slide.subtitle, bullets: slide.bullets, layout: slide.layout })),
+    lessonPlan: source.contentPlan?.lessonPlan || source.contentPlan?.lessonBlueprint?.lessonPlan,
+    deliveryPack: source.contentPlan?.deliveryPack,
     engineering: { geometryPassed: source.engineeringStatus === "passed" },
     subjectReview: { completed: false },
     imageSemanticReview: { completed: false },
-    teacherTrial: { trialCompleted: source.teacherReadiness === "ready_for_teacher", reviewedByTeacher: source.teacherReadiness === "ready_for_teacher" },
+    teacherTrial: { trialCompleted: teacherTrialValidation.status === "complete", reviewedByTeacher: teacherTrialValidation.status === "complete" },
   });
 
   return NextResponse.json({
@@ -66,6 +70,7 @@ export async function GET(request: Request) {
     renderManifest: source.renderManifest,
     renderManifestArtifactId: source.renderManifestArtifactId,
     teacherScoreV3,
+    teacherTrialValidation,
   });
 }
 

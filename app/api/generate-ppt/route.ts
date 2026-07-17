@@ -652,6 +652,8 @@ export async function POST(request: Request) {
       page: index + 1, id: slide.id, role: slide.pageIntent, title: slide.title,
       body: slide.subtitle, bullets: slide.bullets, layout: slide.layout
     })),
+    lessonPlan: contentPlan.lessonPlan || contentPlan.lessonBlueprint?.lessonPlan,
+    deliveryPack: contentPlan.deliveryPack,
     teacherTrial: { trialCompleted: false, reviewedByTeacher: false },
   }) : undefined;
   persistDeductionRules(postReview);

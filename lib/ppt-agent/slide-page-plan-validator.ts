@@ -125,7 +125,7 @@ export function validateSlidePagePlans(plans: SlidePagePlan[], contentPlan?: Con
     }
     if (!plan.recommendedVisualForm || !recommendedVisualForms.includes(plan.recommendedVisualForm)) {
       push(issues, plan, "invalid-visual-form", "recommendedVisualForm", "recommendedVisualForm 不在允许范围内。");
-    } else if (!visualFormMatchesRole(plan.recommendedVisualForm, `${plan.role} ${plan.pagePurpose} ${plan.mustProve}`)) {
+    } else if (!visualFormMatchesRole(plan.recommendedVisualForm, plan.role)) {
       push(issues, plan, "visual-form-role-mismatch", "recommendedVisualForm", "推荐视觉形式与页面角色匹配度偏弱。", false);
     }
     if (!plan.qualityChecks?.length) push(issues, plan, "missing-quality-checks", "qualityChecks", "缺少页面质量检查项。");

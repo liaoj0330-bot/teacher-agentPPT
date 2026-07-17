@@ -40,6 +40,7 @@ import { getWorkbenchModeContract, modeForUploadedFile, type WorkbenchMode } fro
 import { teacherWorkspaceBootstrapKey, teacherWorkspaceIdentityKey, type WorkspaceBootstrapPayload, type WorkspaceIdentity } from "@/lib/teacher-courseware-task";
 import type { TeacherChatRow, TeacherExportMeta, TeacherMaterialRow, TeacherVersionRow } from "@/lib/teacher-workspace-contract";
 import { commitTeacherWorkspaceVersion, readTeacherChat, readTeacherVersion, readTeacherVersions } from "@/lib/teacher-workspace-client";
+import type { TeacherTrialEvidenceInput, TeacherTrialValidation } from "@/lib/teacher-trial-evidence";
 
 import "@xyflow/react/dist/style.css";
 
@@ -562,6 +563,7 @@ export function CanvasWorkbench({ entryMode = "general" }: CanvasWorkbenchProps 
   const [isApplyingChatSuggestion, setIsApplyingChatSuggestion] = useState(false);
   const [isAttachingMaterial, setIsAttachingMaterial] = useState(false);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [teacherTrialValidation, setTeacherTrialValidation] = useState<TeacherTrialValidation | undefined>(undefined);
 
   const showToast = useCallback((nextToast: Toast) => {
     setToast(nextToast);
@@ -610,6 +612,7 @@ export function CanvasWorkbench({ entryMode = "general" }: CanvasWorkbenchProps 
     setIsViewingCurrentVersion(data.isCurrent !== false);
     setGeneratedVisuals({ slides: data.renderManifest ?? {} });
     setTeacherRenderArtifactId(data.renderManifestArtifactId ?? null);
+    setTeacherTrialValidation(data.teacherTrialValidation);
     setProject((current) => ensureProjectQuality({
       ...current,
       title: data.contentPlan?.teacherContext?.topic || data.slides?.[0]?.title || current.title,
@@ -899,13 +902,13 @@ export function CanvasWorkbench({ entryMode = "general" }: CanvasWorkbenchProps 
   // Submit the current version for teacher review. This is the only path that can
   // move readiness toward ready_for_teacher; the backend recomputes readiness with
   // submitted=true. We do NOT claim "可交付"/"商业可用" — the server status governs.
-  const submitTeacherReview = useCallback(async () => {
+  const submitTeacherReview = useCallback(async (trialEvidence?: TeacherTrialEvidenceInput) => {
     setIsSubmittingReview(true);
-    showToast({ type: "info", message: "正在提交教师审核" });
+    showToast({ type: "info", message: trialEvidence ? "正在保存真实试讲证据并提交审核" : "正在提交课前审核" });
     try {
-      const ok = await commitTeacherVersion("teacher_submit_for_review");
+      const ok = await commitTeacherVersion("teacher_submit_for_review", trialEvidence ? { trialEvidence } : {});
       if (ok) {
-        showToast({ type: "success", message: "已提交教师审核，状态以服务器为准" });
+        showToast({ type: "success", message: trialEvidence ? "试讲证据已写入新版本，评分与证据状态已重新计算" : "已提交课前审核；未记录试讲证据，不计真实试讲分" });
       }
     } finally {
       setIsSubmittingReview(false);
@@ -2143,7 +2146,8 @@ export function CanvasWorkbench({ entryMode = "general" }: CanvasWorkbenchProps 
                 isAttachingMaterial={isAttachingMaterial}
                 onAttachMaterial={(material) => void attachTeacherMaterial(material)}
                 isSubmittingReview={isSubmittingReview}
-                onSubmitReview={() => void submitTeacherReview()}
+                teacherTrialValidation={teacherTrialValidation}
+                onSubmitReview={(trialEvidence) => void submitTeacherReview(trialEvidence)}
               />
             ) : <PresentationEditor
               project={project}

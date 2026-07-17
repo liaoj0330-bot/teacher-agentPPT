@@ -34,6 +34,7 @@ import type { LayoutPlan } from "@/lib/ppt-agent/layout-plan";
 import type { VisibleContentBlock } from "@/lib/ppt-agent/slide-content-draft";
 import type { TeacherCoursewareTask } from "@/lib/teacher-courseware-task";
 import { findScaffoldMatches } from "@/lib/ppt-agent/slide-content-validator";
+import { createTeacherTrialEvidence, type TeacherTrialEvidenceInput } from "@/lib/teacher-trial-evidence";
 
 /** Whitelisted fields a manual edit may touch. Anything else is ignored. */
 export type ManualEditPatch = {
@@ -95,6 +96,8 @@ export type CommitInput = {
     restoreVersionId?: string;
     /** the chat/request text this version was generated from (provenance). */
     basis?: string;
+    /** teacher_submit_for_review: optional structured evidence from a real classroom trial. */
+    trialEvidence?: TeacherTrialEvidenceInput;
   };
 };
 
@@ -160,7 +163,7 @@ function recomputeReadiness(
       bullets: slide.bullets,
       layout: slide.layout,
     })),
-    teacherTrial: { trialCompleted: submitted, reviewedByTeacher: submitted },
+    teacherTrial: { trialCompleted: false, reviewedByTeacher: false },
   });
   const contentP0 = report.p0.filter((item) => !/真实渲染截图|OOXML可编辑性/.test(item));
   if (contentP0.length > 0) return "failed";
@@ -520,7 +523,20 @@ export async function commitCoursewareVersion(
       });
       break;
     case "teacher_submit_for_review":
-      // No content mutation — this records the teacher's review + approval.
+      // Workflow approval and classroom-trial proof are separate facts. Existing
+      // callers may submit without trialEvidence; that never earns trial points.
+      if (payload.trialEvidence) {
+        try {
+          sourceDocuments.push(createTeacherTrialEvidence(payload.trialEvidence, userId));
+        } catch (error) {
+          return {
+            ok: false,
+            status: 400,
+            code: "invalid_payload",
+            message: `真实试讲证据无效：${error instanceof Error ? error.message : "未知错误"}`,
+          };
+        }
+      }
       break;
   }
 

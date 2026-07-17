@@ -164,11 +164,13 @@ function explicitRole(record: Record<string, unknown>) {
 
 function inferRole(name: string, fileType: TeacherMaterialFileType): TeacherMaterialRole {
   const lower = name.toLowerCase();
-  if (/教师用书|教学参考|教参|teacher.?guide/.test(lower)) return "teacher_guide";
-  if (/教案|教学设计|lesson.?plan/.test(lower)) return "lesson_plan";
-  if (/练习册|作业|习题|exercise|workbook/.test(lower)) return "exercise";
-  if (/试卷|测验|考试|assessment|quiz|exam/.test(lower)) return "assessment";
+  if (/教师(?:教学)?用书|教学参考|教参|教师指导用书|teacher.?guide/.test(lower)) return "teacher_guide";
+  if (/教案|教学设计|导学案|课时学案|lesson.?plan/.test(lower)) return "lesson_plan";
+  if (/练习册|同步(?:练习|训练)|课时作业|课后练习|作业|习题|exercise|workbook/.test(lower)) return "exercise";
+  if (/试卷|测试卷|单元检测|期[中末](?:检测|考试)?|测验|考试|assessment|quiz|exam/.test(lower)) return "assessment";
   if (/教材|课本|教科书|textbook/.test(lower)) return "textbook";
+  if (/(?:人教|部编|统编|北师大|苏教|外研|译林|鲁教|沪教|湘教|浙教|教科|粤教|华师大)版/.test(lower)
+    && /(?:[一二三四五六七八九]年级|高[一二三]|必修|选择性必修|上册|下册)/.test(lower)) return "textbook";
   if (fileType === "pptx") return "existing_deck";
   if (fileType === "image") return "reference_image";
   return "other";
@@ -204,9 +206,13 @@ function normalizeMaterial(value: unknown, index: number): TeacherMaterialItem |
   const name = text(record.name || record.fileName || analysis?.fileName) || `material-${index + 1}`;
   const fileType = fileTypeFor(name, text(record.mimeType || record.type || analysis?.fileType));
   const declaredRole = explicitRole(record);
-  const metadataRole = !declaredRole && record.metadata && typeof record.metadata === "object"
+  const recordMetadataRole = !declaredRole && record.metadata && typeof record.metadata === "object"
     ? explicitRole(record.metadata as Record<string, unknown>)
     : undefined;
+  const analysisMetadataRole = !declaredRole && !recordMetadataRole && analysis?.metadata && typeof analysis.metadata === "object"
+    ? explicitRole(analysis.metadata as Record<string, unknown>)
+    : undefined;
+  const metadataRole = recordMetadataRole || analysisMetadataRole;
   const role = declaredRole || metadataRole || inferRole(name, fileType);
   const parseStatus = parseStatusFor(record, fileType);
   const blockCount = numberValue(analysis?.blockCount);

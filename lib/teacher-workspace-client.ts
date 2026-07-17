@@ -1,6 +1,7 @@
 import type { CanvasProject } from "@/lib/canvas-data";
 import type { TeacherChatRow, TeacherVersionRow } from "@/lib/teacher-workspace-contract";
 import type { TeacherDeckScoreReportV3 } from "@/lib/teacher-deck-scoring-v3";
+import type { TeacherTrialValidation } from "@/lib/teacher-trial-evidence";
 
 export type TeacherVersionSnapshot = {
   message?: string;
@@ -17,6 +18,7 @@ export type TeacherVersionSnapshot = {
   renderManifest?: Record<string, string>;
   renderManifestArtifactId?: string | null;
   teacherScoreV3?: TeacherDeckScoreReportV3;
+  teacherTrialValidation?: TeacherTrialValidation;
 };
 
 async function readJson<T>(response: Response): Promise<T | null> {

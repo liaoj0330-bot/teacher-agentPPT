@@ -1,7 +1,7 @@
 {
   "schemaVersion": "teacher-agentppt-issue-board/v1",
   "projectKey": "teacher-agentppt",
-  "updatedAt": "2026-07-18T00:18:00+08:00",
+  "updatedAt": "2026-07-18T03:42:00+08:00",
   "releaseTarget": "private_beta_rc1",
   "releaseState": "blocked",
   "policy": {
@@ -371,6 +371,54 @@
         "npm run build",
         "npm run teacher-readiness:check"
       ]
+    },
+    {
+      "id": "SUBJECT-PRIMARY-AUTOMATION-001",
+      "priority": "P1",
+      "releaseGate": false,
+      "status": "closed",
+      "ownerRole": "product_content_engineering",
+      "summary": "Add measurable initial material, lesson, visual and scoring contracts for mathematics, chemistry, biology, history, geography and English.",
+      "doneWhen": [
+        "Each subject has textbook identity fields, source roles and a distinct 45-minute lesson architecture",
+        "Each subject has subject-specific visual intents and at least three composition families",
+        "Material readiness and scoring hard-gate regressions pass without calling image APIs"
+      ],
+      "closedAt": "2026-07-18T02:05:00+08:00",
+      "verificationEvidence": [
+        "6 subjects, 6 architectures, 42 route steps and 24 visual forms",
+        "18 material readiness scenarios and 30 role-isolation materials",
+        "72 render pages, 18 subject-specific composition families and 6/6 visual QA pass",
+        "6 positive scoring cases pass and 6 hard-gate counterexamples are blocked"
+      ],
+      "verificationCommands": [
+        "npm run teacher-subject-coverage:test",
+        "npm run teacher-multi-subject-visual:test",
+        "node --experimental-strip-types scripts/teacher-material-package-regression.ts",
+        "npm run teacher-scoring-v3:test"
+      ],
+      "dependencies": []
+    },
+    {
+      "id": "SCORING-TRUTH-001",
+      "priority": "P1",
+      "releaseGate": false,
+      "status": "in_progress_unverified",
+      "ownerRole": "product_engineering_qa",
+      "summary": "Separate the 95-point automated evidence score from five points of structured real-teacher classroom-trial evidence.",
+      "doneWhen": [
+        "Workflow submission cannot earn teacher-trial points",
+        "Version and export scoring read only persisted structured trial evidence",
+        "Teacher-facing trial form and student learning-result metrics are available"
+      ],
+      "nextAction": "The teacher-facing trial rubric form is complete; add student learning-result evidence after the first classroom pilots.",
+      "verificationEvidence": [
+        "teacher-scoring-provenance:test passes with automatic=95, trial=5 and commercialReady=false",
+        "UI labels the machine score as 95-point pre-class checking and shows teacher evidence separately",
+        "teacher-trial-ui:test proves structured trial payload submission, server validation and separate pre-class review"
+      ],
+      "verificationCommands": ["npm run teacher-scoring-provenance:test", "npm run teacher-scoring-v3:test", "npm run teacher-trial-ui:test", "npm run lint"],
+      "dependencies": ["SUBJECT-PRIMARY-AUTOMATION-001"]
     },
     {
       "id": "SEARCH-TRUTH-001",

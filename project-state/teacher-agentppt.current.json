@@ -1,12 +1,21 @@
 {
   "schemaVersion": "teacher-agentppt-project-state/v1",
   "projectKey": "teacher-agentppt",
-  "updatedAt": "2026-07-18T00:18:00+08:00",
+  "updatedAt": "2026-07-18T03:42:00+08:00",
   "status": "private_beta_blocked_by_p0_deliverability",
   "productStage": "邀请制内测 P0 收口",
   "commercialReady": false,
   "goal": "建立面向市场的教师 AI 课件产品：真实备课交互、教材绑定、跨学科动态策划、不可变版本链、真实视觉、可编辑 PPTX 与教师验收。",
   "currentJudgement": "高二物理《楞次定律》和初二语文《背影》已升级为 16 页、45 分钟课堂样品，并完成真实浏览器主链、教师包、版本、审核、导出与重开验收。两套样品各嵌入 4 张远程生成关键视觉，PowerPoint 实际打开并渲染 16/16 页通过，无乱码、占位符或文字遮挡。产品内图片请求仍缺少可持久化的异步任务队列与完整直连闭环；这次样品资产由双供应商直连脚本生成，不能冒充为网页图片功能已完成。仍缺连续修改压力验收、真实 WPS 目标机检查、真实教师过课和云端部署，因此只能称为本地 RC 候选。",
+  "currentMilestone": {
+    "status": "eight_subjects_initial_contracts_two_subjects_golden",
+    "initialSubjects": ["数学", "化学", "生物", "历史", "地理", "英语"],
+    "goldenSubjects": ["物理", "语文"],
+    "automatedInitialContractCount": 8,
+    "apiRealPathCount": 8,
+    "browserGoldenCount": 2,
+    "note": "Initial contracts and deterministic render/scoring regressions do not replace real textbook chapter verification, target-office opening, or teacher classroom trials."
+  },
   "nonNegotiables": [
     "唯一主入口为 /teacher-ai-ppt",
     "不能固定为 9 页",
@@ -145,6 +154,11 @@
     "projectSkill": "skills/teacher-courseware-production validated by skill-creator quick_validate and strict preflight",
     "imageAsync": "durable batch jobs support idempotency, per-page state, failed-page-only retry and refresh/restart queryability; regression uses a mock provider and does not spend image quota",
     "readinessGate": "teacher-readiness:check passes local RC evidence and reports three external gates without promoting commercialReady",
+    "initialSubjectCoverage": "6 new subjects, 10 textbook fields, 6 lesson architectures, 42 route steps, 24 visual forms, 18 material readiness scenarios and 72 visual regression pages passed",
+    "subjectRendering": "6 new subjects each use 6 total families, 3 subject-specific families and 9/12 subject-specific pages; all visual QA passed",
+    "scoringContract": "teacher-subject-scoring/v1 uses six dimensions, P0 hard gates and 75 review / 85 classroom-ready thresholds; automated score is capped at 95 and structured teacher trial evidence supplies the final 5",
+    "sixSubjectRealPath": "mathematics, chemistry, biology, history, geography and English passed 6/6 through auth, parsed acceptance source, plan confirmation, generation, review, durable version, PPTX export/download hash match and reopen; 93 pages and 42 lesson events, image API calls=0",
+    "teacherTrialUI": "structured teacher trial form submits persisted reviewer-bound evidence and keeps pre-class workflow review separate from the 5 teacher-trial points",
     "browserGolden": "physics and Chinese browser production chains passed with ready_for_teacher and consoleErrors=[]",
     "remainingExternalGates": ["WPS/PowerPoint target-machine opening", "real teacher 45-minute trials", "cloud deployment and persistent operations"],
     "commands": [
@@ -158,6 +172,12 @@
       "npm run teacher-edit-stress:e2e",
       "npm run image-async:test",
       "npm run teacher-readiness:check",
+      "npm run teacher-subject-coverage:test",
+      "npm run teacher-multi-subject-visual:test",
+      "npm run teacher-scoring-v3:test",
+      "npm run teacher-scoring-provenance:test",
+      "npm run teacher-trial-ui:test",
+      "npm run teacher-six-subject:e2e",
       "npm run teacher-two-subject-delivery:e2e",
       "npm run teacher-two-subject-browser:e2e"
     ]

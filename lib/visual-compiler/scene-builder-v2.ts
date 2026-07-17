@@ -106,6 +106,62 @@ function nativeVisualElements(slideId: string, recipe: LayoutRecipe, bounds: Vis
   });
   const elements: RenderElement[] = [shape("surface", { x: x + 0.12, y: y + 0.12, width: w - 0.24, height: h - 0.24 }, recipe.colors.soft)];
 
+  if (recipe.family.startsWith("math-")) {
+    elements.push(
+      shape("axis-x", { x: x + w * 0.16, y: y + h * 0.62, width: w * 0.68, height: 0.03 }, recipe.colors.accent),
+      shape("axis-y", { x: x + w * 0.34, y: y + h * 0.18, width: 0.03, height: h * 0.58 }, recipe.colors.accent),
+      shape("relation-a", { x: x + w * 0.45, y: y + h * 0.24, width: w * 0.16, height: h * 0.12 }, "FFFFFF"),
+      shape("relation-b", { x: x + w * 0.65, y: y + h * 0.43, width: w * 0.16, height: h * 0.12 }, "FFFFFF")
+    );
+    return elements;
+  }
+
+  if (recipe.family.startsWith("chemistry-")) {
+    for (let index = 0; index < 5; index += 1) {
+      elements.push(shape(`particle-${index + 1}`, { x: x + w * (0.12 + index * 0.14), y: y + h * (index % 2 ? 0.28 : 0.5), width: w * 0.09, height: w * 0.09 }, index < 2 ? recipe.colors.accent : "FFFFFF", "ellipse"));
+    }
+    elements.push(shape("reaction-arrow", { x: x + w * 0.28, y: y + h * 0.7, width: w * 0.45, height: 0.035 }, recipe.colors.accent));
+    return elements;
+  }
+
+  if (recipe.family.startsWith("biology-")) {
+    elements.push(
+      shape("cell-outer", { x: x + w * 0.2, y: y + h * 0.16, width: w * 0.48, height: h * 0.58 }, "FFFFFF", "ellipse"),
+      shape("cell-core", { x: x + w * 0.37, y: y + h * 0.33, width: w * 0.16, height: w * 0.16 }, recipe.colors.accent, "ellipse"),
+      shape("function-node", { x: x + w * 0.7, y: y + h * 0.3, width: w * 0.17, height: h * 0.18 }, "FFFFFF"),
+      shape("function-link", { x: x + w * 0.61, y: y + h * 0.42, width: w * 0.13, height: 0.03 }, recipe.colors.accent)
+    );
+    return elements;
+  }
+
+  if (recipe.family.startsWith("history-")) {
+    elements.push(shape("timeline", { x: x + w * 0.12, y: y + h * 0.48, width: w * 0.75, height: 0.035 }, recipe.colors.accent));
+    for (let index = 0; index < 3; index += 1) {
+      elements.push(shape(`source-${index + 1}`, { x: x + w * (0.12 + index * 0.27), y: y + h * (index % 2 ? 0.56 : 0.2), width: w * 0.2, height: h * 0.18 }, index === 1 ? recipe.colors.accent : "FFFFFF"));
+    }
+    return elements;
+  }
+
+  if (recipe.family.startsWith("geography-")) {
+    elements.push(
+      shape("map-frame", { x: x + w * 0.12, y: y + h * 0.16, width: w * 0.48, height: h * 0.58 }, "FFFFFF"),
+      shape("region-a", { x: x + w * 0.2, y: y + h * 0.26, width: w * 0.16, height: h * 0.18 }, recipe.colors.accent),
+      shape("region-b", { x: x + w * 0.36, y: y + h * 0.45, width: w * 0.16, height: h * 0.18 }, recipe.colors.soft),
+      shape("data-bar-a", { x: x + w * 0.68, y: y + h * 0.52, width: w * 0.08, height: h * 0.2 }, recipe.colors.accent),
+      shape("data-bar-b", { x: x + w * 0.79, y: y + h * 0.35, width: w * 0.08, height: h * 0.37 }, "FFFFFF")
+    );
+    return elements;
+  }
+
+  if (recipe.family.startsWith("english-")) {
+    elements.push(
+      shape("speech-left", { x: x + w * 0.1, y: y + h * 0.2, width: w * 0.35, height: h * 0.22 }, "FFFFFF"),
+      shape("speech-right", { x: x + w * 0.53, y: y + h * 0.45, width: w * 0.35, height: h * 0.22 }, recipe.colors.accent),
+      shape("turn-link", { x: x + w * 0.4, y: y + h * 0.46, width: w * 0.2, height: 0.03 }, recipe.colors.accent)
+    );
+    return elements;
+  }
+
   if (recipe.family === "physics-experiment-bench") {
     elements.push(
       shape("magnet-left", { x: x + w * 0.12, y: y + h * 0.38, width: w * 0.17, height: h * 0.18 }, recipe.colors.accent),

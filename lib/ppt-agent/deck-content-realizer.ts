@@ -21,8 +21,50 @@ export type DeckContentRealizerOutput = {
   deckContentQualityReport: DeckContentQualityReport;
 };
 
+type DynamicTeacherPage = {
+  title: string;
+  subtitle: string;
+  blocks: Array<[string, string, string?]>;
+  sections: SlideSection[];
+  action: string;
+};
+
 function uniq<T>(items: T[]) {
   return [...new Set(items.filter(Boolean))];
+}
+
+function extendDynamicTeacherPages(
+  pages: DynamicTeacherPage[],
+  input: DeckContentRealizerInput,
+  topic: string,
+  source: string,
+) {
+  while (pages.length < input.slidePagePlans.length) {
+    const index = pages.length;
+    const plan = input.slidePagePlans[index];
+    const title = `${topic} ${plan.role}`;
+    const studentAction = plan.studentAction || `完成“${plan.role}”任务并提交可检查产出。`;
+    const masteryCheck = plan.masteryCheck || `能依据${plan.mustProve}说明本页结论。`;
+    pages.push({
+      title,
+      subtitle: `完成${plan.role}并留下可检查证据。`,
+      action: studentAction,
+      blocks: [
+        ["课堂任务", studentAction],
+        ["判断依据", plan.mustProve],
+        ["检查标准", masteryCheck],
+      ],
+      sections: [{
+        type: "tips-grid",
+        title: plan.role,
+        items: [
+          { title: "任务", body: studentAction },
+          { title: "依据", body: plan.mustProve },
+          { title: "检查", body: masteryCheck },
+        ],
+      }],
+    });
+  }
 }
 
 function fallbackTitle(draft: SlideContentDraft) {
@@ -568,6 +610,12 @@ function teacherMathDynamicDrafts(input: DeckContentRealizerInput): SlideContent
       ["作业", "朗读重点段落；完成一段 150 字左右的亲情细节描写，并在旁边标出两个动作词。"],
     ];
   }
+  extendDynamicTeacherPages(
+    pages,
+    input,
+    topic,
+    [context?.textbook, context?.chapter].filter(Boolean).join(" · ") || `${subject}教材`,
+  );
   return pages.map((page, index) => {
     const pagePlan = input.slidePagePlans[index];
     const layoutPlan = input.layoutPlans[index];
@@ -768,7 +816,28 @@ function teacherGeneralDynamicDrafts(input: DeckContentRealizerInput): SlideCont
     pages[6].blocks = [["Complete", "A: Good morning! ____ Amy. B: Hello, Amy! ____ name is Tom."], ["Choose", "At 8:00 a.m., say: Good morning / Good evening."], ["Create", "Use Hello, My name is and Nice to meet you to write a new dialogue."], ["Answer", "I'm; My; Good morning."]];
     pages[7].blocks = [["Common error", "Saying Good evening in the morning, or forgetting is in My name is..."], ["Pronunciation", "Practise the stress in GOOD MORNING and NICE TO MEET YOU."], ["Retry", "Perform the dialogue again with clear voice, eye contact and correct expressions."]];
     pages[8].blocks = [["I can", "I can greet people, introduce myself and ask someone's name."], ["Checklist", "Correct words, complete sentences, clear voice and natural response."], ["Homework", "Record a 20-second self-introduction and greet one family member in English."]];
-  }  if (/函数的单调性|一次函数/.test(topic)) {
+  }
+  if (/英语|English/i.test(subject) && /daily\s*routines?|time/i.test(topic)) {
+    pages[2].title = "Listen for routines and time";
+    pages[2].blocks = [["听力题目", "Listen and match each person with a daily action and a time."], ["作答", "Record the key time expression before choosing the routine."], ["反馈", "Check the subject, action and time as one complete meaning unit."]];
+    pages[3].title = "Explain the language pattern";
+    pages[3].blocks = [["核心表达", "What time do you get up? I get up at seven."], ["解释", "Use at with clock time and the simple present for repeated routines."], ["对比", "I get up at seven. / She gets up at seven."], ["检查", "The subject and verb form must agree."]];
+    pages[4].title = "Model a routine interview";
+    pages[4].blocks = [["题目", "Ask a classmate about two daily routines and their times."], ["步骤1", "Choose a routine and ask What time do you...?"], ["步骤2", "Listen, record the time, and ask one follow-up question."], ["结论", "Report one complete routine with the correct subject and verb form."]];
+    pages[5].title = "Build a daily timeline";
+    pages[5].blocks = [["任务", "Interview a partner and place four routines on a timeline."], ["作答", "Use complete questions and answers instead of isolated words."], ["产出", "Each pair presents a four-event daily timeline."], ["反馈", "Partners check time, sequence and verb forms."]];
+    pages[6].title = "Practice and feedback";
+    pages[6].blocks = [["练习题目", "Complete two time expressions, correct one verb form, and write one routine question."], ["作答", "Finish independently, then underline the evidence for each answer."], ["答案", "Use at + clock time; add -s for a third-person singular subject."], ["反馈", "Correct the answer and explain which rule changed it."]];
+    pages[7].title = "Diagnose and retry";
+    pages[7].blocks = [["典型错误", "Missing at before a time or missing -s after he or she."], ["纠正步骤", "Circle the subject, identify the time phrase, and rebuild the sentence."], ["再作答", "Write the corrected sentence and read it to a partner."], ["反馈标准", "Meaning, time expression and verb form are all accurate."]];
+    pages[8].title = "Transfer the routine language";
+    pages[8].blocks = [["总结", "A routine report connects who, what action and what time."], ["独立迁移", "Interview a family member and compare one routine with your own."], ["作答输出", "Write four sentences and one comparison sentence."], ["反馈修正", "Use the checklist to correct time expressions and verb agreement."], ["检查标准", "The time expression, subject and verb form must all be correct."]];
+  }
+  if (/化学|生物|历史|地理/.test(subject)) {
+    pages[3].blocks[0][1] += "；学生需要解释观察到的证据、概念关系和适用条件。";
+    pages[8].blocks[0][1] += " 学生活动完成迁移：独立选择一个新情境，写出答案并说明理由，接受反馈后修正，按检查标准核对。";
+  }
+  if (/函数的单调性|一次函数/.test(topic)) {
     pages[3].blocks = [
       ["定义", "在给定区间内，若任意 x1 < x2 都有 f(x1) < f(x2)，则称函数在该区间上单调递增；反之为单调递减。"],
       ["判断方法", "取区间内任意两点比较函数值，或结合图象从左向右观察变化趋势。"],
@@ -918,6 +987,7 @@ function teacherGeneralDynamicDrafts(input: DeckContentRealizerInput): SlideCont
     pages[8].blocks = [["内容总结", "《背影》通过车站送别和买橘子的细节，写出父亲深沉而具体的爱。"], ["方法总结", "抓动作细节，联系场景，引用词句解释人物情感。"], ["离堂评价", "用词句—画面—情感三步解释买橘子的背影为何难忘。"], ["作业", "朗读重点段落；完成 150 字亲情细节描写并标出两个动作词。"]];
     }
   }
+  extendDynamicTeacherPages(pages, input, topic, source);
   return pages.map((page, index) => {
     const pagePlan = input.slidePagePlans[index];
     const layoutPlan = input.layoutPlans[index];

@@ -63,6 +63,12 @@ export type LessonArchitecture =
   | "experiment_inquiry"
   | "close_reading"
   | "concept_building"
+  | "representation_modeling"
+  | "evidence_experiment"
+  | "observation_systems"
+  | "source_inquiry"
+  | "spatial_reasoning"
+  | "communicative_task_cycle"
   | "skill_practice"
   | "review_consolidation"
   | "general_lesson";

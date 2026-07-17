@@ -33,11 +33,11 @@ const moduleFor = (slide: NonNullable<TeacherDeckScoreInputV2["slides"]>[number]
   const explicit = (slide.module || slide.id || "").toUpperCase().match(/M0[24789]/)?.[0];
   if (explicit) return explicit;
   const role = `${slide.role || ""} ${slide.title || ""}`;
-  if (/目标|导入/.test(role)) return "M02";
-  if (/概念|定义|解释|算理|方法|表示|词句|细读/.test(role)) return "M04";
-  if (/例题|讲解|步骤|示范|重点段落|精读/.test(role)) return "M07";
-  if (/练习|反馈|互动|纠错|再练习/.test(role)) return "M08";
-  if (/总结|迁移|作业|离堂|收束/.test(role)) return "M09";
+  if (/目标|导入|learning goals?|warm-?up|course cover/i.test(role)) return "M02";
+  if (/概念|定义|解释|算理|方法|表示|词句|细读|key expressions?|language patterns?|explain/i.test(role)) return "M04";
+  if (/例题|讲解|步骤|示范|重点段落|精读|model dialogue|worked example/i.test(role)) return "M07";
+  if (/练习|反馈|互动|纠错|再练习|practice|feedback|pair work|retry/i.test(role)) return "M08";
+  if (/总结|迁移|作业|离堂|收束|summary|transfer|homework|closing/i.test(role)) return "M09";
   return undefined;
 };
 

@@ -22,6 +22,7 @@ import type { SlideEvidenceMap } from "@/lib/ppt-agent/evidence-types";
 import { prisma } from "@/lib/db";
 import { clonePptxPreservingSource, comparePptxStructure } from "@/lib/pptx-automizer-adapter";
 import { persistCoursewareArtifactBuffer } from "@/lib/courseware-artifact-storage";
+import { findTeacherTrialEvidence, validateTeacherTrialEvidence } from "@/lib/teacher-trial-evidence";
 
 const W = 13.333;
 const H = 7.5;
@@ -1508,6 +1509,8 @@ async function handleVersionedExport(body: {
     return NextResponse.json({ message: "PPTX 原生对象检查失败，已阻止交付", reason: "pptx_artifact_qa_failed", artifactQA }, { status: 422 });
   }
 
+  const teacherTrialValidation = validateTeacherTrialEvidence(findTeacherTrialEvidence(source.sourceDocuments));
+  const teacherTrialComplete = teacherTrialValidation.status === "complete";
   const exportScoreV2 = scoreTeacherDeckV2({
     scene: "teacher_courseware",
     topic: renderProject.title,
@@ -1522,7 +1525,7 @@ async function handleVersionedExport(body: {
       nativeTextObjects: artifactQA.nativeTextObjects
     },
     visualReview: { completed: false },
-    teacherTrial: { trialCompleted: source.teacherReadiness === "ready_for_teacher", reviewedByTeacher: source.teacherReadiness === "ready_for_teacher" }
+    teacherTrial: { trialCompleted: teacherTrialComplete, reviewedByTeacher: teacherTrialComplete }
   });
   const exportScoreV3 = scoreTeacherDeckV3({
     scene: "teacher_courseware",
@@ -1531,6 +1534,8 @@ async function handleVersionedExport(body: {
     sources: source.sourceDocuments,
     evidenceMaps: source.evidence as SlideEvidenceMap[],
     slides: source.slides.map((slide, index) => ({ page: index + 1, id: slide.id, role: slide.pageIntent, title: slide.title, body: slide.subtitle, bullets: slide.bullets, layout: slide.layout })),
+    lessonPlan: source.contentPlan?.lessonPlan || source.contentPlan?.lessonBlueprint?.lessonPlan,
+    deliveryPack: source.contentPlan?.deliveryPack,
     engineering: {
       rendered: false,
       screenshots: false,
@@ -1542,7 +1547,7 @@ async function handleVersionedExport(body: {
     },
     subjectReview: { completed: false },
     imageSemanticReview: { completed: false },
-    teacherTrial: { trialCompleted: source.teacherReadiness === "ready_for_teacher", reviewedByTeacher: source.teacherReadiness === "ready_for_teacher" },
+    teacherTrial: { trialCompleted: teacherTrialComplete, reviewedByTeacher: teacherTrialComplete },
   });
 
   // 7. Write the real CoursewareArtifact for the successful PPTX.
@@ -1576,6 +1581,7 @@ async function handleVersionedExport(body: {
       artifactQA,
       exportScoreV2,
       exportScoreV3,
+      teacherTrialValidation,
       visualTruth,
       commercialReady: false
     }
