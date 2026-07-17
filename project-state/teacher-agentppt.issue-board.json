@@ -1,7 +1,7 @@
 {
   "schemaVersion": "teacher-agentppt-issue-board/v1",
   "projectKey": "teacher-agentppt",
-  "updatedAt": "2026-07-17T23:36:00+08:00",
+  "updatedAt": "2026-07-18T00:18:00+08:00",
   "releaseTarget": "private_beta_rc1",
   "releaseState": "blocked",
   "policy": {
@@ -340,7 +340,7 @@
       "id": "IMAGE-JOB-001",
       "priority": "P1",
       "releaseGate": false,
-      "status": "in_progress",
+      "status": "closed",
       "ownerRole": "engineering",
       "summary": "远程图片可由两个兼容网关稳定直连生成，但网页产品仍缺页面级异步状态、幂等、断点续跑和稳定的代理兼容层。",
       "evidence": [
@@ -355,7 +355,22 @@
       ],
       "nextAction": "先补产品路由的双供应商主备适配与单页成功验收，再建立 taskId、逐页持久化状态、失败重试和刷新恢复；已有样品资产必须复用。",
       "estimateEngineeringHours": "10-18",
-      "dependencies": []
+      "dependencies": [],
+      "closedAt": "2026-07-18T00:18:00+08:00",
+      "verificationEvidence": [
+        "POST /api/generate-image supports async batches of up to 20 pages and returns a durable jobId",
+        "GET /api/generate-image?jobId= and /api/generate-image/jobs/[id] return persisted per-page progress after refresh or restart",
+        "Idempotency-Key deduplicates submissions; retry queues only selected failed pages and preserves completed pages",
+        "stale processing pages recover to queued after 10 minutes",
+        "image-async:test passed with a mock provider; no real image API request or quota was used"
+      ],
+      "verificationCommands": [
+        "npm run db:generate",
+        "npm run lint",
+        "npm run image-async:test",
+        "npm run build",
+        "npm run teacher-readiness:check"
+      ]
     },
     {
       "id": "SEARCH-TRUTH-001",

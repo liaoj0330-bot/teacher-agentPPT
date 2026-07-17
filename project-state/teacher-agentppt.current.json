@@ -1,7 +1,7 @@
 {
   "schemaVersion": "teacher-agentppt-project-state/v1",
   "projectKey": "teacher-agentppt",
-  "updatedAt": "2026-07-17T23:36:00+08:00",
+  "updatedAt": "2026-07-18T00:18:00+08:00",
   "status": "private_beta_blocked_by_p0_deliverability",
   "productStage": "邀请制内测 P0 收口",
   "commercialReady": false,
@@ -40,9 +40,9 @@
   },
   "activeWork": {
     "id": "LESSON-DELIVERY-PRODUCT-MISSION-P0",
-    "status": "completed_local_rc_uncommitted",
+    "status": "completed_local_rc_verified",
     "startedAt": "2026-07-17T18:45:00+08:00",
-    "checkpointAt": "2026-07-17T23:36:00+08:00",
+    "checkpointAt": "2026-07-18T00:18:00+08:00",
     "baseCommit": "f91052c",
     "objective": "把产品生成单位从一份 PPT 重构为一节可直接执行的课：先确认课堂蓝图，再派生动态页面、教师包与耐久版本，并用楞次定律和背影两条黄金链验收。",
     "modifiedFiles": [
@@ -137,11 +137,14 @@
   },
   "verification": {
     "status": "local_rc_verified",
-    "completedAt": "2026-07-17T23:36:00+08:00",
+    "completedAt": "2026-07-18T00:18:00+08:00",
     "dynamicLessonPlanning": "45-minute physics and Chinese golden plans both produce 16 pages, 7 lesson events, and 3 teacher decisions",
     "materialPackage": "teacher-material-package/v1 gates textbook truth and blocks lesson-plan masquerading as textbook",
     "visualPolicy": "physics and Chinese visual regression passes with repetitive composition hard blocks",
     "editStress": "10 edits, idempotent retry, stale 409, restore_version, refresh and 12 immutable versions passed",
+    "projectSkill": "skills/teacher-courseware-production validated by skill-creator quick_validate and strict preflight",
+    "imageAsync": "durable batch jobs support idempotency, per-page state, failed-page-only retry and refresh/restart queryability; regression uses a mock provider and does not spend image quota",
+    "readinessGate": "teacher-readiness:check passes local RC evidence and reports three external gates without promoting commercialReady",
     "browserGolden": "physics and Chinese browser production chains passed with ready_for_teacher and consoleErrors=[]",
     "remainingExternalGates": ["WPS/PowerPoint target-machine opening", "real teacher 45-minute trials", "cloud deployment and persistent operations"],
     "commands": [
@@ -153,6 +156,8 @@
       "npm run teacher-lesson-orchestration:test",
       "npm run teacher-sample-content:test",
       "npm run teacher-edit-stress:e2e",
+      "npm run image-async:test",
+      "npm run teacher-readiness:check",
       "npm run teacher-two-subject-delivery:e2e",
       "npm run teacher-two-subject-browser:e2e"
     ]

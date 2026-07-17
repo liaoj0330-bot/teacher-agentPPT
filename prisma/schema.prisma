@@ -192,3 +192,22 @@ model CoursewareArtifact {
 
   @@index([projectId, versionId, artifactType])
 }
+
+model ImageGenerationJob {
+  id             String   @id @default(cuid())
+  ownerKey       String
+  userId         String?
+  idempotencyKey String
+  requestJson    String   @default("{}")
+  pagesJson      String   @default("[]")
+  resultJson     String   @default("{}")
+  status         String   @default("queued")
+  errorMessage   String?
+  attempts       Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  completedAt    DateTime?
+
+  @@unique([ownerKey, idempotencyKey])
+  @@index([ownerKey, updatedAt])
+}

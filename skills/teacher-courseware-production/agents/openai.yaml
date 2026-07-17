@@ -1,0 +1,4 @@
+interface:
+  display_name: "Teacher Courseware Production"
+  short_description: "Build teacher-ready lesson decks"
+  default_prompt: "Use $teacher-courseware-production to plan, generate, validate, and package a teacher-ready lesson deck from uploaded materials."
