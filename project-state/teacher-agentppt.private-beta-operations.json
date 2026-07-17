@@ -1,0 +1,274 @@
+{
+  "schemaVersion": "teacher-agentppt-private-beta-operations/v1",
+  "updatedAt": "2026-07-18T04:10:00+08:00",
+  "objective": "Run a controlled no-image private beta for up to 1000 invited teachers without treating registrations as concurrent capacity.",
+  "scope": {
+    "invitedTeacherTarget": 1000,
+    "coreSubjects": ["语文", "数学", "英语", "物理", "化学", "生物", "历史", "地理"],
+    "supportedLessonMinutes": [25, 45, 60, 90],
+    "defaultLessonMinutes": 45,
+    "imageGenerationDefault": "disabled",
+    "textbookTruthPolicy": "teacher_uploaded_material_first",
+    "explicitlyOutOfScope": [
+      "public self-service signup",
+      "claims that all textbook editions are verified",
+      "1000 simultaneous generation jobs",
+      "automatic image generation",
+      "commercial-ready claims before target-office and teacher-trial evidence"
+    ]
+  },
+  "verifiedBaseline": {
+    "coreSubjectRuntimePaths": "8/8",
+    "browserPptxGoldenSubjects": "2/8",
+    "newSubjectRealPath": "6/6",
+    "newSubjectPages": 93,
+    "newSubjectLessonEvents": 42,
+    "newSubjectImageApiCalls": 0,
+    "automaticScoreMaximum": 95,
+    "structuredTeacherTrialPoints": 5,
+    "remainingExternalGates": [
+      "WPS/PowerPoint target-machine acceptance",
+      "real-teacher 45-minute classroom trials",
+      "cloud deployment, backup, monitoring and capacity testing"
+    ]
+  },
+  "cohorts": [
+    {
+      "id": "wave-100",
+      "inviteCeiling": 100,
+      "minimumObservationDays": 3,
+      "activationStrategy": "Invite in daily batches of 20-30; stop the same day if a hard stop is hit.",
+      "eligibility": {
+        "inviteOnly": true,
+        "coreSubjectsOnly": true,
+        "teacherAcceptsBetaNotice": true,
+        "teacherUploadsAuthorizedMaterial": true
+      },
+      "quotas": {
+        "runningGenerationJobsPerTeacher": 1,
+        "noImageDecksPerTeacherPerDay": 3,
+        "imageDecksPerTeacherPerDay": 0,
+        "uploadMegabytesPerFile": 30,
+        "retainedProjectsPerTeacher": 20
+      },
+      "promotion": {
+        "nextWave": "wave-300",
+        "minimumActivatedTeachers": 60,
+        "minimumCompletedDecks": 100,
+        "requiresAllGlobalGoNoGoRules": true
+      }
+    },
+    {
+      "id": "wave-300",
+      "inviteCeiling": 300,
+      "minimumObservationDays": 5,
+      "activationStrategy": "Add no more than 100 invitations per day after wave-100 promotion is signed off.",
+      "eligibility": {
+        "inviteOnly": true,
+        "coreSubjectsOnly": true,
+        "teacherAcceptsBetaNotice": true,
+        "teacherUploadsAuthorizedMaterial": true
+      },
+      "quotas": {
+        "runningGenerationJobsPerTeacher": 1,
+        "noImageDecksPerTeacherPerDay": 5,
+        "imageDecksPerTeacherPerDay": 0,
+        "uploadMegabytesPerFile": 30,
+        "retainedProjectsPerTeacher": 30
+      },
+      "promotion": {
+        "nextWave": "wave-1000",
+        "minimumActivatedTeachers": 180,
+        "minimumCompletedDecks": 400,
+        "requiresAllGlobalGoNoGoRules": true
+      }
+    },
+    {
+      "id": "wave-1000",
+      "inviteCeiling": 1000,
+      "minimumObservationDays": 7,
+      "activationStrategy": "Add 200-250 invitations per day only after tested cloud capacity exceeds the configured admission limit.",
+      "eligibility": {
+        "inviteOnly": true,
+        "coreSubjectsOnly": true,
+        "teacherAcceptsBetaNotice": true,
+        "teacherUploadsAuthorizedMaterial": true
+      },
+      "quotas": {
+        "runningGenerationJobsPerTeacher": 1,
+        "noImageDecksPerTeacherPerDay": 5,
+        "imageDecksPerTeacherPerDay": 0,
+        "uploadMegabytesPerFile": 30,
+        "retainedProjectsPerTeacher": 30
+      },
+      "promotion": {
+        "nextWave": null,
+        "minimumActivatedTeachers": 600,
+        "minimumCompletedDecks": 1200,
+        "requiresAllGlobalGoNoGoRules": true
+      }
+    }
+  ],
+  "feedback": {
+    "entryPoints": [
+      {
+        "id": "global-feedback",
+        "placement": "persistent header or lower-right utility action",
+        "availability": "all authenticated teacher pages",
+        "label": "反馈问题"
+      },
+      {
+        "id": "task-feedback",
+        "placement": "generation status, result, export and version-history states",
+        "availability": "when a project or task context exists",
+        "label": "反馈此课件"
+      }
+    ],
+    "categories": [
+      "教材或章节不一致",
+      "知识或答案错误",
+      "课堂节奏不合理",
+      "排版或乱码",
+      "生成或导出失败",
+      "操作体验",
+      "隐私或安全",
+      "其他"
+    ],
+    "requiredTeacherFields": ["category", "description", "permissionToContact"],
+    "autoContext": [
+      "feedbackId",
+      "userId",
+      "projectId",
+      "versionId",
+      "taskId",
+      "subject",
+      "textbookIdentity",
+      "route",
+      "appVersion",
+      "browser",
+      "occurredAt"
+    ],
+    "optionalEvidence": ["screenshot", "sourceMaterialReference", "expectedResult"],
+    "statuses": ["new", "triaged", "in_progress", "waiting_teacher", "resolved", "closed", "duplicate"],
+    "triageCadence": {
+      "p0AndP1": "continuous during support hours",
+      "p2AndP3": "twice daily",
+      "dailyDigest": "20:30 Asia/Shanghai"
+    },
+    "privacyRule": "Do not request student names, phone numbers, IDs, scores or faces; redact secrets from logs and screenshots."
+  },
+  "support": {
+    "timezone": "Asia/Shanghai",
+    "hours": "08:00-22:00 every beta day",
+    "channels": ["in-product feedback", "private beta support group"],
+    "serviceLevels": [
+      {"severity": "P0", "acknowledgeMinutes": 15, "updateMinutes": 30, "targetMitigationMinutes": 120},
+      {"severity": "P1", "acknowledgeMinutes": 60, "updateMinutes": 120, "targetMitigationMinutes": 480},
+      {"severity": "P2", "acknowledgeMinutes": 480, "updateMinutes": 1440, "targetMitigationMinutes": 4320},
+      {"severity": "P3", "acknowledgeMinutes": 1440, "updateMinutes": 4320, "targetMitigationMinutes": 10080}
+    ]
+  },
+  "incidents": {
+    "severityDefinitions": [
+      {"severity": "P0", "definition": "Security/privacy exposure, data loss, corrupt downloads, or the primary generation/export path unavailable for 30% or more active users."},
+      {"severity": "P1", "definition": "Generation/export failure for 10-30% of active users, severe textbook mismatch, or no workaround for a core subject."},
+      {"severity": "P2", "definition": "Limited degradation below 10%, recoverable task failure, layout defect, or workaround available."},
+      {"severity": "P3", "definition": "Cosmetic issue, low-impact copy issue, or feature request."}
+    ],
+    "hardStopTriggers": [
+      "any P0 incident",
+      "confirmed privacy or credential exposure",
+      "confirmed data loss or artifact/hash mismatch",
+      "rolling 60-minute no-image generation completion below 90%",
+      "rolling 60-minute export success below 95%",
+      "unbounded queue growth for 30 minutes",
+      "materially incorrect textbook identity affecting multiple teachers"
+    ],
+    "rollbackProcedure": [
+      "Pause new invitations and new generation admission.",
+      "Preserve running-job, database and artifact evidence; do not delete failed records.",
+      "Disable the affected feature or return to the last verified release.",
+      "Post an in-product incident notice and support-group update.",
+      "Verify login, upload, no-image generation, export, redownload and version reopen before resuming.",
+      "Resume at the previous cohort ceiling; never skip a cohort after rollback."
+    ]
+  },
+  "metrics": {
+    "system": [
+      {"id": "generation_completion_rate", "target": ">=95%", "window": "rolling 24h", "definition": "completed no-image generation jobs / terminal no-image jobs"},
+      {"id": "generation_latency_p50", "target": "<=120s", "window": "rolling 24h", "definition": "submit to durable generated version"},
+      {"id": "generation_latency_p90", "target": "<=300s", "window": "rolling 24h", "definition": "submit to durable generated version"},
+      {"id": "export_success_rate", "target": ">=98%", "window": "rolling 24h", "definition": "successful durable PPTX exports / export attempts"},
+      {"id": "artifact_redownload_integrity", "target": "100%", "window": "all sampled artifacts", "definition": "redownloaded artifacts with matching sha256 / sampled artifacts"},
+      {"id": "crash_free_teacher_sessions", "target": ">=99%", "window": "rolling 24h", "definition": "sessions without unhandled client/server error / eligible sessions"}
+    ],
+    "product": [
+      {"id": "activation_rate", "target": ">=60%", "definition": "invited teachers who create one durable deck / accepted invitations"},
+      {"id": "first_deck_completion_rate", "target": ">=70%", "definition": "teachers reaching durable PPTX export / teachers starting material intake"},
+      {"id": "teacher_reuse_intent", "target": ">=70%", "definition": "structured classroom trials marked willing_to_reuse / submitted trials"},
+      {"id": "usable_within_15_min_edit", "target": ">=70%", "definition": "teacher-rated decks usable directly or after no more than 15 minutes editing / rated decks"},
+      {"id": "severe_textbook_mismatch", "target": "<=1%", "definition": "confirmed severity P0/P1 textbook mismatch / rated decks"},
+      {"id": "feedback_sla_compliance", "target": ">=95%", "definition": "feedback acknowledged within severity SLA / triaged feedback"}
+    ]
+  },
+  "goNoGo": {
+    "universalNoGo": [
+      "any open P0 incident",
+      "any known credential or privacy exposure",
+      "backup restore drill not passed",
+      "target-office acceptance not passed for the release candidate",
+      "cloud capacity test below the next cohort admission limit",
+      "generation_completion_rate below 95%",
+      "export_success_rate below 98%",
+      "artifact_redownload_integrity below 100%",
+      "severe_textbook_mismatch above 1%"
+    ],
+    "promotionRequires": [
+      "minimum cohort observation days and sample counts are met",
+      "all system and product targets are measured rather than assumed",
+      "no P0 and no P1 older than 24 hours",
+      "at least one real classroom trial in every active core subject before wave-1000",
+      "product, engineering, content QA and operations sign-off"
+    ],
+    "decisionRecord": "Record metric snapshot, incidents, unresolved feedback, owner signatures and release commit before every promotion."
+  },
+  "teacherTrial": {
+    "evidenceSchema": "teacher-classroom-trial/v1",
+    "automaticMaximum": 95,
+    "structuredEvidencePoints": 5,
+    "requiredContext": ["reviewer", "subject", "grade", "textbook", "chapter", "classSize", "device", "startedAt", "endedAt", "actualDurationMinutes"],
+    "rubric": ["textbookAlignment", "subjectCorrectness", "classroomPacing", "studentParticipation", "teacherUsability"],
+    "requiredOutcomes": ["issues", "reuseDecision", "editingMinutes", "directlyUsablePageCount", "totalPageCount"],
+    "antiInflationRule": "Workflow submission or automated review cannot award the five classroom-trial points."
+  },
+  "dataGovernance": {
+    "prohibitedUploads": ["student identity documents", "student phone numbers", "student faces without consent", "student-level score sheets", "API keys or passwords", "materials the teacher is not authorized to use"],
+    "modelTraining": "No beta upload, generated deck or feedback is used for model training without a separate explicit opt-in.",
+    "retentionDays": {
+      "sourceMaterials": 30,
+      "generatedArtifacts": 30,
+      "applicationLogs": 30,
+      "feedbackRecords": 180,
+      "securityAuditLogs": 180,
+      "deletedAccountRecoveryWindow": 7
+    },
+    "deletionSlaDays": 7,
+    "accessControl": "Least privilege; production data access is logged and restricted to named operations and engineering responders.",
+    "backup": "Daily encrypted backup; restore drill before wave-100 and before every major release.",
+    "exportAndDeletion": "Teachers can request project export and account/project deletion through support during beta."
+  },
+  "roles": [
+    {"role": "beta_owner", "accountableFor": ["cohort promotion", "go/no-go decision", "teacher communication"]},
+    {"role": "operations_on_call", "accountableFor": ["feedback triage", "incident coordination", "SLA reporting"]},
+    {"role": "engineering_on_call", "accountableFor": ["service restoration", "rollback", "root-cause analysis"]},
+    {"role": "content_qa", "accountableFor": ["textbook identity", "subject correctness", "severity assignment for content defects"]},
+    {"role": "teacher_success", "accountableFor": ["onboarding", "trial scheduling", "reuse and editing-time evidence"]},
+    {"role": "privacy_owner", "accountableFor": ["access review", "deletion requests", "privacy incidents"]},
+    {"role": "data_analyst", "accountableFor": ["metric definitions", "daily dashboard", "promotion snapshot"]}
+  ],
+  "currentDecision": {
+    "status": "planning_ready_invitation_blocked",
+    "reason": "The local RC and eight-subject paths are verified, but cloud deployment, target-office evidence, restore testing and real-teacher trials remain release gates.",
+    "nextGate": "Deploy the invitation-only cloud environment, add operator RBAC/SLA queue and real quota enforcement, run backup/restore and capacity tests, then start wave-100."
+  }
+}

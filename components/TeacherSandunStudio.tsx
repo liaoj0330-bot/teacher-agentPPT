@@ -17,6 +17,9 @@ import type { RenderScene } from "@/lib/visual-compiler/contracts";
 import { buildProjectVisualTruth, mapGeneratedVisualsToSlides } from "@/lib/visual-compiler/project-visual-truth";
 import type { TeacherDeckScoreReportV3 } from "@/lib/teacher-deck-scoring-v3";
 import { teacherTrialRubricKeys, type TeacherTrialEvidenceInput, type TeacherTrialRubricKey, type TeacherTrialValidation } from "@/lib/teacher-trial-evidence";
+import { TeacherBetaOperationsPanel } from "@/components/TeacherBetaOperationsPanel";
+import { TeacherFeedbackDialog } from "@/components/TeacherFeedbackDialog";
+import { defaultTeacherBetaOperations, type TeacherBetaOperations } from "@/lib/teacher-beta-operations";
 
 type ToolTab = "content" | "delivery" | "design" | "materials" | "classroom" | "chat" | "check";
 type VisualGenerationProgress = { total: number; completed: number; succeeded: number; failed: number; failedTargets: Array<{ key: string; index: number; title: string }>; active: boolean };
@@ -58,6 +61,8 @@ type TeacherSandunStudioProps = {
   isSubmittingReview: boolean;
   teacherTrialValidation?: TeacherTrialValidation;
   onSubmitReview: (trialEvidence?: TeacherTrialEvidenceInput) => void;
+  betaOperations?: TeacherBetaOperations;
+  onOpenFeedback?: () => void;
 };
 
 function versionTime(iso: string) {
@@ -184,7 +189,7 @@ function TeacherTrialEvidencePanel({ validation, isSubmitting, isViewingCurrentV
   </section>;
 }
 
-export function TeacherSandunStudio({ project, workspaceIdentity, isExporting, isRefining, isGeneratingVisuals, isApplyingReviewFixes, isPresenting, generatedVisuals, onExport, onPresent, onClosePresent, onProjectChange, onRefine, onManualSave, isSavingSlide, teacherExportMeta, onGenerateVisuals, visualGenerationProgress, onApplyReviewFixes, onApplyPageReviewFixes, teacherVersions, teacherMaterials, isViewingCurrentVersion, onSelectVersion, onRestoreVersion, isRestoringVersion, teacherChat, isChatSending, onSendChat, isApplyingChatSuggestion, onApplyChatSuggestion, isAttachingMaterial, onAttachMaterial, isSubmittingReview, teacherTrialValidation, onSubmitReview }: TeacherSandunStudioProps) {
+export function TeacherSandunStudio({ project, workspaceIdentity, isExporting, isRefining, isGeneratingVisuals, isApplyingReviewFixes, isPresenting, generatedVisuals, onExport, onPresent, onClosePresent, onProjectChange, onRefine, onManualSave, isSavingSlide, teacherExportMeta, onGenerateVisuals, visualGenerationProgress, onApplyReviewFixes, onApplyPageReviewFixes, teacherVersions, teacherMaterials, isViewingCurrentVersion, onSelectVersion, onRestoreVersion, isRestoringVersion, teacherChat, isChatSending, onSendChat, isApplyingChatSuggestion, onApplyChatSuggestion, isAttachingMaterial, onAttachMaterial, isSubmittingReview, teacherTrialValidation, onSubmitReview, betaOperations = defaultTeacherBetaOperations, onOpenFeedback }: TeacherSandunStudioProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [tool, setTool] = useState<ToolTab>("content");
   const [toolsOpen, setToolsOpen] = useState(false);
@@ -193,6 +198,7 @@ export function TeacherSandunStudio({ project, workspaceIdentity, isExporting, i
   const [materialTitle, setMaterialTitle] = useState("");
   const [materialContent, setMaterialContent] = useState("");
   const [materialSource, setMaterialSource] = useState("");
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const projectRef = useRef(project);
   projectRef.current = project;
   const currentVersion = teacherVersions.find((row) => row.isCurrent);
@@ -254,6 +260,7 @@ export function TeacherSandunStudio({ project, workspaceIdentity, isExporting, i
     <section className="flex min-w-0 flex-1 flex-col">
       <header className="flex h-16 shrink-0 items-center gap-3 border-b border-[#e0e6ef] bg-white px-3 md:px-5">
         <div className="flex min-w-0 flex-1 items-center gap-3"><span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-[#171719] text-white"><Sparkles className="size-4" /></span><span className="hidden text-sm font-semibold sm:block">Sandun</span><span className="hidden h-5 w-px bg-[#dfe5ee] sm:block" /><div className="min-w-0"><div className="truncate text-sm font-semibold">{displayTitle}</div><div className="mt-0.5 flex gap-2 text-[11px] text-[#667085]"><span>{project.contentPlan?.teacherContext?.subject || "教师课件"}</span><span>·</span><span>{workspaceIdentity ? `V${workspaceIdentity.versionNumber}` : "草稿"}</span><span className="hidden md:inline">· {status.label}</span></div></div></div>
+        <TeacherBetaOperationsPanel operations={betaOperations} onFeedback={() => { setFeedbackOpen(true); onOpenFeedback?.(); }} />
         <div className="relative hidden sm:block">
           <button type="button" onClick={() => setVersionMenuOpen((current) => !current)} disabled={!teacherVersions.length} className="flex h-9 items-center gap-1.5 border border-[#dfe5ee] px-3 text-xs font-semibold text-[#344054] hover:bg-[#f8fafc] disabled:opacity-50"><History className="size-4" />版本{workspaceIdentity ? ` V${workspaceIdentity.versionNumber}` : ""}<ChevronDown className="size-3.5" /></button>
           {versionMenuOpen ? <><button type="button" onClick={() => setVersionMenuOpen(false)} className="fixed inset-0 z-40" aria-label="关闭版本列表" /><div className="thin-scrollbar absolute right-0 top-11 z-50 max-h-[60vh] w-72 overflow-y-auto border border-[#e0e6ef] bg-white p-2 shadow-[0_16px_40px_rgba(20,32,52,0.16)]"><div className="px-2 py-1.5 text-[11px] font-semibold text-[#667085]">版本历史</div>{teacherVersions.length ? teacherVersions.map((row) => { const isActive = row.versionId === workspaceIdentity?.versionId; return <button key={row.versionId} type="button" onClick={() => { onSelectVersion(row.versionId); setVersionMenuOpen(false); }} className={cn("flex w-full items-center justify-between gap-2 border px-3 py-2 text-left text-xs", isActive ? "border-[#2f7cff] bg-[#f3f8ff]" : "border-transparent hover:bg-[#f8fafc]")}><span className="min-w-0"><span className="block font-semibold text-[#344054]">V{row.versionNumber}{row.isCurrent ? " · 当前版本" : ""}</span><span className="mt-0.5 block truncate text-[#667085]">{versionTime(row.createdAt)}</span></span>{isActive ? <CheckCircle2 className="size-4 shrink-0 text-[#2f7cff]" /> : null}</button>; }) : <div className="px-3 py-2 text-xs text-[#667085]">暂无版本记录</div>}</div></> : null}
@@ -284,5 +291,7 @@ export function TeacherSandunStudio({ project, workspaceIdentity, isExporting, i
       </div>
       <footer className="flex h-8 shrink-0 items-center justify-between border-t border-[#e0e6ef] bg-white px-4 text-[11px] text-[#667085]"><span>{workspaceIdentity ? `当前服务器版本 V${workspaceIdentity.versionNumber}` : "本地编辑中"}</span><span>第 {activeIndex + 1} 页 / 共 {project.slides.length} 页</span></footer>
     </section>
-  </main></>;
+  </main>
+  <TeacherFeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} projectId={workspaceIdentity?.projectId} versionId={workspaceIdentity?.versionId} subject={project.contentPlan?.teacherContext?.subject || ""} topic={project.contentPlan?.teacherContext?.topic || displayTitle} textbook={project.contentPlan?.teacherContext?.textbook || ""} chapter={project.contentPlan?.teacherContext?.chapter || ""} pageNumber={activeIndex + 1} pageId={activeSlide?.id} />
+  </>;
 }

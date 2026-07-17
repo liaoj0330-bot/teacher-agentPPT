@@ -1,7 +1,7 @@
 {
   "schemaVersion": "teacher-agentppt-issue-board/v1",
   "projectKey": "teacher-agentppt",
-  "updatedAt": "2026-07-18T03:42:00+08:00",
+  "updatedAt": "2026-07-18T04:10:00+08:00",
   "releaseTarget": "private_beta_rc1",
   "releaseState": "blocked",
   "policy": {
@@ -438,6 +438,41 @@
       "nextAction": "内测先限制为上传材料事实链；后续单独接入正式检索 Provider。",
       "estimateEngineeringHours": "6-12",
       "dependencies": []
+    },
+    {
+      "id": "BETA-OPERATIONS-001",
+      "priority": "P0",
+      "releaseGate": true,
+      "status": "in_progress_unverified",
+      "ownerRole": "product_operations",
+      "summary": "1000 名教师内测需要分批准入、反馈闭环、值守 SLA、故障回滚、数据治理和可量化的放量门禁。",
+      "evidence": [
+        "已建立 100→300→1000 的机器可读策略，限定 8 个核心学科并默认关闭图片生成",
+        "已定义全局反馈与课件上下文反馈入口、P0-P3 SLA、硬停条件、回滚步骤、指标与数据保留期",
+        "教师工作台内测入口已接持久化反馈弹窗，自动绑定课件、版本、学科、主题和当前页面；接口回归覆盖幂等、归属校验、用户隔离和敏感元数据清洗",
+        "当前云端部署、容量压测、备份恢复和真实教师证据仍未完成，不能直接邀请 1000 人"
+      ],
+      "doneWhen": [
+        "反馈入口可在全部已登录教师页面访问，并自动绑定 project/version/task/教材上下文",
+        "运营人员可按严重级别、状态、负责人和 SLA 查询与处理反馈",
+        "teacher-private-beta:check 通过，且 Wave 100 放量记录包含真实指标、事件、未结反馈与责任人签字",
+        "云端配额、监控、告警、备份恢复和下一批容量门禁均有真实证据"
+      ],
+      "nextAction": "补运营人员 RBAC、SLA 队列和指标看板；云端部署后执行备份恢复、容量测试和 Wave 100 go/no-go，不以本地通过替代生产证据。",
+      "verificationEvidence": [
+        "docs/PRIVATE_BETA_OPERATIONS_20260718.md",
+        "project-state/teacher-agentppt.private-beta-operations.json",
+        "npm run teacher-private-beta:check",
+        "npm run teacher-beta-operations-ui:test",
+        "npm run teacher-feedback:e2e"
+      ],
+      "verificationCommands": [
+        "npm run teacher-private-beta:check",
+        "npm run teacher-beta-operations-ui:test",
+        "npm run teacher-feedback:e2e",
+        "npm run lint"
+      ],
+      "dependencies": ["DEPLOYMENT-001", "SCORING-TRUTH-001"]
     }
   ],
   "executionOrder": [
@@ -448,7 +483,8 @@
     "FONT-PORTABILITY-001",
     "TEACHER-EDIT-001",
     "SUBJECT-MATRIX-001",
-    "DEPLOYMENT-001"
+    "DEPLOYMENT-001",
+    "BETA-OPERATIONS-001"
   ],
   "timeAssessment": {
     "planningAssumption": "允许延长到夜间，按验证结果推进，不再以 18:00 为硬截止。",

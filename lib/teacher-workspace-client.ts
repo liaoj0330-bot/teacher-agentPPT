@@ -1,5 +1,12 @@
 import type { CanvasProject } from "@/lib/canvas-data";
-import type { TeacherChatRow, TeacherVersionRow } from "@/lib/teacher-workspace-contract";
+import type {
+  TeacherChatRow,
+  TeacherFeedbackCategory,
+  TeacherFeedbackSeverity,
+  TeacherFeedbackStatus,
+  TeacherFeedbackTicket,
+  TeacherVersionRow,
+} from "@/lib/teacher-workspace-contract";
 import type { TeacherDeckScoreReportV3 } from "@/lib/teacher-deck-scoring-v3";
 import type { TeacherTrialValidation } from "@/lib/teacher-trial-evidence";
 
@@ -92,4 +99,60 @@ export async function commitTeacherWorkspaceVersion(input: {
     artifactId: data.artifactId,
     deduped: data.deduped,
   };
+}
+
+export async function submitTeacherFeedback(input: {
+  projectId?: string;
+  versionId?: string;
+  subject?: string;
+  topic?: string;
+  pageNumber?: number;
+  pageId?: string;
+  taskId?: string;
+  category: TeacherFeedbackCategory;
+  severity?: TeacherFeedbackSeverity;
+  message: string;
+  clientMetadata?: Record<string, unknown>;
+  idempotencyKey: string;
+}): Promise<{ ticket: TeacherFeedbackTicket; deduped: boolean }> {
+  const response = await fetch("/api/teacher-feedback", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const data = await readJson<{ message?: string; ticket?: TeacherFeedbackTicket; deduped?: boolean }>(response);
+  if (!response.ok || !data?.ticket) throw new Error(data?.message || "反馈提交失败");
+  return { ticket: data.ticket, deduped: data.deduped === true };
+}
+
+export async function listTeacherFeedback(input: {
+  projectId?: string;
+  status?: TeacherFeedbackStatus;
+  category?: TeacherFeedbackCategory;
+  limit?: number;
+} = {}): Promise<TeacherFeedbackTicket[]> {
+  const query = new URLSearchParams();
+  if (input.projectId) query.set("projectId", input.projectId);
+  if (input.status) query.set("status", input.status);
+  if (input.category) query.set("category", input.category);
+  if (input.limit) query.set("limit", String(input.limit));
+  const response = await fetch(`/api/teacher-feedback${query.size ? `?${query}` : ""}`);
+  const data = await readJson<{ message?: string; tickets?: TeacherFeedbackTicket[] }>(response);
+  if (!response.ok || !data?.tickets) throw new Error(data?.message || "反馈列表读取失败");
+  return data.tickets;
+}
+
+export async function updateTeacherFeedback(ticketId: string, input: {
+  status?: TeacherFeedbackStatus;
+  severity?: TeacherFeedbackSeverity;
+  assignee?: string | null;
+}): Promise<TeacherFeedbackTicket> {
+  const response = await fetch(`/api/teacher-feedback/${encodeURIComponent(ticketId)}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const data = await readJson<{ message?: string; ticket?: TeacherFeedbackTicket }>(response);
+  if (!response.ok || !data?.ticket) throw new Error(data?.message || "反馈工单更新失败");
+  return data.ticket;
 }

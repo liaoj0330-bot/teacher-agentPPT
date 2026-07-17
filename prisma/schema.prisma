@@ -22,6 +22,7 @@ model User {
   creditLedger       CreditLedger[]
   pptSessions        PptSession[]
   sourceAssets       SourceAsset[]
+  feedbackTickets    FeedbackTicket[]
 }
 
 model SourceAsset {
@@ -109,6 +110,7 @@ model CoursewareProject {
   user             User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
   requests         CoursewareRequest[]
   versions         CoursewareVersion[]
+  feedbackTickets  FeedbackTicket[]
 
   @@index([userId, updatedAt])
 }
@@ -153,10 +155,41 @@ model CoursewareVersion {
   artifacts               CoursewareArtifact[]
   request                 CoursewareRequest    @relation(fields: [requestId], references: [id], onDelete: Cascade)
   project                 CoursewareProject    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  feedbackTickets         FeedbackTicket[]
 
   @@unique([projectId, versionNumber])
   @@unique([projectId, idempotencyKey])
   @@index([projectId, createdAt])
+}
+
+model FeedbackTicket {
+  id                 String             @id @default(cuid())
+  userId             String
+  projectId          String?
+  versionId          String?
+  subject            String             @default("")
+  topic              String             @default("")
+  pageNumber         Int?
+  pageId             String?
+  taskId             String?
+  category           String
+  severity           String             @default("P2")
+  message            String
+  clientMetadataJson String             @default("{}")
+  status             String             @default("new")
+  assignee           String?
+  idempotencyKey     String
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  resolvedAt         DateTime?
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project            CoursewareProject? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  version            CoursewareVersion? @relation(fields: [versionId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, idempotencyKey])
+  @@index([userId, status, createdAt])
+  @@index([projectId, createdAt])
+  @@index([status, severity, createdAt])
 }
 
 model CoursewareChatMessage {
@@ -194,18 +227,18 @@ model CoursewareArtifact {
 }
 
 model ImageGenerationJob {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   ownerKey       String
   userId         String?
   idempotencyKey String
-  requestJson    String   @default("{}")
-  pagesJson      String   @default("[]")
-  resultJson     String   @default("{}")
-  status         String   @default("queued")
+  requestJson    String    @default("{}")
+  pagesJson      String    @default("[]")
+  resultJson     String    @default("{}")
+  status         String    @default("queued")
   errorMessage   String?
-  attempts       Int      @default(0)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  attempts       Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
   completedAt    DateTime?
 
   @@unique([ownerKey, idempotencyKey])
