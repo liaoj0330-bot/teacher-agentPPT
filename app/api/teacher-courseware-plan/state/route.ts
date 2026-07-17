@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { createPersistedTeacherPlan, dispatchPersistedTeacherPlan, loadPersistedTeacherPlan } from "@/lib/teacher-deck-plan-store";
 import { createTeacherDeckPlan, TeacherDeckPlanStateError, type TeacherDeckPlanAction } from "@/lib/teacher-deck-plan-state";
+import type { LessonBlueprint } from "@/lib/ppt-agent/content-plan";
 import type { TeacherCoursewareTask, TeacherDeckPlanPage } from "@/lib/teacher-courseware-task";
 
 export async function GET(request: Request) {
@@ -15,11 +16,11 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ message: "未登录" }, { status: 401 });
-  const body = await request.json().catch(() => null) as { teacherTask?: TeacherCoursewareTask; planId?: string; pages?: TeacherDeckPlanPage[] } | null;
+  const body = await request.json().catch(() => null) as { teacherTask?: TeacherCoursewareTask; planId?: string; pages?: TeacherDeckPlanPage[]; lessonBlueprint?: LessonBlueprint } | null;
   if (!body?.teacherTask || body.teacherTask.scenario !== "teacher_courseware" || !body.planId || !Array.isArray(body.pages))
     return NextResponse.json({ message: "teacherTask、planId 和 pages 必填" }, { status: 400 });
   try {
-    const plan = await createPersistedTeacherPlan(user.id, body.teacherTask, createTeacherDeckPlan(body.planId, body.pages));
+    const plan = await createPersistedTeacherPlan(user.id, body.teacherTask, createTeacherDeckPlan(body.planId, body.pages, body.lessonBlueprint));
     return NextResponse.json({ plan, projectId: plan.projectId, requestId: plan.requestId }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "创建计划失败";

@@ -14,6 +14,7 @@ const outputDir = path.resolve(
 const pngDir = path.join(outputDir, "rendered");
 const pdfPath = path.join(outputDir, "10以内的加减法.pdf");
 const reportPath = path.join(outputDir, "final-acceptance-report.json");
+const expectedSlideCount = Number(process.env.EXPECTED_SLIDE_COUNT || 0) || null;
 const banned = [
   "audienceQuestion",
   "mustProve",
@@ -81,29 +82,33 @@ try {
 
 const bannedMatches = banned.filter((term) => visibleText.includes(term));
 const mojibakeDetected = /\uFFFD|(?:Ã.|Â.|â€)|(?:锟斤拷)/.test(visibleText);
+const questionMarkPlaceholderDetected = /\?{3,}/.test(visibleText);
 const renderedFiles = fs
   .readdirSync(pngDir)
   .filter((name) => name.endsWith(".png"))
   .sort();
 const report = {
-  pass:
+  structurePass:
     buffer.subarray(0, 4).toString("hex") === "504b0304" &&
-    slideNames.length === 9 &&
-    render.ok === true &&
-    renderedFiles.length === slideNames.length &&
+    (expectedSlideCount === null || slideNames.length === expectedSlideCount) &&
     bannedMatches.length === 0 &&
-    !mojibakeDetected,
+    !mojibakeDetected &&
+    !questionMarkPlaceholderDetected,
+  renderPass: render.ok === true && renderedFiles.length === slideNames.length,
   checkedAt: new Date().toISOString(),
   pptxPath,
   pptxBytes: buffer.length,
   officeZip: Boolean(zip.file("[Content_Types].xml") && zip.file("ppt/presentation.xml")),
   slideCount: slideNames.length,
+  expectedSlideCount,
   renderedCount: renderedFiles.length,
   pdfPath,
   bannedMatches,
   mojibakeDetected,
+  questionMarkPlaceholderDetected,
   render,
 };
+report.pass = report.structurePass && report.renderPass;
 fs.writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`);
 console.log(JSON.stringify(report, null, 2));
 if (!report.pass) process.exitCode = 1;

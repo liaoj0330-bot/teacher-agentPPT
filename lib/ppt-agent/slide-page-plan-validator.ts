@@ -20,6 +20,7 @@ export type SlidePagePlanValidationResult = {
 };
 
 const MOJIBAKE_PATTERN = /[\uFFFD]|[脙脗芒鈧撁ぢ掆€斆瀅]/;
+const QUESTION_MARK_PLACEHOLDER_PATTERN = /\?{3,}/;
 const INTERNAL_FIELD_PATTERN = /\b(day-route|hero-image|image-strip|tips-grid|stat-card|source-note|route-card|bar-chart|donut-chart|visualPrompt|pageIntent|evidenceBlockIds|sourceIds|debug|mock|placeholder|generated visual)\b/i;
 const UNIVERSAL_TEMPLATE_PATTERN = /背景[、，,]\s*意义[、，,]\s*方案[、，,]\s*总结|背景意义方案总结/;
 const GENERIC_WEAK_PATTERN = /^(核心功能|建设背景|产品功能|方案介绍|项目背景|总结|目录|核心优势|实施方案|页面策划)$/;
@@ -136,6 +137,9 @@ export function validateSlidePagePlans(plans: SlidePagePlan[], contentPlan?: Con
   const structureText = positiveStructureText(plans);
   if (MOJIBAKE_PATTERN.test(text)) {
     push(issues, undefined, "mojibake", "slidePagePlans", "SlidePagePlan 出现乱码。");
+  }
+  if (QUESTION_MARK_PLACEHOLDER_PATTERN.test(text)) {
+    push(issues, undefined, "question-mark-placeholder", "slidePagePlans", "SlidePagePlan 出现连续问号占位文本。");
   }
   if (INTERNAL_FIELD_PATTERN.test(text)) {
     push(issues, undefined, "internal-field", "slidePagePlans", "SlidePagePlan 出现工程字段。");

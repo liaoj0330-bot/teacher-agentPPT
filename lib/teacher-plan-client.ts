@@ -11,7 +11,7 @@ export async function createTeacherPlanState(task: TeacherCoursewareTask, plan: 
   return json<{ plan: TeacherDeckPlan }>(await fetch("/api/teacher-courseware-plan/state", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ teacherTask: task, planId: plan.planId, pages: plan.pages }),
+    body: JSON.stringify({ teacherTask: task, planId: plan.planId, pages: plan.pages, lessonBlueprint: plan.lessonBlueprint }),
   })).then((result) => result.plan);
 }
 

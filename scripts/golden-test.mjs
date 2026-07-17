@@ -17,6 +17,7 @@ fs.mkdirSync(outDir, { recursive: true });
 
 const BASE_URL = process.env.GOLDEN_BASE_URL || "http://127.0.0.1:3002";
 const MOJIBAKE_PATTERN = /[\uFFFD]|[脙脗芒鈧撁ぢ掆€斆瀅]/;
+const QUESTION_MARK_PLACEHOLDER_PATTERN = /\?{3,}/;
 const INTERNAL_PATTERN = /\b(day-route|hero-image|image-strip|tips-grid|stat-card|source-note|route-card|bar-chart|donut-chart|visualPrompt|pageIntent|evidenceBlockIds|sourceIds|layout|debug|mock|placeholder|generated visual)\b/i;
 const PLACEHOLDER_PATTERN = /占位|待替换|lorem|placeholder|generated visual|灰块|视觉模块|图片素材|调试/i;
 const UNIVERSAL_TEMPLATE_PATTERN = /背景[、，,]\s*意义[、，,]\s*方案[、，,]\s*总结|背景意义方案总结/;
@@ -310,6 +311,7 @@ function textForLayoutPlans(layoutPlans) {
 
 function assertNoBadText(label, text) {
   assert(!MOJIBAKE_PATTERN.test(text), `${label}: mojibake detected`);
+  assert(!QUESTION_MARK_PLACEHOLDER_PATTERN.test(text), `${label}: question-mark placeholder detected`);
   assert(!INTERNAL_PATTERN.test(text), `${label}: internal field leaked`);
   assert(!PLACEHOLDER_PATTERN.test(text), `${label}: placeholder leaked`);
   assert(!UNIVERSAL_TEMPLATE_PATTERN.test(text), `${label}: universal template detected`);

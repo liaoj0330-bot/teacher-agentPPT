@@ -201,7 +201,7 @@
     "deduction": "当前内容没有明确引用或说明「平台功能清单」，关键判断缺少可核验依据。",
     "autoSuggestion": "补充「平台功能清单」相关资料，并在对应页面添加 source-note 或证据块。",
     "createdAt": "2026-06-28T17:35:55.285Z",
-    "hits": 137
+    "hits": 138
   },
   {
     "id": "project_report-weak-claim-1",
@@ -693,7 +693,7 @@
     "deduction": "多页存在未支撑核心主张。",
     "autoSuggestion": "补充上传资料、公开来源或降低确定性表述后重新评分。",
     "createdAt": "2026-06-30T12:16:12.400Z",
-    "hits": 100
+    "hits": 101
   },
   {
     "id": "project_report-evidence-blocking-2",
@@ -705,7 +705,7 @@
     "deduction": "多页来源置信度偏低。",
     "autoSuggestion": "补充上传资料、公开来源或降低确定性表述后重新评分。",
     "createdAt": "2026-06-30T12:16:12.400Z",
-    "hits": 90
+    "hits": 91
   },
   {
     "id": "project_report-evidence-unsupported-1",
@@ -717,7 +717,7 @@
     "deduction": "本页存在未支撑主张：用户需求、项目背景",
     "autoSuggestion": "为该页补充上传资料、公开链接、数据口径，或改写为待确认判断。",
     "createdAt": "2026-06-30T12:16:12.400Z",
-    "hits": 106
+    "hits": 107
   },
   {
     "id": "project_report-evidence-unsupported-2",
@@ -729,7 +729,7 @@
     "deduction": "本页存在未支撑主张：政策文件、现状数据",
     "autoSuggestion": "为该页补充上传资料、公开链接、数据口径，或改写为待确认判断。",
     "createdAt": "2026-06-30T12:16:12.400Z",
-    "hits": 106
+    "hits": 107
   },
   {
     "id": "project_report-evidence-unsupported-3",
@@ -741,7 +741,7 @@
     "deduction": "本页存在未支撑主张：现状调研、用户材料",
     "autoSuggestion": "为该页补充上传资料、公开链接、数据口径，或改写为待确认判断。",
     "createdAt": "2026-06-30T12:16:12.400Z",
-    "hits": 90
+    "hits": 91
   },
   {
     "id": "project_report-evidence-unsupported-4",
@@ -753,7 +753,7 @@
     "deduction": "本页存在未支撑主张：目标指标、评价口径",
     "autoSuggestion": "为该页补充上传资料、公开链接、数据口径，或改写为待确认判断。",
     "createdAt": "2026-06-30T12:16:12.400Z",
-    "hits": 42
+    "hits": 43
   },
   {
     "id": "project_report-evidence-unsupported-5",
@@ -849,7 +849,7 @@
     "deduction": "多页来源置信度偏低。",
     "autoSuggestion": "补充上传资料、公开来源或降低确定性表述后重新评分。",
     "createdAt": "2026-06-30T13:16:02.399Z",
-    "hits": 89
+    "hits": 90
   },
   {
     "id": "product_proposal-evidence-low-confidence-1",
@@ -981,7 +981,7 @@
     "deduction": "本页存在未支撑主张：课程目标",
     "autoSuggestion": "为该页补充上传资料、公开链接、数据口径，或改写为待确认判断。",
     "createdAt": "2026-06-30T13:16:04.738Z",
-    "hits": 115
+    "hits": 168
   },
   {
     "id": "courseware-evidence-unsupported-2",
@@ -993,7 +993,7 @@
     "deduction": "本页存在未支撑主张：教材",
     "autoSuggestion": "为该页补充上传资料、公开链接、数据口径，或改写为待确认判断。",
     "createdAt": "2026-06-30T13:16:04.738Z",
-    "hits": 115
+    "hits": 168
   },
   {
     "id": "courseware-evidence-unsupported-3",
@@ -1005,7 +1005,7 @@
     "deduction": "本页存在未支撑主张：例子",
     "autoSuggestion": "为该页补充上传资料、公开链接、数据口径，或改写为待确认判断。",
     "createdAt": "2026-06-30T13:16:04.738Z",
-    "hits": 104
+    "hits": 157
   },
   {
     "id": "courseware-evidence-unsupported-4",
@@ -1017,7 +1017,7 @@
     "deduction": "本页存在未支撑主张：案例材料",
     "autoSuggestion": "为该页补充上传资料、公开链接、数据口径，或改写为待确认判断。",
     "createdAt": "2026-06-30T13:16:04.738Z",
-    "hits": 104
+    "hits": 157
   },
   {
     "id": "courseware-evidence-unsupported-5",
@@ -1029,7 +1029,7 @@
     "deduction": "本页存在未支撑主张：练习题",
     "autoSuggestion": "为该页补充上传资料、公开链接、数据口径，或改写为待确认判断。",
     "createdAt": "2026-06-30T13:16:04.738Z",
-    "hits": 104
+    "hits": 157
   },
   {
     "id": "courseware-evidence-unsupported-6",
@@ -1041,7 +1041,7 @@
     "deduction": "本页存在未支撑主张：作业",
     "autoSuggestion": "为该页补充上传资料、公开链接、数据口径，或改写为待确认判断。",
     "createdAt": "2026-06-30T13:16:04.738Z",
-    "hits": 104
+    "hits": 143
   },
   {
     "id": "courseware-evidence-low-confidence-1",
@@ -1053,7 +1053,7 @@
     "deduction": "本页证据覆盖率 0%，来源置信度 0%，不足以支撑强事实表达。",
     "autoSuggestion": "补充可追溯来源；如果暂时没有来源，把结论改成建议、假设或待确认。",
     "createdAt": "2026-06-30T13:16:04.738Z",
-    "hits": 259
+    "hits": 312
   },
   {
     "id": "product_proposal-evidence-blocking-1",
@@ -1389,7 +1389,7 @@
     "deduction": "本页证据覆盖率 0%，来源置信度 86%，不足以支撑强事实表达。",
     "autoSuggestion": "补充可追溯来源；如果暂时没有来源，把结论改成建议、假设或待确认。",
     "createdAt": "2026-06-30T14:23:43.252Z",
-    "hits": 184
+    "hits": 222
   },
   {
     "id": "travel_guide-evidence-low-confidence-1",
@@ -1809,7 +1809,7 @@
     "deduction": "本页证据覆盖率 100%，来源置信度 50%，不足以支撑强事实表达。",
     "autoSuggestion": "补充可追溯来源；如果暂时没有来源，把结论改成建议、假设或待确认。",
     "createdAt": "2026-07-11T12:41:29.908Z",
-    "hits": 144
+    "hits": 158
   },
   {
     "id": "courseware-evidence-low-confidence-4",
@@ -2049,7 +2049,7 @@
     "deduction": "「课程课件」必须出现承担「讲解」作用的页面，否则无法证明：概念可理解。",
     "autoSuggestion": "新增或改写一页「核心概念拆解」，页面角色为「讲解」，重点证明「概念可理解。」。",
     "createdAt": "2026-07-15T00:22:08.708Z",
-    "hits": 24
+    "hits": 39
   },
   {
     "id": "company_profile-evidence-unsupported-5",

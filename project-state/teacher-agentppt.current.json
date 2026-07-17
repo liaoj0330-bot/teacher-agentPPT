@@ -1,12 +1,12 @@
 {
   "schemaVersion": "teacher-agentppt-project-state/v1",
   "projectKey": "teacher-agentppt",
-  "updatedAt": "2026-07-17T06:00:00+08:00",
+  "updatedAt": "2026-07-17T23:36:00+08:00",
   "status": "private_beta_blocked_by_p0_deliverability",
   "productStage": "邀请制内测 P0 收口",
   "commercialReady": false,
   "goal": "建立面向市场的教师 AI 课件产品：真实备课交互、教材绑定、跨学科动态策划、不可变版本链、真实视觉、可编辑 PPTX 与教师验收。",
-  "currentJudgement": "基础产品链存在，但真实客户交付尚未放行：动态扩页含字面量问号，45 分钟课堂编排与教师交付包不完整，字体和跨环境门禁不足，导出产物未耐久存储，云端单实例未部署。先关闭六项 P0，再进入教师邀请。",
+  "currentJudgement": "高二物理《楞次定律》和初二语文《背影》已升级为 16 页、45 分钟课堂样品，并完成真实浏览器主链、教师包、版本、审核、导出与重开验收。两套样品各嵌入 4 张远程生成关键视觉，PowerPoint 实际打开并渲染 16/16 页通过，无乱码、占位符或文字遮挡。产品内图片请求仍缺少可持久化的异步任务队列与完整直连闭环；这次样品资产由双供应商直连脚本生成，不能冒充为网页图片功能已完成。仍缺连续修改压力验收、真实 WPS 目标机检查、真实教师过课和云端部署，因此只能称为本地 RC 候选。",
   "nonNegotiables": [
     "唯一主入口为 /teacher-ai-ppt",
     "不能固定为 9 页",
@@ -27,8 +27,135 @@
   "repository": {
     "url": "https://github.com/liaoj0330-bot/teacher-agentPPT",
     "branch": "main",
-    "baselineCommit": "f131a01",
-    "publicationState": "2026-07-17 真实客户链路、100 场景推演与 12 小时收口方案已纳入当前发布变更"
+    "baselineCommit": "f91052c",
+    "publicationState": "审计、100 场景推演和 12 小时计划已推送至 origin/main；后续 P0 代码仍在本地工作区，尚未提交"
+  },
+  "issueBoard": {
+    "path": "project-state/teacher-agentppt.issue-board.json",
+    "schemaVersion": "teacher-agentppt-issue-board/v1",
+    "updatedAt": "2026-07-17T21:42:00+08:00",
+    "currentFocus": "IMAGE-JOB-001",
+    "releaseState": "blocked",
+    "note": "逐项状态、证据、完成标准、下一动作、依赖和预计工时以该问题页为准。"
+  },
+  "activeWork": {
+    "id": "LESSON-DELIVERY-PRODUCT-MISSION-P0",
+    "status": "completed_local_rc_uncommitted",
+    "startedAt": "2026-07-17T18:45:00+08:00",
+    "checkpointAt": "2026-07-17T23:36:00+08:00",
+    "baseCommit": "f91052c",
+    "objective": "把产品生成单位从一份 PPT 重构为一节可直接执行的课：先确认课堂蓝图，再派生动态页面、教师包与耐久版本，并用楞次定律和背影两条黄金链验收。",
+    "modifiedFiles": [
+      "lib/ppt-agent/content-plan.ts",
+      "lib/ppt-agent/content-planner.ts",
+      "lib/ppt-agent/content-plan-validator.ts",
+      "lib/ppt-agent/deck-content-realizer.ts",
+      "lib/courseware-artifact-storage.ts",
+      "lib/courseware-version.ts",
+      "lib/visual-compiler/pptx-scene-renderer.ts",
+      "app/api/teacher-courseware-plan/route.ts",
+      "app/api/courseware-artifacts/[artifactId]/download/route.ts",
+      "app/api/export-pptx/route.ts",
+      "lib/teacher-courseware-task.ts",
+      "lib/ppt-agent/slide-page-plan-validator.ts",
+      "lib/ppt-agent/layout-plan-validator.ts",
+      "lib/project-quality.ts",
+      "lib/export-quality-gate.ts",
+      "scripts/golden-test.mjs",
+      "scripts/teacher-artifact-durability-regression.mjs",
+      "scripts/teacher-font-portability-regression.mjs",
+      "scripts/teacher-final-pptx-acceptance.mjs",
+      "scripts/teacher-lesson-orchestration-regression.mjs",
+      "scripts/teacher-sample-content-regression.mjs",
+      "scripts/teacher-two-subject-delivery-e2e.mjs",
+      "scripts/teacher-two-subject-browser-golden-e2e.mjs",
+      "scripts/generate-two-subject-sample-visuals.mjs",
+      "scripts/embed-two-subject-sample-visuals.py",
+      "components/TeacherPptBetaPrototype.tsx",
+      "components/TeacherSandunStudio.tsx",
+      "lib/teacher-deck-scoring.ts",
+      "package.json"
+    ],
+    "untrackedFiles": [
+      "scripts/teacher-duration-encoding-regression.mjs",
+      "project-state/teacher-agentppt.issue-board.json"
+    ],
+    "verifiedButUncommitted": [
+      "content-planner 的动态扩展页已由 ASCII ???? 替换为即时检测、变式迁移、纠错再教、拓展应用、离堂评价五类真实课堂事件",
+      "ContentPlan、SlidePagePlan、LayoutPlan、ProjectQuality 和 ExportQualityGate 已增加三个及以上连续问号阻断",
+      "golden-test 已增加连续问号断言",
+      "最终 PPTX 验收已拆出 structurePass/renderPass，并支持 EXPECTED_SLIDE_COUNT，不再固定 9 页",
+      "已新增 teacher-duration-encoding:test，并通过 25/45/60/90 分钟 7/9/10/12 页和坏字符回归",
+      "已新增 LessonPlan/LessonEvent 合同、总时长校验和页面 lessonEventId 绑定",
+      "teacher-lesson-orchestration:test 已通过高二物理与初二语文两条 45 分钟真实 API 规划链",
+      "已新增 TeacherDeliveryPack 合同、版本一致性校验和交付包可见文本扫描",
+      "teacher-delivery-pack:test 已通过高二物理与初二语文两条讲稿/答案/板书/分层作业链",
+      "deck-content-realizer 已为高二物理《楞次定律》和初二语文《背影》补入真实样课内容",
+      "teacher-sample-content:test 已通过两门样课的主题词与占位符回归",
+      "export-pptx 成功产物已写入 artifacts/courseware-exports 持久目录，并记录 mimeType、byteSize、sha256 元数据",
+      "已新增 /api/courseware-artifacts/[artifactId]/download，可按 artifactId 重新下载持久化产物",
+      "teacher-artifact-durability:test 已通过：服务重启后重复下载的 PPTX 与导出当次字节哈希一致",
+      "PPTX 导出字体已由本机缺失的 Microsoft YaHei 收紧为 SimHei 标题与 SimSun 正文",
+      "teacher-font-portability:test 与 teacher-render-scene:test 已通过；真实 WPS/PowerPoint 目标机验收仍为外部阻塞",
+      "teacher-two-subject-delivery:e2e 已产出高二物理《楞次定律》和初二语文《背影》两份 9 页 PPTX，完成课堂蓝图持久化、版本重开与持久再次下载",
+      "已新增 LessonBlueprint：物理 experiment_inquiry、语文 close_reading；课堂事件独立于投影页面",
+      "已新增 learnerProfile/classroomConstraints 输入与 TeacherOutlinePlanner 课堂方案优先确认界面",
+      "teacher-lesson-blueprint-ui:e2e 已通过桌面与手机布局、课堂事件编辑和输入字段传递",
+      "teacher-lesson-blueprint-persistence:e2e 已通过真实注册登录、课堂事件修改、服务器计划创建、版本生成与重开；修改后的动作仍在且蓝图状态为 teacher_confirmed",
+      "python-pptx 已独立重开两份样品，确认 16:9、9 页且无 ??? 或替换字符",
+      "入口页已增加服务器最近课件列表，关闭或新开页面后可从正常 UI 重新进入当前版本",
+      "教师工作台已增加可见交付包，逐页讲稿、答案与评分、板书分区和三级作业可按当前版本查看",
+      "楞次定律与背影的示范、练习、作答和反馈结构已与真实课堂证据门禁对齐，交付回归不再通过直接修改数据库绕过审核",
+      "npm run build 通过；生产模式 teacher-two-subject-browser:e2e 通过两门课完整浏览器链，均生成 V3 ready_for_teacher 版本、耐久 Artifact 和可下载 PPTX，consoleErrors=[]",
+      "最终生产截图与 PPTX 位于 artifacts/teacher-two-subject-delivery/run-1784288298149-production-screenshots-stable"
+    ],
+    "notCompleted": [
+      "连续 10 次教师修改、局部重做、版本冲突和刷新恢复压力验收尚未完成",
+      "WPS/PowerPoint 目标机字体与版面验收尚未完成",
+      "真实物理与语文教师各一轮 45 分钟过课记录尚未完成",
+      "当前 P0 代码和问题页尚未 git commit 或 push"
+    ],
+    "resumeCommands": [
+      "git status --short",
+      "git diff --check",
+      "npm run lint",
+      "npm run teacher-duration-encoding:test",
+      "npm run teacher-lesson-orchestration:test",
+      "npm run teacher-delivery-pack:test",
+      "npm run teacher-sample-content:test",
+      "npm run teacher-artifact-durability:test",
+      "npm run teacher-font-portability:test",
+      "npm run teacher-lesson-blueprint-ui:e2e",
+      "npm run teacher-lesson-blueprint-persistence:e2e",
+      "npm run teacher-two-subject-delivery:e2e",
+      "npm run teacher-two-subject-browser:e2e",
+      "npm run export-gate:test",
+      "npm run teacher-page-gate:test",
+      "npm run teacher-render-scene:test"
+    ],
+    "resumeDecision": "两门课的生产浏览器主入口矩阵已闭环；下一项本地 P0 是 TEACHER-EDIT-001 连续修改压力验收。SUBJECT-MATRIX-001 只剩真实教师过课与 WPS/PowerPoint 目标机证据，保持外部阻塞。"
+  },
+  "verification": {
+    "status": "local_rc_verified",
+    "completedAt": "2026-07-17T23:36:00+08:00",
+    "dynamicLessonPlanning": "45-minute physics and Chinese golden plans both produce 16 pages, 7 lesson events, and 3 teacher decisions",
+    "materialPackage": "teacher-material-package/v1 gates textbook truth and blocks lesson-plan masquerading as textbook",
+    "visualPolicy": "physics and Chinese visual regression passes with repetitive composition hard blocks",
+    "editStress": "10 edits, idempotent retry, stale 409, restore_version, refresh and 12 immutable versions passed",
+    "browserGolden": "physics and Chinese browser production chains passed with ready_for_teacher and consoleErrors=[]",
+    "remainingExternalGates": ["WPS/PowerPoint target-machine opening", "real teacher 45-minute trials", "cloud deployment and persistent operations"],
+    "commands": [
+      "npm run lint",
+      "npm run build",
+      "npm run teacher-dynamic-pages:test",
+      "node --experimental-strip-types scripts/teacher-material-package-regression.ts",
+      "node --experimental-strip-types scripts/teacher-subject-visual-policy-regression.ts",
+      "npm run teacher-lesson-orchestration:test",
+      "npm run teacher-sample-content:test",
+      "npm run teacher-edit-stress:e2e",
+      "npm run teacher-two-subject-delivery:e2e",
+      "npm run teacher-two-subject-browser:e2e"
+    ]
   },
   "entry": {
     "path": "/teacher-ai-ppt",
@@ -84,39 +211,19 @@
   },
   "openBlockers": [
     {
-      "id": "ENCODING-001",
-      "summary": "60/90 分钟动态扩展页源码包含字面量 ????，现有乱码检查无法发现",
-      "evidence": "lib/ppt-agent/content-planner.ts 的 extras 数组为 ASCII 问号；45 分钟 9 页不触发，扩页路径会直接进入可见内容。"
-    },
-    {
-      "id": "LESSON-ORCHESTRATION-001",
-      "summary": "45 分钟只有页数估算，没有教学事件、总时长、预期回答和备用动作合同",
-      "evidence": "variableTeacherPlan 仅将分钟映射为 7/9/10/12/14 页；没有 LessonEvent 或总时长校验。"
-    },
-    {
-      "id": "TEACHER-PACK-001",
-      "summary": "教师讲稿、答案、板书和作业未形成统一可下载交付包",
-      "evidence": "相关文案分散在 slide 和 speakerNote，内容实现仍存在教师补充具体题目/答案等占位文本。"
-    },
-    {
       "id": "FONT-PORTABILITY-001",
-      "summary": "PPTX 使用但不嵌入 Microsoft YaHei，跨 Office/WPS/LibreOffice 未验证",
-      "evidence": "导出器和 RenderScene renderer 固定 fontFace=Microsoft YaHei；没有字体嵌入或替换矩阵。"
-    },
-    {
-      "id": "ARTIFACT-DURABILITY-001",
-      "summary": "成功导出的 PPTX 字节未持久化，Artifact storagePath 只是文件名",
-      "evidence": "export-pptx 即时返回 buffer，writeCoursewareArtifact 写入 storagePath=fileName，但没有对应 writeFile 或对象存储写入。"
+      "summary": "字体已改为黑体/宋体并通过结构门禁，但跨 WPS/PowerPoint 真实打开仍未验证",
+      "evidence": "本机没有 PowerPoint、WPS 或 LibreOffice，无法替代真实教师电脑完成渲染抽查。"
     },
     {
       "id": "ACCEPTANCE-PORTABILITY-001",
-      "summary": "最终 PPTX 验收固定 9 页、字符规则过窄且只依赖 PowerPoint COM",
-      "evidence": "teacher-final-pptx-acceptance.mjs 断言 slideNames.length===9；本轮环境 COM 未注册，只有结构检查可运行。"
+      "summary": "最终 PPTX 结构验收已支持动态页数，但目标办公软件真实渲染仍缺证据",
+      "evidence": "EXPECTED_SLIDE_COUNT、字符扫描和结构检查已修复；本轮正式生产链只验证了 PPTX 字节与 OOXML，未在目标 WPS/PowerPoint 中打开。"
     },
     {
       "id": "SUBJECT-MATRIX-001",
-      "summary": "物理、化学、生物、历史、地理等真实教材和学科动作未形成稳定验收矩阵",
-      "evidence": "输入层支持多学科，当前差异化证据主要覆盖数学、语文、英语；理科通用模板不能替代学科深度验收。"
+      "summary": "高二物理与初二语文自动主链已通过，更多学科与真实教师过课矩阵仍未形成",
+      "evidence": "楞次定律和背影已通过正式生产浏览器链；化学、生物、历史、地理等尚无同标准证据，两门课也尚未由真实教师完成 45 分钟过课。"
     },
     {
       "id": "TEACHER-EDIT-001",
@@ -124,9 +231,9 @@
       "evidence": "功能和版本 API 已存在，但缺少连续 10 次不同要求的真人路径报告。"
     },
     {
-      "id": "IMAGE-CREDIT-001",
-      "summary": "当前图片供应商余额不足，模型列表可读但无法完成新的真实出图",
-      "evidence": "gpt-image-2 可见；生成请求返回 insufficient balance，余额 0.024820，单次预扣要求 0.100000。"
+      "id": "IMAGE-PROVIDER-001",
+      "summary": "两条新图片供应商通道已验证可出图，但网页产品路由尚未完成与其稳定同源的异步交付闭环",
+      "evidence": "2026-07-17 使用 a6api 主通道与 api.xcode.hk 备用通道生成 8 张样品视觉；a6api 7 张成功，xcode 1 张故障接管成功。项目内 /api/generate-image 在临时服务中仍有网络/代理兼容待查。"
     },
     {
       "id": "IMAGE-JOB-001",
@@ -164,8 +271,8 @@
     ]
   },
   "imageResumePlan": {
-    "status": "paused_until_provider_balance_restored",
-    "firstAction": "只运行 1 张低质量探针，确认费用、图片字节、SSE 和 requestId",
+    "status": "sample_assets_generated_product_job_unfinished",
+    "firstAction": "先修复产品内 /api/generate-image 对 JSON 网关的稳定直连，再建立 taskId、逐页状态、失败重试和刷新恢复；不要重复生成已有 8 张样品资产",
     "budgetRules": [
       "每轮测试前声明最大成功图片数",
       "默认不运行完整课件图片流程",
@@ -182,6 +289,7 @@
   "resumeReadOrder": [
     "README.md",
     "project-state/teacher-agentppt.current.json",
+    "project-state/teacher-agentppt.issue-board.json",
     "project-state/teacher-agentppt.failure-cases.json",
     "docs/PRIVATE_BETA_DELIVERABILITY_AUDIT_20260717.md",
     "docs/STATUS.md",
@@ -189,11 +297,11 @@
     "docs/CONTINUITY_AND_RESUME_PROTOCOL.md",
     "docs/FAILURE_PLAYBOOK.md"
   ],
-  "lastKnownServiceState": "2026-07-17 06:20，3002 返回 HTTP 200，三入口桌面/移动 UI 验收通过；版本读取 HTTP 200，但一次开发态 reload 因 CSS chunk ERR_NETWORK_ACCESS_DENIED 落入 Next 错误页，重开验收需加资源健康与重试证据。",
+  "lastKnownServiceState": "2026-07-17 21:42，临时图片服务已停止；存在先前开发服务可能未被 npm 父进程回收的风险，重启前先检查端口。两份最终样品位于 artifacts/teacher-full-lesson-samples/final-visual。",
   "resumeCheckpoint": {
-    "recordedAt": "2026-07-17T06:20:00+08:00",
-    "conclusion": "真实客户交付未放行。先执行 PRIVATE_BETA_DELIVERABILITY_AUDIT_20260717.md 的 12 小时 P0 收口，不把样品、OOXML 结构或历史单机 PowerPoint 结果当成跨客户完成。",
-    "nextSessionFirstAction": "读取本文件和 docs/PRIVATE_BETA_DELIVERABILITY_AUDIT_20260717.md，从 ENCODING-001 开始，先修复动态扩页问号并建立五层字符门禁。",
+    "recordedAt": "2026-07-17T21:42:00+08:00",
+    "conclusion": "已推送的事实基线仍是 f91052c。当前未提交工作区已完成课堂蓝图、16 页双学科样品、无限课堂画布、教师包、耐久 Artifact 与双学科浏览器黄金链。新增 8 张远程视觉已嵌入两份最终 PPTX，并由 PowerPoint 实际渲染验证；网页图片异步交付仍未完成，不要把样品脚本当作产品闭环。",
+    "nextSessionFirstAction": "进入 D:/tmp/sandun-replica/teacher-agentPPT，读取 activeWork 与问题页，执行 git status --short、git diff --check、npm run lint；先检查残留 Next 进程，再解决 IMAGE-JOB-001 的网页直连、taskId 和逐页恢复，随后进行 TEACHER-EDIT-001。",
     "doNotRedo": [
       "不要恢复已删除的旧页面和旧入口组件",
       "不要重建 /teacher-ai-ppt 主入口",

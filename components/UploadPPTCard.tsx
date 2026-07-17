@@ -19,33 +19,28 @@ export type UploadedFile = {
 type UploadPPTCardProps = {
   uploadedFile: UploadedFile | null;
   onUploaded: (file: UploadedFile | null) => void;
+  uploadedFiles?: UploadedFile[];
+  onUploadedFiles?: (files: UploadedFile[]) => void;
+  multiple?: boolean;
   compact?: boolean;
   fileKind?: "any" | "ppt";
 };
 
 const allowedExtensions = [".ppt", ".pptx", ".pdf", ".doc", ".docx", ".txt", ".md", ".png", ".jpg", ".jpeg", ".webp"];
 
-export function UploadPPTCard({ uploadedFile, onUploaded, compact = false, fileKind = "any" }: UploadPPTCardProps) {
+export function UploadPPTCard({ uploadedFile, onUploaded, uploadedFiles = [], onUploadedFiles, multiple = false, compact = false, fileKind = "any" }: UploadPPTCardProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState("");
 
-  const handleFile = async (file?: File) => {
-    if (!file) {
-      return;
-    }
-
+  const uploadFile = async (file: File): Promise<UploadedFile> => {
     const lowerName = file.name.toLowerCase();
     const extensions = fileKind === "ppt" ? [".ppt", ".pptx"] : allowedExtensions;
     const isAllowed = extensions.some((extension) => lowerName.endsWith(extension));
 
     if (!isAllowed) {
-      setError(fileKind === "ppt" ? "优化已有课件仅支持 PPT 或 PPTX 文件" : "支持 PPT、PDF、Word、文本和常见图片格式");
-      return;
+      throw new Error(fileKind === "ppt" ? "优化已有课件仅支持 PPT 或 PPTX 文件" : `不支持文件：${file.name}`);
     }
-
-    setError("");
-    onUploaded({ name: file.name, size: file.size, status: "uploading", mimeType: file.type });
 
     const formData = new FormData();
     formData.append("file", file);
@@ -69,7 +64,7 @@ export function UploadPPTCard({ uploadedFile, onUploaded, compact = false, fileK
         sha256?: string;
         storageStatus?: "persisted" | "temporary";
       };
-      onUploaded({
+      return {
         name: data.fileName || file.name,
         size: data.size || file.size,
         status: "uploaded",
@@ -78,22 +73,54 @@ export function UploadPPTCard({ uploadedFile, onUploaded, compact = false, fileK
         assetId: data.assetId,
         sha256: data.sha256,
         storageStatus: data.storageStatus
-      });
-    } catch {
-      onUploaded({ name: file.name, size: file.size, status: "error", mimeType: file.type });
-      setError("上传或解析失败，请稍后重试");
+      };
+    } catch (error) {
+      if (error instanceof Error && error.message !== "upload failed") throw error;
+      return { name: file.name, size: file.size, status: "error", mimeType: file.type };
     }
   };
 
+  const handleFiles = async (selection: File[]) => {
+    if (!selection.length) return;
+    setError("");
+    if (!multiple) {
+      const file = selection[0];
+      onUploaded({ name: file.name, size: file.size, status: "uploading", mimeType: file.type });
+      try {
+        const result = await uploadFile(file);
+        onUploaded(result);
+        if (result.status === "error") setError("上传或解析失败，请稍后重试");
+      } catch (error) {
+        onUploaded({ name: file.name, size: file.size, status: "error", mimeType: file.type });
+        setError(error instanceof Error ? error.message : "上传或解析失败，请稍后重试");
+      }
+      return;
+    }
+    const existing = uploadedFiles;
+    const accepted = selection.slice(0, Math.max(0, 20 - existing.length));
+    const pending = accepted.map((file) => ({ name: file.name, size: file.size, status: "uploading" as const, mimeType: file.type }));
+    onUploadedFiles?.([...existing, ...pending]);
+    const results = await Promise.all(accepted.map(async (file) => {
+      try {
+        return await uploadFile(file);
+      } catch (error) {
+        setError(error instanceof Error ? error.message : "部分资料上传或解析失败");
+        return { name: file.name, size: file.size, status: "error" as const, mimeType: file.type };
+      }
+    }));
+    onUploadedFiles?.([...existing, ...results]);
+    if (results.some((file) => file.status === "error")) setError("部分资料上传或解析失败，请移除后重试");
+  };
+
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
-    void handleFile(event.target.files?.[0]);
+    void handleFiles(Array.from(event.target.files || []));
     event.target.value = "";
   };
 
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     setIsDragging(false);
-    void handleFile(event.dataTransfer.files?.[0]);
+    void handleFiles(Array.from(event.dataTransfer.files || []));
   };
 
   return (
@@ -125,12 +152,26 @@ export function UploadPPTCard({ uploadedFile, onUploaded, compact = false, fileK
         <input
           ref={inputRef}
           type="file"
+          multiple={multiple}
           accept={fileKind === "ppt" ? ".ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" : ".ppt,.pptx,.pdf,.doc,.docx,.txt,.md,.png,.jpg,.jpeg,.webp,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*,text/plain,text/markdown"}
           className="hidden"
           onChange={handleInputChange}
         />
 
-        {!uploadedFile ? (
+        {multiple && uploadedFiles.length ? (
+          <div className="w-full space-y-2 text-left">
+            {uploadedFiles.map((file, index) => (
+              <div key={`${file.name}-${file.size}-${index}`} className="flex items-center gap-3 rounded-2xl border border-line bg-white p-3 shadow-sm">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#f1f4fb] text-[#5267ff]">
+                  {file.status === "uploading" ? <Loader2 className="size-4 animate-spin" /> : file.status === "uploaded" ? <CheckCircle2 className="size-4" /> : <Paperclip className="size-4" />}
+                </div>
+                <div className="min-w-0 flex-1"><div className="truncate text-sm font-medium text-ink">{file.name}</div><div className="mt-1 text-xs text-muted">{formatFileSize(file.size)} · {file.status === "uploading" ? "上传并解析中" : file.status === "uploaded" ? "已解析" : "上传失败"}</div></div>
+                <button type="button" aria-label={`移除${file.name}`} onClick={() => onUploadedFiles?.(uploadedFiles.filter((_, itemIndex) => itemIndex !== index))} className="flex size-8 items-center justify-center rounded-xl text-muted hover:bg-[#f2f4f8] hover:text-ink"><X className="size-4" /></button>
+              </div>
+            ))}
+            <button type="button" onClick={() => inputRef.current?.click()} disabled={uploadedFiles.length >= 20 || uploadedFiles.some((file) => file.status === "uploading")} className="flex h-9 w-full items-center justify-center gap-2 rounded-2xl border border-line bg-[#fafbfe] text-xs font-medium text-ink disabled:opacity-50"><UploadCloud className="size-4" />继续添加资料（{uploadedFiles.length}/20）</button>
+          </div>
+        ) : !uploadedFile ? (
           <>
             <div className={cn("flex items-center justify-center rounded-2xl bg-white text-[#4f63ff] shadow-sm", compact ? "size-9" : "size-12")}>
               <UploadCloud className={compact ? "size-5" : "size-6"} />
@@ -141,7 +182,7 @@ export function UploadPPTCard({ uploadedFile, onUploaded, compact = false, fileK
               onClick={() => inputRef.current?.click()}
               className={cn("rounded-2xl bg-ink px-4 py-2 text-xs font-medium text-white transition hover:-translate-y-0.5", compact ? "mt-2" : "mt-3")}
             >
-              选择资料文件
+              {multiple ? "选择多份资料" : "选择资料文件"}
             </button>
           </>
         ) : (

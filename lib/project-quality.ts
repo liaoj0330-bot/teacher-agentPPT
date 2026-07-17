@@ -18,6 +18,7 @@ const STRUCTURED_SECTION_TYPES = new Set([
 
 const INTERNAL_FIELD_PATTERN = /\b(day-route|hero-image|tips-grid|stat-card|source-note|route-card|bar-chart|donut-chart|visual|auto|layout)\b/i;
 const PLACEHOLDER_PATTERN = /占位|待替换|lorem|placeholder|generated visual|灰块|视觉模块|提醒模块/i;
+const QUESTION_MARK_PLACEHOLDER_PATTERN = /\?{3,}/;
 
 function clamp(value: number, min = 0, max = 100) {
   return Math.max(min, Math.min(max, Math.round(value)));
@@ -42,7 +43,7 @@ function containsInternalText(value: string | undefined) {
 }
 
 function containsPlaceholderText(value: string | undefined) {
-  return PLACEHOLDER_PATTERN.test(value || "");
+  return PLACEHOLDER_PATTERN.test(value || "") || QUESTION_MARK_PLACEHOLDER_PATTERN.test(value || "");
 }
 
 function normalizeForMatch(value: string | undefined) {

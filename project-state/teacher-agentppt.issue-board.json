@@ -1,0 +1,396 @@
+{
+  "schemaVersion": "teacher-agentppt-issue-board/v1",
+  "projectKey": "teacher-agentppt",
+  "updatedAt": "2026-07-17T23:36:00+08:00",
+  "releaseTarget": "private_beta_rc1",
+  "releaseState": "blocked",
+  "policy": {
+    "sourceOfTruth": true,
+    "completionRule": "只有实现、自动验证、证据落盘和需要时的人工验收全部完成，问题才能标记为 closed。",
+    "statusDefinitions": {
+      "in_progress_unverified": "代码正在修改或已形成补丁，但验证尚未完成",
+      "open": "问题已确认，尚未开始实现",
+      "blocked_external": "需要部署凭据、目标环境或外部资源后才能完成",
+      "paused_non_blocking": "当前版本明确不依赖此项，保留问题但不阻塞本轮无图片交付",
+      "closed": "完成标准全部满足并有可复现证据"
+    }
+  },
+  "currentFocus": {
+    "issueId": "FONT-PORTABILITY-001",
+    "reason": "楞次定律与背影已经从 /teacher-ai-ppt 完成生产浏览器主入口全链；下一项可本地完成的 P0 是连续修改、版本冲突和刷新恢复压力验收。",
+    "nextCommand": "补充连续 10 次教师修改、局部重做、版本回退、stale 409 和刷新重开报告；不要重复双学科黄金链。",
+    "decisionAfterVerification": "TEACHER-EDIT-001 通过后，剩余发布阻塞只保留真实 WPS/PowerPoint、真实教师过课和云端部署。"
+  },
+  "issues": [
+    {
+      "id": "LESSON-BLUEPRINT-001",
+      "priority": "P0",
+      "releaseGate": true,
+      "status": "closed",
+      "ownerRole": "product_and_engineering",
+      "summary": "策划层仍把课堂事件与 PPT 页面一一对应，老师确认的是页目录而不是一节课的教学方案。",
+      "evidence": [
+        "variableTeacherPlan 主要按课时映射 7/9/10/12 页",
+        "buildTeacherLessonPlan 当前按 slidePlan.map 生成事件",
+        "teacher-lesson-orchestration:test 明确断言 lessonPlan.events.length 等于 pages.length",
+        "TeacherOutlinePlanner 只展示页面标题、课堂作用和必须讲清内容"
+      ],
+      "doneWhen": [
+        "ContentPlan 包含独立 LessonBlueprint，明确课型、驱动问题、学生假设、重难点、学习证据、课堂约束与教师待确认项",
+        "课堂事件数不再要求等于页面数，一个事件可关联零页、一页或多页",
+        "高二物理楞次定律命中实验探究路线，初二语文背影命中精读路线",
+        "两门课事件总时长为 45 分钟，页面均能追溯到课堂事件"
+      ],
+      "nextAction": "已关闭；下一步验证教师确认页的持久修改链。",
+      "estimateEngineeringHours": "3-5",
+      "dependencies": [],
+      "closedAt": "2026-07-17T17:35:00+08:00",
+      "verificationEvidence": [
+        "teacher-lesson-blueprint:test 通过：物理命中 experiment_inquiry，语文命中 close_reading；两门均为 7 个课堂事件、45 分钟和 9 个页面",
+        "teacher-lesson-blueprint-ui:e2e 通过：桌面/手机无横向溢出，课堂事件可编辑，页面和事件数量不再绑定",
+        "teacher-two-subject-delivery:e2e 通过：蓝图随服务器计划持久化，生成版本状态为 teacher_confirmed，服务重启后导出字节仍可下载"
+      ],
+      "verificationCommands": ["npm run lint", "npm run teacher-lesson-blueprint:test", "npm run teacher-lesson-blueprint-ui:e2e", "npm run teacher-two-subject-delivery:e2e"]
+    },
+    {
+      "id": "TEACHER-INPUT-002",
+      "priority": "P0",
+      "releaseGate": true,
+      "status": "closed",
+      "ownerRole": "product_and_engineering",
+      "summary": "教师输入缺少学生基础、常见困难、班级规模、课堂设备与评价侧重。",
+      "evidence": [
+        "TeacherCoursewareTask 主要包含教材、章节、课时和教学要求",
+        "系统无法区分同一课题在普通班、基础薄弱班和公开课中的不同设计"
+      ],
+      "doneWhen": [
+        "输入合同和主入口支持关键学情与课堂约束",
+        "未知信息以显式假设进入蓝图，而不是静默使用通用默认值",
+        "蓝图展示哪些决策来自教师输入、哪些需要教师确认"
+      ],
+      "nextAction": "已关闭；后续学科扩展必须继续使用显式学情和课堂条件输入。",
+      "estimateEngineeringHours": "2-4",
+      "dependencies": ["LESSON-BLUEPRINT-001"],
+      "closedAt": "2026-07-17T17:45:00+08:00",
+      "verificationEvidence": [
+        "TeacherCoursewareTask 已增加 learnerProfile 与 classroomConstraints 合同",
+        "teacher-lesson-blueprint-ui:e2e 证明学生基础、常见困难、班级人数、设备和评价侧重进入规划请求",
+        "蓝图对缺失信息生成显式待确认假设；物理无实验设备会改用实验记录或等价动态演示"
+      ],
+      "verificationCommands": ["npm run lint", "npm run teacher-lesson-blueprint-ui:e2e", "npm run teacher-lesson-blueprint:test"]
+    },
+    {
+      "id": "PLAN-CONFIRMATION-002",
+      "priority": "P0",
+      "releaseGate": true,
+      "status": "closed",
+      "ownerRole": "frontend_and_product",
+      "summary": "教师确认页仍以 PPT 页目录为中心，无法先确认课程定位、重难点和课堂节奏。",
+      "evidence": [
+        "TeacherOutlinePlanner 的主对象是 plan.pages",
+        "lessonPlan 和 deliveryPack 虽由 API 返回但没有成为确认界面的主要内容"
+      ],
+      "doneWhen": [
+        "确认界面先展示课堂蓝图和分钟级事件，再展示派生页面",
+        "教师能够修改课堂事件和关键教学决策",
+        "修改后重新派生页面并保留版本关系"
+      ],
+      "nextAction": "已关闭；后续所有学科链继续复用课堂方案优先确认和 teacher_confirmed 持久化合同。",
+      "estimateEngineeringHours": "4-6",
+      "dependencies": ["LESSON-BLUEPRINT-001", "TEACHER-INPUT-002"],
+      "closedAt": "2026-07-17T18:55:00+08:00",
+      "verificationEvidence": [
+        "TeacherOutlinePlanner 已按课堂架构、课程承诺、驱动问题、目标证据、重难点、教师待确认决策和分钟级课堂事件组织，派生页面置于其后",
+        "teacher-lesson-blueprint-ui:e2e 通过：7 个课堂事件与 9 个页面独立，事件可编辑，桌面和移动端无横向溢出",
+        "teacher-lesson-blueprint-persistence:e2e 通过：真实注册登录后修改课堂动作，创建计划、生成版本并重开，editedAction 原文保留，blueprintStatus 为 teacher_confirmed"
+      ],
+      "verificationCommands": ["npm run lint", "npm run teacher-lesson-blueprint-ui:e2e", "npm run teacher-lesson-blueprint-persistence:e2e"]
+    },
+    {
+      "id": "ENCODING-001",
+      "priority": "P0",
+      "releaseGate": true,
+      "status": "closed",
+      "ownerRole": "engineering",
+      "summary": "动态扩页曾包含字面量连续问号，现有补丁需要完成验证与提交。",
+      "evidence": [
+        "基线 f91052c 的 content-planner 在扩页种子中存在 ASCII 连续问号",
+        "本地工作区已替换为真实教学事件，并在策划、页面计划、布局、项目质量、导出与 PPTX 验收增加拦截",
+        "scripts/teacher-duration-encoding-regression.mjs 已新增但尚未运行"
+      ],
+      "doneWhen": [
+        "25/45/60/90 分钟分别生成预期页数且无连续问号、替换字符和已知 mojibake",
+        "lint、export gate、page gate 和 render scene 回归通过",
+        "报告落盘并绑定当前提交"
+      ],
+      "nextAction": "已关闭；与后续课堂编排改动一起在下一次安全提交中进入版本库。",
+      "estimateEngineeringHours": "0.5-1.5",
+      "dependencies": [],
+      "closedAt": "2026-07-17T15:26:19+08:00",
+      "verificationEvidence": [
+        "npm run lint 通过",
+        "teacher-duration-encoding:test 通过：25/45/60/90 分钟为 7/9/10/12 页，且无连续问号、替换字符或重复页面 ID",
+        "export-gate:test、teacher-page-gate:test、teacher-render-scene:test 均通过"
+      ],
+      "verificationCommands": [
+        "npm run lint",
+        "npm run teacher-duration-encoding:test",
+        "npm run export-gate:test",
+        "npm run teacher-page-gate:test",
+        "npm run teacher-render-scene:test"
+      ]
+    },
+    {
+      "id": "LESSON-ORCHESTRATION-001",
+      "priority": "P0",
+      "releaseGate": true,
+      "status": "closed",
+      "ownerRole": "engineering",
+      "summary": "45 分钟目前主要由页数估算表达，缺少可验证的课堂事件和时间闭环。",
+      "evidence": [
+        "现有 variableTeacherPlan 主要将课时映射到页数",
+        "缺少 LessonEvent 的教师动作、学生动作、预期回答、学习证据与备用动作统一合同"
+      ],
+      "doneWhen": [
+        "LessonPlan 包含 LessonEvent[] 与总时长校验",
+        "每个事件包含 durationMinutes、teacherAction、studentAction、expectedResponse、evidenceOfLearning、fallbackAction 和 slideIds",
+        "物理实验课与语文精读课均能形成不同的事件序列，页数由事件和内容密度推导"
+      ],
+      "nextAction": "在 ENCODING-001 关闭后，先定义合同和验证器，再接入策划与导出。",
+      "estimateEngineeringHours": "3-5",
+      "dependencies": ["ENCODING-001"],
+      "closedAt": "2026-07-17T15:33:08+08:00",
+      "verificationEvidence": [
+        "npm run lint 通过",
+        "teacher-lesson-orchestration:test 通过：高二物理和初二语文各 9 页、事件总时长均为 45 分钟",
+        "两门课每页均有 lessonEventId，事件包含师生活动、预期回答、学习证据和备用动作，事件序列存在学科差异"
+      ]
+    },
+    {
+      "id": "TEACHER-PACK-001",
+      "priority": "P0",
+      "releaseGate": true,
+      "status": "closed",
+      "ownerRole": "engineering",
+      "summary": "学生 PPT、教师讲稿、答案、板书和作业尚未形成统一可下载交付包。",
+      "evidence": [
+        "相关信息分散在页面字段与 speakerNote 中",
+        "仍可能出现教师补充具体题目或答案类占位文本"
+      ],
+      "doneWhen": [
+        "同一版本可下载 StudentDeck、TeacherNotes、AnswerKey、BoardPlan 和 Homework",
+        "题目、答案、评分点和常见错误均为实际内容",
+        "教师包与学生 PPT 引用同一版本和页面 ID"
+      ],
+      "nextAction": "已关闭；下一步进入 Artifact 耐久和两门完整导出链。",
+      "estimateEngineeringHours": "2-4",
+      "dependencies": ["LESSON-ORCHESTRATION-001"],
+      "closedAt": "2026-07-17T16:01:30+08:00",
+      "verificationEvidence": [
+        "npm run lint 通过",
+        "teacher-delivery-pack:test 通过：高二物理与初二语文均生成 9 页讲稿、答案要点、三栏板书和三级作业",
+        "deliveryPack 与 contentPlan 共享同一 planId，teacherNotes 覆盖全部页面，且无 ???、教师补充、待补充、TODO 占位",
+        "teacher-sample-content:test 通过：高二物理包含楞次定律/磁通量/右手螺旋定则，初二语文包含《背影》/攀/缩/倾/动作细节"
+      ],
+      "verificationCommands": [
+        "npm run lint",
+        "npm run teacher-delivery-pack:test",
+        "npm run teacher-sample-content:test"
+      ]
+    },
+    {
+      "id": "ARTIFACT-DURABILITY-001",
+      "priority": "P0",
+      "releaseGate": true,
+      "status": "closed",
+      "ownerRole": "engineering",
+      "summary": "PPTX 成功响应后没有形成可重复下载的耐久字节产物。",
+      "evidence": [
+        "export-pptx 即时返回 buffer",
+        "Artifact.storagePath 当前可能只是文件名，缺少对应持久文件与哈希"
+      ],
+      "doneWhen": [
+        "服务端写入受控持久目录并保存 sha256、字节数和 MIME",
+        "相同 Artifact 可在重启后再次下载",
+        "版本、Artifact 元数据和实际文件哈希一致"
+      ],
+      "nextAction": "已关闭；下一步进入字体兼容与完整导出链。",
+      "estimateEngineeringHours": "2-4",
+      "dependencies": [],
+      "closedAt": "2026-07-17T16:14:30+08:00",
+      "verificationEvidence": [
+        "npm run lint 通过",
+        "export-pptx 成功产物已落盘到 artifacts/courseware-exports/{userId}/{projectId}/{versionId}/pptx/ 路径",
+        "CoursewareArtifact 历史接口已返回 storagePath、mimeType、byteSize 和 sha256 元数据",
+        "teacher-artifact-durability:test 通过：导出后重启服务，按 artifactId 再次下载同一文件，哈希与字节数保持一致"
+      ],
+      "verificationCommands": [
+        "npm run lint",
+        "npm run teacher-artifact-durability:test"
+      ]
+    },
+    {
+      "id": "FONT-PORTABILITY-001",
+      "priority": "P0",
+      "releaseGate": true,
+      "status": "blocked_external",
+      "ownerRole": "engineering_qa",
+      "summary": "PPTX 指定 Microsoft YaHei 但不嵌入，跨 Office/WPS/缺字体环境没有交付证据。",
+      "evidence": [
+        "当前导出与 RenderScene 固定 Microsoft YaHei",
+        "历史真实渲染证据主要来自 Windows PowerPoint"
+      ],
+      "doneWhen": [
+        "结构验收与真实渲染验收分离，动态页数可配置",
+        "至少完成 Windows PowerPoint 与一套 WPS 或缺字体环境抽样",
+        "字体替换后的溢出、重叠与换行均有报告"
+      ],
+      "nextAction": "已完成字体策略与结构门禁；需在真实教师电脑或一套 WPS/PowerPoint 环境打开两门样课，抽查溢出、重叠、换行与乱码。",
+      "estimateEngineeringHours": "3-6（不含等待目标环境）",
+      "dependencies": ["ENCODING-001"],
+      "verificationEvidence": [
+        "本机未安装 PowerPoint、WPS 或 LibreOffice，且未安装 Microsoft YaHei；存在 SimHei、SimSun 与 Noto 中文字体",
+        "PPTX 导出字体已由 Microsoft YaHei 收紧为 SimHei 标题与 SimSun 正文",
+        "teacher-font-portability:test 通过：主题与页面 XML 不再硬编码 Microsoft YaHei",
+        "teacher-render-scene:test 通过：6 类导出版式无重叠错误，可编辑对象覆盖率 1.0"
+      ],
+      "externalNeeds": [
+        "一台安装 WPS 或 PowerPoint 的真实教师电脑",
+        "用高二物理和初二语文最终 PPTX 完成人工打开与投影抽查"
+      ]
+    },
+    {
+      "id": "SUBJECT-MATRIX-001",
+      "priority": "P0",
+      "releaseGate": true,
+      "status": "blocked_external",
+      "ownerRole": "engineering_content_qa",
+      "summary": "高二物理和初中语文真实教材链尚未形成可复现的完整 E2E 证据。",
+      "evidence": [
+        "数学、语文、英语已有部分差异化证据",
+        "学科选择支持不能替代教材事实、学科动作和课堂可讲性的验收"
+      ],
+      "doneWhen": [
+        "两门课均从 /teacher-ai-ppt 完成生成、修改、保存、导出、重开和再次下载",
+        "物理包含实验或建模证据，语文包含文本细读与证据回扣",
+        "页面、教师包和 PPTX 通过自动门禁并保留人工过课记录"
+      ],
+      "nextAction": "生产浏览器主入口链已通过；转入 WPS/PowerPoint 目标机打开检查和真实物理、语文教师各一轮 45 分钟过课。",
+      "estimateEngineeringHours": "3-5",
+      "dependencies": ["LESSON-ORCHESTRATION-001", "TEACHER-PACK-001", "ARTIFACT-DURABILITY-001"],
+      "verificationEvidence": [
+        "teacher-two-subject-delivery:e2e 通过：两门课均经真实 teacher_submit_for_review 评分后导出，没有数据库改 readiness 捷径",
+        "生产模式 teacher-two-subject-browser:e2e 通过：两门课均完成注册、课堂方案确认、事件修改、生成、交付包查看、讲稿保存、审核、导出、Artifact 同源下载、新页面最近课件重开和版本历史查看；eventCount=7、pageCount=16、versionNumber=3、teacherReadiness=ready_for_teacher、consoleErrors=[]",
+        "最终带图样品：artifacts/teacher-full-lesson-samples/final-visual；两份 PPTX 均为 16:9、16 页、各 4 张远程生成关键视觉，PowerPoint 实际渲染 16/16 页通过且无连续问号、替换字符或文字遮挡"
+      ],
+      "remainingAcceptance": [
+        "在 WPS 或 PowerPoint 目标机打开并检查字体替换、溢出、重叠和投影可读性",
+        "真实物理与语文教师各完成一轮 45 分钟过课记录"
+      ]
+    },
+    {
+      "id": "TEACHER-EDIT-001",
+      "priority": "P0",
+      "releaseGate": true,
+      "status": "closed",
+      "ownerRole": "engineering_qa",
+      "summary": "连续修改、局部重做、版本回退、冲突和刷新恢复尚未完成压力验收。",
+      "evidence": [
+        "版本 API 与 stale 409 逻辑存在",
+        "缺少连续 10 次真实修改的完整报告"
+      ],
+      "doneWhen": [
+        "连续 10 次不同修改均生成新版本且旧版本不变",
+        "回退、stale 409、刷新重开和失败重试可复现",
+        "每步耗时、版本 ID 和结果写入报告"
+      ],
+      "nextAction": "补充教师连续修改 E2E，并绑定当前提交与服务日志。",
+      "estimateEngineeringHours": "2-3",
+      "dependencies": ["ARTIFACT-DURABILITY-001"],
+      "closedAt": "2026-07-17T23:32:00+08:00",
+      "verificationEvidence": [
+        "npm run teacher-edit-stress:e2e 通过",
+        "10 次编辑版本号 2-11，restore_version 从版本 4 创建版本 12",
+        "stale edit 返回 version_conflict，刷新后 restored version 保持唯一 current"
+      ],
+      "verificationCommands": ["npm run teacher-edit-stress:e2e"]
+    },
+    {
+      "id": "DEPLOYMENT-001",
+      "priority": "P0",
+      "releaseGate": true,
+      "status": "blocked_external",
+      "ownerRole": "deployment",
+      "summary": "邀请制云端内测实例、HTTPS、持久磁盘、备份和监控尚未建立。",
+      "evidence": [
+        "当前主要在本机 3002 开发服务运行",
+        "SQLite、上传原件和产物要求单实例持久磁盘"
+      ],
+      "doneWhen": [
+        "云端单实例通过 HTTPS 访问且教师无需接触模型 Key",
+        "数据库、上传与产物目录位于持久盘并完成备份恢复演练",
+        "健康检查、日志、配额和最小监控可用"
+      ],
+      "nextAction": "先完成可部署配置与 runbook；获得服务器、域名和凭据后执行真实部署。",
+      "estimateEngineeringHours": "4-8（获得环境后）",
+      "dependencies": ["ARTIFACT-DURABILITY-001"],
+      "externalNeeds": ["云服务器或单容器实例", "域名和 DNS 控制权", "HTTPS 证书或托管入口", "生产环境变量"]
+    },
+    {
+      "id": "IMAGE-JOB-001",
+      "priority": "P1",
+      "releaseGate": false,
+      "status": "in_progress",
+      "ownerRole": "engineering",
+      "summary": "远程图片可由两个兼容网关稳定直连生成，但网页产品仍缺页面级异步状态、幂等、断点续跑和稳定的代理兼容层。",
+      "evidence": [
+        "2026-07-17 a6api 与 api.xcode.hk 均以 JSON 返回成功生成图片；8 张关键视觉按主备策略完成",
+        "项目内 /api/generate-image 已改为默认 JSON、可选 SSE，但临时 Next 服务仍未完成稳定直连验证",
+        "样品 PPTX 已经由独立资产生成脚本嵌图并通过 PowerPoint 渲染；这不是网页产品任务闭环"
+      ],
+      "doneWhen": [
+        "提交后立即返回 taskId",
+        "逐页状态持久化且只重试失败页",
+        "刷新或重启后可继续查询任务"
+      ],
+      "nextAction": "先补产品路由的双供应商主备适配与单页成功验收，再建立 taskId、逐页持久化状态、失败重试和刷新恢复；已有样品资产必须复用。",
+      "estimateEngineeringHours": "10-18",
+      "dependencies": []
+    },
+    {
+      "id": "SEARCH-TRUTH-001",
+      "priority": "P1",
+      "releaseGate": false,
+      "status": "open",
+      "ownerRole": "product_engineering",
+      "summary": "正式教材事实检索 Provider 尚未配置，实验性 HTML 搜索不能作为生产证据。",
+      "evidence": [
+        "当前教材事实应优先来自教师上传材料",
+        "公开检索结果缺少正式 Provider 契约与引用链"
+      ],
+      "doneWhen": [
+        "正式 Provider、引用、缓存和失败语义明确",
+        "无引用事实不得进入确定性答案"
+      ],
+      "nextAction": "内测先限制为上传材料事实链；后续单独接入正式检索 Provider。",
+      "estimateEngineeringHours": "6-12",
+      "dependencies": []
+    }
+  ],
+  "executionOrder": [
+    "ENCODING-001",
+    "LESSON-ORCHESTRATION-001",
+    "TEACHER-PACK-001",
+    "ARTIFACT-DURABILITY-001",
+    "FONT-PORTABILITY-001",
+    "TEACHER-EDIT-001",
+    "SUBJECT-MATRIX-001",
+    "DEPLOYMENT-001"
+  ],
+  "timeAssessment": {
+    "planningAssumption": "允许延长到夜间，按验证结果推进，不再以 18:00 为硬截止。",
+    "localRcCandidateEstimate": "约 16-28 个工程小时，取决于现有合同复用程度和回归稳定性。",
+    "deploymentEstimate": "获得服务器、域名和生产配置后另需约 4-8 个工程小时。",
+    "humanAcceptance": "仍需真实教师完成至少一轮物理和语文过课，不能由自动测试替代。"
+  }
+}

@@ -1,6 +1,6 @@
 import type { DeckSpec, DesignSlide, SlideSection, SlideSpec } from "@/lib/canvas-data";
 import type { LayoutContract, LayoutSlotContract, RenderElement, RenderScene, VisualRect } from "@/lib/visual-compiler/contracts";
-import { resolveLayoutRecipe, type LayoutRecipe } from "./layout-recipes.ts";
+import { inferTeacherSubjectVisualProfile, resolveLayoutRecipe, type LayoutRecipe, type SceneCompositionFamily } from "./layout-recipes.ts";
 import { selectLayoutContract } from "./scene-builder.ts";
 
 function sectionOf<T extends SlideSection["type"]>(slide: DesignSlide, type: T) {
@@ -106,6 +106,60 @@ function nativeVisualElements(slideId: string, recipe: LayoutRecipe, bounds: Vis
   });
   const elements: RenderElement[] = [shape("surface", { x: x + 0.12, y: y + 0.12, width: w - 0.24, height: h - 0.24 }, recipe.colors.soft)];
 
+  if (recipe.family === "physics-experiment-bench") {
+    elements.push(
+      shape("magnet-left", { x: x + w * 0.12, y: y + h * 0.38, width: w * 0.17, height: h * 0.18 }, recipe.colors.accent),
+      shape("magnet-right", { x: x + w * 0.29, y: y + h * 0.38, width: w * 0.17, height: h * 0.18 }, "FFFFFF"),
+      shape("coil-outer", { x: x + w * 0.58, y: y + h * 0.24, width: w * 0.18, height: h * 0.5 }, "FFFFFF", "ellipse"),
+      shape("coil-inner", { x: x + w * 0.62, y: y + h * 0.29, width: w * 0.1, height: h * 0.4 }, recipe.colors.soft, "ellipse"),
+      shape("motion-arrow", { x: x + w * 0.45, y: y + h * 0.46, width: w * 0.12, height: 0.03 }, recipe.colors.accent),
+      shape("meter", { x: x + w * 0.78, y: y + h * 0.38, width: w * 0.12, height: w * 0.12 }, "FFFFFF", "ellipse"),
+      shape("meter-needle", { x: x + w * 0.84, y: y + h * 0.44, width: w * 0.04, height: 0.02 }, recipe.colors.accent)
+    );
+    return elements;
+  }
+
+  if (recipe.family === "physics-reasoning-chain" || recipe.family === "chinese-evidence-path") {
+    const nodeFill = recipe.family === "physics-reasoning-chain" ? "FFFFFF" : recipe.colors.soft;
+    for (let index = 0; index < 3; index += 1) {
+      elements.push(shape(`chain-node-${index + 1}`, { x: x + w * (0.08 + index * 0.31), y: y + h * 0.31, width: w * 0.22, height: h * 0.38 }, index === 1 ? recipe.colors.accent : nodeFill));
+      if (index < 2) elements.push(shape(`chain-link-${index + 1}`, { x: x + w * (0.3 + index * 0.31), y: y + h * 0.49, width: w * 0.09, height: 0.025 }, recipe.colors.accent));
+    }
+    return elements;
+  }
+
+  if (recipe.family === "physics-direction-workbench") {
+    elements.push(
+      shape("direction-ring", { x: x + w * 0.18, y: y + h * 0.14, width: w * 0.64, height: h * 0.64 }, "FFFFFF", "ellipse"),
+      shape("direction-core", { x: x + w * 0.39, y: y + h * 0.35, width: w * 0.22, height: h * 0.22 }, recipe.colors.accent, "ellipse"),
+      shape("direction-horizontal", { x: x + w * 0.27, y: y + h * 0.46, width: w * 0.46, height: 0.03 }, recipe.colors.accent),
+      shape("direction-vertical", { x: x + w * 0.5, y: y + h * 0.24, width: 0.03, height: h * 0.45 }, recipe.colors.accent)
+    );
+    return elements;
+  }
+
+  if (recipe.family === "chinese-close-reading") {
+    elements.push(
+      shape("text-page", { x: x + w * 0.16, y: y + h * 0.12, width: w * 0.57, height: h * 0.74 }, "FFFFFF"),
+      shape("annotation", { x: x + w * 0.6, y: y + h * 0.28, width: w * 0.25, height: h * 0.22 }, recipe.colors.accent),
+      shape("line-one", { x: x + w * 0.24, y: y + h * 0.28, width: w * 0.28, height: 0.025 }, recipe.colors.line),
+      shape("line-two", { x: x + w * 0.24, y: y + h * 0.43, width: w * 0.24, height: 0.025 }, recipe.colors.line),
+      shape("line-three", { x: x + w * 0.24, y: y + h * 0.58, width: w * 0.3, height: 0.025 }, recipe.colors.line)
+    );
+    return elements;
+  }
+
+  if (recipe.family === "chinese-expression-studio") {
+    elements.push(
+      shape("draft-page", { x: x + w * 0.16, y: y + h * 0.12, width: w * 0.58, height: h * 0.74 }, "FFFFFF"),
+      shape("draft-line-one", { x: x + w * 0.25, y: y + h * 0.29, width: w * 0.38, height: 0.025 }, recipe.colors.line),
+      shape("draft-line-two", { x: x + w * 0.25, y: y + h * 0.43, width: w * 0.3, height: 0.025 }, recipe.colors.line),
+      shape("draft-line-three", { x: x + w * 0.25, y: y + h * 0.57, width: w * 0.34, height: 0.025 }, recipe.colors.line),
+      shape("revision-mark", { x: x + w * 0.62, y: y + h * 0.21, width: w * 0.2, height: h * 0.16 }, recipe.colors.accent)
+    );
+    return elements;
+  }
+
   if (recipe.family === "cover-hero") {
     elements.push(
       shape("panel-a", { x: x + w * 0.12, y: y + h * 0.16, width: w * 0.47, height: h * 0.58 }, "FFFFFF"),
@@ -178,6 +232,17 @@ function makeElements(spec: SlideSpec, slide: DesignSlide, layout: LayoutContrac
 }
 
 export function buildRenderScenesV2(input: { deckSpec: DeckSpec; slides: DesignSlide[]; layouts: LayoutContract[]; visuals?: Record<string, string> }): RenderScene[] {
+  const subjectText = [
+    input.deckSpec.pptTypeLabel,
+    input.deckSpec.audience,
+    input.deckSpec.goal,
+    input.deckSpec.coreMessage,
+    input.deckSpec.expectedDecision,
+    ...input.deckSpec.slideSpecs.flatMap((spec) => [spec.title, spec.role, spec.pagePurpose, spec.claim, spec.mustProve])
+  ].filter(Boolean).join(" ");
+  const subject = inferTeacherSubjectVisualProfile(subjectText);
+  const familyUseCounts: Partial<Record<SceneCompositionFamily, number>> = {};
+  let previousFamily: SceneCompositionFamily | undefined;
   return input.deckSpec.slideSpecs.map((spec, index) => {
     const slide = input.slides.find((candidate) => candidate.id === spec.slideId) || input.slides[index];
     if (!slide) throw new Error(`DeckSpec 第 ${index + 1} 页找不到对应 DesignSlide`);
@@ -186,7 +251,9 @@ export function buildRenderScenesV2(input: { deckSpec: DeckSpec; slides: DesignS
       : spec;
     const layout = selectLayoutContract(effectiveSpec, input.layouts);
     if (!layout) throw new Error(`第 ${index + 1} 页没有可用版式合同`);
-    const recipe = resolveLayoutRecipe(effectiveSpec, layout.layoutId);
+    const recipe = resolveLayoutRecipe(effectiveSpec, layout.layoutId, { subject, previousFamily, familyUseCounts });
+    previousFamily = recipe.family;
+    familyUseCounts[recipe.family] = (familyUseCounts[recipe.family] || 0) + 1;
     const visualSource = input.visuals?.[slide.id] || input.visuals?.[String(index + 1)];
     return {
       schemaVersion: "teacher-render-scene/v1", sceneId: `${input.deckSpec.id}:${slide.id}:${index + 1}`, projectId: input.deckSpec.projectId, versionId: input.deckSpec.versionId,

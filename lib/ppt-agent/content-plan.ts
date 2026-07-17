@@ -36,6 +36,90 @@ export type ContentPlanSlide = {
   childOutputRequired?: boolean;
   visualNeed?: string;
   contentLimit?: string;
+  lessonEventId?: string;
+};
+
+export type LessonEventType = "opening" | "objective" | "activate" | "explain" | "model" | "inquire" | "practice" | "feedback" | "transfer" | "assess" | "closing";
+
+export type LessonEvent = {
+  id: string;
+  type: LessonEventType;
+  title: string;
+  durationMinutes: number;
+  teacherAction: string;
+  studentAction: string;
+  expectedResponse: string;
+  evidenceOfLearning: string;
+  fallbackAction: string;
+  slideIds: string[];
+};
+
+export type LessonPlan = {
+  totalMinutes: number;
+  events: LessonEvent[];
+};
+
+export type LessonArchitecture =
+  | "experiment_inquiry"
+  | "close_reading"
+  | "concept_building"
+  | "skill_practice"
+  | "review_consolidation"
+  | "general_lesson";
+
+export type LessonBlueprint = {
+  blueprintId: string;
+  planId: string;
+  status: "teacher_confirmation_required" | "teacher_confirmed";
+  architecture: LessonArchitecture;
+  architectureReason: string;
+  lessonPromise: string;
+  drivingQuestion: string;
+  learnerAssumptions: string[];
+  keyDifficulties: Array<{
+    focus: string;
+    reason: string;
+    breakthrough: string;
+  }>;
+  objectives: Array<{
+    id: string;
+    statement: string;
+    evidence: string;
+    successCriteria: string;
+  }>;
+  lessonPlan: LessonPlan;
+  presentationPlan: {
+    strategyVersion?: "lesson_pacing_v1";
+    recommendedPageCount: number;
+    minimumPageCount?: number;
+    maximumPageCount?: number;
+    drivers?: string[];
+    rationale: string;
+    screenPrinciples: string[];
+    teacherOnlyPrinciples: string[];
+  };
+  teacherDecisions: Array<{
+    id: string;
+    question: string;
+    assumption: string;
+    requiredBeforeGeneration: boolean;
+  }>;
+};
+
+export type TeacherDeliveryPack = {
+  packId: string;
+  planId: string;
+  readiness: "teacher_review_required" | "ready_for_teacher_review";
+  teacherNotes: Array<
+    Pick<LessonEvent, "title" | "durationMinutes" | "teacherAction" | "studentAction" | "expectedResponse" | "fallbackAction" | "slideIds"> & {
+      pageId: string;
+      lessonEventId: string;
+      prompt: string;
+    }
+  >;
+  answerKey: Array<{ eventId: string; slideIds: string[]; answer: string; scoringCriteria: string; sourceStatus: "derived_from_plan" | "teacher_material_required" }>;
+  boardPlan: { title: string; columns: Array<{ heading: string; items: string[] }> };
+  homework: Array<{ level: "基础" | "提高" | "迁移"; task: string; successCriteria: string }>;
 };
 
 export type ContentPlan = {
@@ -59,6 +143,9 @@ export type ContentPlan = {
   createdAt: string;
   teachingObjectives?: string[];
   teachingChain?: string[];
+  lessonBlueprint?: LessonBlueprint;
+  lessonPlan?: LessonPlan;
+  deliveryPack?: TeacherDeliveryPack;
   teacherContext?: {
     subject: string;
     topic: string;

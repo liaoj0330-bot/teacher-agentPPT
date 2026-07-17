@@ -41,6 +41,7 @@ export type ExportGateResult = {
 };
 
 const MOJIBAKE_PATTERN = /[\uFFFD]|[脙脗芒鈧撁ぢ掆€斆瀅]/;
+const QUESTION_MARK_PLACEHOLDER_PATTERN = /\?{3,}/;
 const INTERNAL_FIELD_PATTERN = /\b(day-route|hero-image|image-strip|tips-grid|stat-card|source-note|route-card|bar-chart|donut-chart|visualPrompt|pageIntent|evidenceBlockIds|sourceIds|layout|debug|mock|placeholder)\b/i;
 const PLACEHOLDER_PATTERN = /占位|待替换|待补充|lorem|placeholder|generated visual|灰块|视觉模块|图片素材|示例模块|调试/i;
 
@@ -200,6 +201,16 @@ export function evaluateExportQualityGate(projectInput: CanvasProject): ExportGa
       title: "存在中文乱码",
       detail: "项目文本中检测到 UTF-8 replacement 或常见 mojibake 字符，导出会出现乱码。",
       action: "先重新清洗文本或重新生成，再导出 PPTX。"
+    }));
+  }
+
+  if (QUESTION_MARK_PLACEHOLDER_PATTERN.test(fullText)) {
+    issues.push(issue({
+      id: "question-mark-placeholder",
+      severity: "error",
+      title: "存在连续问号占位文本",
+      detail: "项目文本中出现三个及以上连续问号，通常表示字符损坏或未完成内容。",
+      action: "修复原始策划或重新生成对应页面后再导出 PPTX。"
     }));
   }
 
@@ -563,6 +574,17 @@ export function evaluateExportQualityGate(projectInput: CanvasProject): ExportGa
         slideId: slide.id,
         slideTitle: slide.title,
         action: "重新清洗该页文本。"
+      }));
+    }
+    if (QUESTION_MARK_PLACEHOLDER_PATTERN.test(text)) {
+      issues.push(issue({
+        id: `slide-${index + 1}-question-mark-placeholder`,
+        severity: "error",
+        title: `第 ${index + 1} 页存在连续问号`,
+        detail: "该页包含三个及以上连续问号，不能作为课堂成品导出。",
+        slideId: slide.id,
+        slideTitle: slide.title,
+        action: "修复该页内容来源后重新生成。"
       }));
     }
     if (INTERNAL_FIELD_PATTERN.test(text)) {

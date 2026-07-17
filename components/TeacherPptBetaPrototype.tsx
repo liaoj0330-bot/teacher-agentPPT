@@ -8,7 +8,9 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
+  FolderOpen,
   GraduationCap,
+  History,
   LayoutTemplate,
   Loader2,
   Paperclip,
@@ -64,6 +66,21 @@ type TeacherForm = {
   unit: string;
   pageRange: string;
   teachingRequirements: string;
+  studentBaseline: string;
+  commonDifficulties: string;
+  classSize: string;
+  classroomEquipment: string;
+  assessmentFocus: "conceptual_understanding" | "exam_practice" | "balanced";
+};
+type TeacherProjectSummary = {
+  projectId: string;
+  title: string;
+  subject: string;
+  schoolStage: string;
+  grade: string;
+  lifecycleStatus: string;
+  currentVersionId: string | null;
+  updatedAt: string;
 };
 
 const initialForm: TeacherForm = {
@@ -80,6 +97,11 @@ const initialForm: TeacherForm = {
   unit: "",
   pageRange: "",
   teachingRequirements: "",
+  studentBaseline: "",
+  commonDifficulties: "",
+  classSize: "",
+  classroomEquipment: "",
+  assessmentFocus: "balanced",
 };
 
 const schoolStages = ["幼儿园", "小学", "初中", "高中", "中职", "大学"];
@@ -217,11 +239,15 @@ export function TeacherPptBetaPrototype() {
   const [isChatSending, setIsChatSending] = useState(false);
   const [isUploaderOpen, setIsUploaderOpen] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [state, setState] = useState<"idle" | "calling" | "error">("idle");
   const [message, setMessage] = useState("");
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [deckPlan, setDeckPlan] = useState<TeacherDeckPlan | null>(null);
+  const [teacherProjects, setTeacherProjects] = useState<TeacherProjectSummary[]>([]);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(false);
+  const [openingProjectId, setOpeningProjectId] = useState<string | null>(null);
 
   useEffect(() => {
     if (
@@ -245,6 +271,7 @@ export function TeacherPptBetaPrototype() {
         step?: GuideStep;
         chatMessages?: TeacherMessage[];
         uploadedFile?: UploadedFile | null;
+        uploadedFiles?: UploadedFile[];
         deckPlan?: TeacherDeckPlan | null;
       };
       if (saved.taskKind) {
@@ -260,6 +287,7 @@ export function TeacherPptBetaPrototype() {
         setPastedMaterials(saved.pastedMaterials);
       if (Array.isArray(saved.chatMessages)) setChatMessages(saved.chatMessages);
       if (saved.uploadedFile) setUploadedFile(saved.uploadedFile);
+      if (Array.isArray(saved.uploadedFiles)) setUploadedFiles(saved.uploadedFiles);
       if (saved.deckPlan?.pages?.length) setDeckPlan(saved.deckPlan);
     } catch {
       window.sessionStorage.removeItem(DRAFT_KEY);
@@ -276,6 +304,33 @@ export function TeacherPptBetaPrototype() {
       .then((data) => setUser(data?.user ?? null))
       .catch(() => setUser(null));
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setTeacherProjects([]);
+      return;
+    }
+    let active = true;
+    setIsLoadingProjects(true);
+    void fetch("/api/courseware-projects")
+      .then(async (response) => {
+        const data = await response.json().catch(() => null) as {
+          projects?: TeacherProjectSummary[];
+          message?: string;
+        } | null;
+        if (!response.ok) throw new Error(data?.message || "历史课件读取失败");
+        if (active) setTeacherProjects(data?.projects || []);
+      })
+      .catch(() => {
+        if (active) setTeacherProjects([]);
+      })
+      .finally(() => {
+        if (active) setIsLoadingProjects(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   const update = (key: keyof TeacherForm, value: string) =>
     setForm((current) => ({ ...current, [key]: value }));
@@ -310,6 +365,7 @@ export function TeacherPptBetaPrototype() {
       setChatMessages([]);
       setChatInput("");
       setUploadedFile(null);
+      setUploadedFiles([]);
       setDeckPlan(null);
       setIsUploaderOpen(false);
       window.sessionStorage.removeItem(DRAFT_KEY);
@@ -344,6 +400,7 @@ export function TeacherPptBetaPrototype() {
         step,
         chatMessages,
         uploadedFile,
+        uploadedFiles,
         deckPlan,
       }),
     );
@@ -366,10 +423,49 @@ export function TeacherPptBetaPrototype() {
     setChatMessages([]);
     setChatInput("");
     setUploadedFile(null);
+    setUploadedFiles([]);
     setDeckPlan(null);
     setIsUploaderOpen(false);
     setState("idle");
     setMessage("");
+  };
+
+  const openTeacherProject = async (project: TeacherProjectSummary) => {
+    if (!project.currentVersionId || openingProjectId) return;
+    setOpeningProjectId(project.projectId);
+    setMessage("");
+    try {
+      const response = await fetch(
+        `/api/courseware-version?projectId=${encodeURIComponent(project.projectId)}&versionId=${encodeURIComponent(project.currentVersionId)}`,
+      );
+      const data = await response.json().catch(() => null) as {
+        message?: string;
+        versionId?: string;
+        versionNumber?: number;
+        lifecycleStatus?: string;
+        engineeringStatus?: string;
+        teacherReadiness?: string;
+      } | null;
+      if (!response.ok || !data?.versionId || !data.versionNumber) {
+        throw new Error(data?.message || "服务器课件版本读取失败");
+      }
+      window.sessionStorage.removeItem(teacherWorkspaceBootstrapKey);
+      window.sessionStorage.setItem(teacherWorkspaceIdentityKey, JSON.stringify({
+        projectType: "teacher_courseware",
+        projectId: project.projectId,
+        requestId: `reopen-${project.projectId}`,
+        versionId: data.versionId,
+        versionNumber: data.versionNumber,
+        lifecycleStatus: data.lifecycleStatus || project.lifecycleStatus,
+        engineeringStatus: data.engineeringStatus,
+        teacherReadiness: data.teacherReadiness,
+      }));
+      setShowWorkspace(true);
+    } catch (error) {
+      setMessage(`重新打开失败：${error instanceof Error ? error.message : "请稍后重试"}`);
+    } finally {
+      setOpeningProjectId(null);
+    }
   };
 
   const sendTeacherMessage = async () => {
@@ -423,7 +519,9 @@ export function TeacherPptBetaPrototype() {
 
   const buildTeacherTask = (): TeacherCoursewareTask => {
     const pageNumbers = form.pageRange.match(/\d+/g)?.map(Number) || [];
-    const sourceAssetId = uploadedFile?.assetId;
+    const taskFiles = taskKind === "polish" ? (uploadedFile ? [uploadedFile] : []) : uploadedFiles;
+    const textbookFile = taskFiles.find((file) => /教材|课本|教科书|textbook/i.test(file.name));
+    const sourceAssetId = taskKind === "polish" ? uploadedFile?.assetId : textbookFile?.assetId;
     const verificationStatus = sourceAssetId
       ? "asset_verified" as const
       : form.textbook.trim() && form.chapter.trim()
@@ -448,20 +546,29 @@ export function TeacherPptBetaPrototype() {
         pageEnd: pageNumbers[1] || pageNumbers[0],
         verificationStatus,
       },
-      sourcePolicy: sourceAssetId ? "uploaded_only" : "web_supplement",
+      learnerProfile: {
+        baseline: form.studentBaseline.trim() || undefined,
+        commonDifficulties: form.commonDifficulties.trim() || undefined,
+        classSize: Number(form.classSize) > 0 ? Number(form.classSize) : undefined,
+      },
+      classroomConstraints: {
+        equipment: form.classroomEquipment.trim() || undefined,
+        assessmentFocus: form.assessmentFocus,
+      },
+      sourcePolicy: textbookFile ? "uploaded_only" : "web_supplement",
       beautifyOptions: taskKind === "polish" ? {
         intensity: beautifyIntensity,
         sourceAssetId,
         preserveBrand: true,
         preserveOrder: beautifyIntensity !== "deep",
       } : undefined,
-      uploadedFiles: uploadedFile ? [uploadedFile] : [], pastedMaterials, teacherStyle: { visualMode, theme },
+      uploadedFiles: taskFiles, pastedMaterials, teacherStyle: { visualMode, theme },
     };
   };
 
   async function preparePlan() {
     if (!taskKind || !requiredReady || state === "calling") return;
-    if (needsFile && uploadedFile?.status !== "uploaded") { setState("error"); setMessage("请先上传当前任务所需的文件。"); return; }
+    if (needsFile && (taskKind === "polish" ? uploadedFile?.status !== "uploaded" : !uploadedFiles.some((file) => file.status === "uploaded"))) { setState("error"); setMessage("请先上传当前任务所需的文件。"); return; }
     if (taskKind === "chapter" && (!form.textbook.trim() || !form.chapter.trim())) { setState("error"); setMessage("章节备课必须确认教材版本和章节。"); return; }
     setState("calling"); setMessage("正在根据教材依据建立教学大纲…");
     try {
@@ -474,7 +581,7 @@ export function TeacherPptBetaPrototype() {
 
   async function generate() {
     if (!taskKind || !requiredReady || state === "calling") return;
-    if (needsFile && uploadedFile?.status !== "uploaded") {
+    if (needsFile && (taskKind === "polish" ? uploadedFile?.status !== "uploaded" : !uploadedFiles.some((file) => file.status === "uploaded"))) {
       setState("error");
       setMessage(
         taskKind === "polish"
@@ -525,7 +632,8 @@ export function TeacherPptBetaPrototype() {
           prompt,
           mode,
           planningMode: "professional",
-          uploadedFile,
+          uploadedFile: taskKind === "polish" ? uploadedFile : undefined,
+          uploadedFiles: taskKind === "polish" ? undefined : uploadedFiles,
           teacherStyle: teacherTask.teacherStyle,
           projectId: compilingPlan.projectId,
         }),
@@ -698,6 +806,59 @@ export function TeacherPptBetaPrototype() {
               <div className="rounded-[22px] bg-[#f8fafc] p-4 text-sm leading-7 text-[#344054]">
                 你好，我会把你的备课任务整理成可编辑课件。你想从哪里开始？
               </div>
+              {user ? (
+                <section data-testid="teacher-recent-projects" className="border-y border-line py-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-ink">
+                      <History className="size-4 text-[#2f7cff]" />
+                      最近课件
+                    </div>
+                    <span className="text-[11px] text-muted">服务器已保存</span>
+                  </div>
+                  {isLoadingProjects ? (
+                    <div className="mt-3 flex h-12 items-center justify-center text-xs text-muted">
+                      <Loader2 className="mr-2 size-4 animate-spin" />读取课件记录
+                    </div>
+                  ) : teacherProjects.length ? (
+                    <div className="mt-3 space-y-2">
+                      {teacherProjects.slice(0, 4).map((project) => (
+                        <button
+                          key={project.projectId}
+                          type="button"
+                          data-testid={`teacher-project-${project.projectId}`}
+                          onClick={() => void openTeacherProject(project)}
+                          disabled={!project.currentVersionId || openingProjectId === project.projectId}
+                          className="flex min-h-14 w-full items-center gap-3 border border-line bg-white px-3 py-2.5 text-left hover:border-[#a8c9ff] hover:bg-[#f8fbff] disabled:opacity-60"
+                        >
+                          <span className="flex size-9 shrink-0 items-center justify-center bg-[#eef6ff] text-[#175cd3]">
+                            {openingProjectId === project.projectId ? <Loader2 className="size-4 animate-spin" /> : <FolderOpen className="size-4" />}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <b className="block truncate text-sm text-ink">{project.title}</b>
+                            <span className="mt-0.5 block truncate text-[11px] text-muted">
+                              {[project.schoolStage, project.grade, project.subject].filter(Boolean).join(" · ")} · {new Date(project.updatedAt).toLocaleDateString("zh-CN")}
+                            </span>
+                          </span>
+                          <ChevronRight className="size-4 shrink-0 text-[#98a2b3]" />
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="mt-3 border border-dashed border-line px-3 py-4 text-center text-xs text-muted">
+                      还没有服务器课件，从下面选择一种方式开始备课。
+                    </div>
+                  )}
+                </section>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsAuthOpen(true)}
+                  className="flex min-h-12 w-full items-center justify-between border border-[#bed5ff] bg-[#f3f8ff] px-4 text-left text-sm font-semibold text-[#175cd3]"
+                >
+                  <span className="flex items-center gap-2"><History className="size-4" />登录查看历史课件</span>
+                  <ChevronRight className="size-4" />
+                </button>
+              )}
               <div className="space-y-2">
                 {taskCards.map((item) => {
                   const Icon = item.icon;
@@ -843,6 +1004,32 @@ export function TeacherPptBetaPrototype() {
                   </div>
                 </>
               )}
+              <div className="mt-5 border-t border-line pt-5">
+                <div className="text-xs font-semibold text-[#344054]">班级情况与课堂条件</div>
+                <p className="mt-1 text-[11px] leading-5 text-[#667085]">选填。未填写的信息会作为待确认假设显示在课堂方案中。</p>
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <Field label="班级人数" value={form.classSize} onChange={(value) => update("classSize", value)} placeholder="例如 42" />
+                  <Field label="可用设备" value={form.classroomEquipment} onChange={(value) => update("classroomEquipment", value)} placeholder="例如 演示实验、投影" />
+                </div>
+                <label className="mt-3 block text-xs font-semibold text-[#475467]">
+                  学生基础
+                  <textarea value={form.studentBaseline} onChange={(event) => update("studentBaseline", event.target.value)} placeholder="例如 已学磁通量，右手螺旋定则不熟练" rows={2} className="mt-2 w-full resize-y rounded-xl border border-line px-3 py-2 text-sm leading-6 outline-none focus:border-[#2f7cff]" />
+                </label>
+                <label className="mt-3 block text-xs font-semibold text-[#475467]">
+                  常见困难
+                  <textarea value={form.commonDifficulties} onChange={(event) => update("commonDifficulties", event.target.value)} placeholder="例如 容易把阻碍变化理解成方向永远相反" rows={2} className="mt-2 w-full resize-y rounded-xl border border-line px-3 py-2 text-sm leading-6 outline-none focus:border-[#2f7cff]" />
+                </label>
+                <div className="mt-3 text-xs font-semibold text-[#475467]">评价侧重</div>
+                <div className="mt-2 grid grid-cols-3 gap-2" role="group" aria-label="评价侧重">
+                  {([
+                    ["conceptual_understanding", "理解建构"],
+                    ["balanced", "理解与训练"],
+                    ["exam_practice", "考试训练"],
+                  ] as const).map(([value, label]) => (
+                    <button key={value} type="button" onClick={() => update("assessmentFocus", value)} className={cn("h-9 border px-2 text-xs", form.assessmentFocus === value ? "border-[#2f7cff] bg-[#eef6ff] font-semibold text-[#175cd3]" : "border-line text-[#475467]")}>{label}</button>
+                  ))}
+                </div>
+              </div>
               <label className="mt-3 block text-xs font-semibold text-[#475467]">
                 教学要求
                 <textarea
@@ -868,6 +1055,9 @@ export function TeacherPptBetaPrototype() {
                   <UploadPPTCard
                     uploadedFile={uploadedFile}
                     onUploaded={setUploadedFile}
+                    uploadedFiles={uploadedFiles}
+                    onUploadedFiles={setUploadedFiles}
+                    multiple={taskKind !== "polish"}
                     compact
                     fileKind={taskKind === "polish" ? "ppt" : "any"}
                   />
@@ -998,6 +1188,9 @@ export function TeacherPptBetaPrototype() {
               <UploadPPTCard
                 uploadedFile={uploadedFile}
                 onUploaded={setUploadedFile}
+                uploadedFiles={uploadedFiles}
+                onUploadedFiles={setUploadedFiles}
+                multiple={taskKind !== "polish"}
                 compact
                 fileKind={taskKind === "polish" ? "ppt" : "any"}
               />

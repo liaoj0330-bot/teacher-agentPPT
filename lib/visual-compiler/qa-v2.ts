@@ -98,9 +98,40 @@ export function validateRenderScenesV2(scenes: RenderScene[], layouts: LayoutCon
     const window = scenes.slice(start, start + 3);
     const families = window.map((scene) => scene.composition?.family || scene.layoutId);
     if (new Set(families).size === 1) {
+      const nextFamily = scenes[start + 3]?.composition?.family || scenes[start + 3]?.layoutId;
+      const previousFamily = scenes[start - 1]?.composition?.family || scenes[start - 1]?.layoutId;
+      if (nextFamily === families[0] || previousFamily === families[0]) continue;
       const scene = window.at(-1)!;
       issues.push({ issueId: `${scene.sceneId}:composition:repeat`, sceneId: scene.sceneId, slideId: scene.slideId, severity: "warning", code: "REPETITIVE_COMPOSITION", message: `连续 3 页重复使用构图“${families[0]}”`, elementIds: [] });
       break;
+    }
+  }
+  // A deliverable teaching deck needs more than one visual rhythm. Three
+  // consecutive repeats are review-worthy; four are a hard export failure.
+  for (let start = 0; start <= scenes.length - 4; start += 1) {
+    const window = scenes.slice(start, start + 4);
+    const families = window.map((scene) => scene.composition?.family || scene.layoutId);
+    if (new Set(families).size === 1) {
+      const scene = window.at(-1)!;
+      issues.push({ issueId: `${scene.sceneId}:composition:repeat-hard`, sceneId: scene.sceneId, slideId: scene.slideId, severity: "error", code: "REPETITIVE_COMPOSITION", message: `连续 4 页重复使用构图“${families[0]}”，不满足课堂课件的视觉节奏要求`, elementIds: [] });
+      break;
+    }
+  }
+  if (scenes.length >= 8) {
+    const familyCounts = new Map<string, number>();
+    scenes.forEach((scene) => {
+      const family = scene.composition?.family || scene.layoutId;
+      familyCounts.set(family, (familyCounts.get(family) || 0) + 1);
+    });
+    const uniqueFamilies = familyCounts.size;
+    if (uniqueFamilies < 4) {
+      const scene = scenes.at(-1)!;
+      issues.push({ issueId: `${scene.sceneId}:composition:variety`, sceneId: scene.sceneId, slideId: scene.slideId, severity: "error", code: "INSUFFICIENT_COMPOSITION_VARIETY", message: `整套 ${scenes.length} 页仅使用 ${uniqueFamilies} 种构图，至少需要 4 种课堂场景构图`, elementIds: [] });
+    }
+    const dominant = [...familyCounts.entries()].sort((left, right) => right[1] - left[1])[0];
+    if (dominant && dominant[1] / scenes.length >= 0.55) {
+      const scene = scenes.at(-1)!;
+      issues.push({ issueId: `${scene.sceneId}:composition:dominant`, sceneId: scene.sceneId, slideId: scene.slideId, severity: "warning", code: "DOMINANT_COMPOSITION", message: `构图“${dominant[0]}”占 ${Math.round(dominant[1] / scenes.length * 100)}%，页面节奏可能过于机械`, elementIds: [] });
     }
   }
   const errorCount = issues.filter((issue) => issue.severity === "error").length;

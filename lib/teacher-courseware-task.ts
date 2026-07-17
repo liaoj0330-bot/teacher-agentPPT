@@ -1,8 +1,9 @@
 ﻿import type { CanvasProject, TeacherTheme, TeacherVisualMode } from "@/lib/canvas-data";
-import type { ContentPlan } from "@/lib/ppt-agent/content-plan";
+import type { ContentPlan, LessonBlueprint, LessonPlan } from "@/lib/ppt-agent/content-plan";
 import type { SlidePagePlan } from "@/lib/ppt-agent/slide-page-plan";
 import type { LayoutPlan } from "@/lib/ppt-agent/layout-plan";
 import type { TeacherLessonType } from "@/lib/teacher-template-registry";
+import type { TeacherMaterialPackage } from "@/lib/ppt-agent/teacher-material-package";
 
 export type TeacherCoursewareTask = {
   scenario: "teacher_courseware";
@@ -16,8 +17,7 @@ export type TeacherCoursewareTask = {
   subject: string;
   topic: string;
   duration: string;
-  // 鈹€鈹€ Extended fields (Phase 2 / 069) 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
-  /** Independent teaching requirements 鈥?must NOT be folded into pastedMaterials */
+  /** Independent teaching requirements; do not fold them into pasted materials. */
   teachingRequirements?: string;
   /** Textbook name / edition used for this lesson */
   textbook?: string;
@@ -40,6 +40,17 @@ export type TeacherCoursewareTask = {
     pageEnd?: number;
     verificationStatus: "catalog_verified" | "asset_verified" | "teacher_confirmed" | "unverified";
   };
+  learnerProfile?: {
+    baseline?: string;
+    commonDifficulties?: string;
+    classSize?: number;
+    differentiationNeeds?: string;
+  };
+  classroomConstraints?: {
+    equipment?: string;
+    grouping?: string;
+    assessmentFocus?: "conceptual_understanding" | "exam_practice" | "balanced";
+  };
   sourcePolicy?: "uploaded_only" | "trusted_catalog" | "web_supplement";
   beautifyOptions?: {
     intensity: "preserve" | "standard" | "deep";
@@ -47,8 +58,8 @@ export type TeacherCoursewareTask = {
     preserveBrand: boolean;
     preserveOrder: boolean;
   };
-  // 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
   uploadedFiles: unknown[];
+  materialPackage?: TeacherMaterialPackage;
   pastedMaterials: string;
   teacherStyle: {
     visualMode: TeacherVisualMode;
@@ -66,6 +77,7 @@ export type TeacherDeckPlanPage = {
   mustProve: string;
   layoutHint?: string;
   priority?: "required" | "recommended";
+  lessonEventId?: string;
 };
 
 export type TeacherDeckPlanStatus =
@@ -107,6 +119,8 @@ export type TeacherDeckPlan = {
   pageCount: number;
   confirmedAt?: string;
   pages: TeacherDeckPlanPage[];
+  lessonBlueprint?: LessonBlueprint;
+  lessonPlan?: LessonPlan;
   projectId?: string;
   requestId?: string;
   revision?: number;

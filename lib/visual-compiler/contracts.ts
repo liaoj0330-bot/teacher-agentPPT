@@ -75,7 +75,7 @@ export type RenderScene = {
   evidenceSourceIds: string[];
 };
 
-export type VisualQAIssueCode = "OUT_OF_BOUNDS" | "OVERLAP" | "TEXT_OVERFLOW" | "FONT_TOO_SMALL" | "EMPTY_REQUIRED_SLOT" | "UNEDITABLE_CORE_CONTENT" | "UNANCHORED_VISUAL" | "DENSITY_BUDGET_EXCEEDED" | "UNDERFILLED_COMPOSITION" | "REPETITIVE_COMPOSITION";
+export type VisualQAIssueCode = "OUT_OF_BOUNDS" | "OVERLAP" | "TEXT_OVERFLOW" | "FONT_TOO_SMALL" | "EMPTY_REQUIRED_SLOT" | "UNEDITABLE_CORE_CONTENT" | "UNANCHORED_VISUAL" | "DENSITY_BUDGET_EXCEEDED" | "UNDERFILLED_COMPOSITION" | "REPETITIVE_COMPOSITION" | "INSUFFICIENT_COMPOSITION_VARIETY" | "DOMINANT_COMPOSITION";
 export type VisualQAIssue = { issueId: string; sceneId: string; slideId: string; severity: "error" | "warning"; code: VisualQAIssueCode; message: string; elementIds: string[] };
 export type VisualQAReport = { schemaVersion: "teacher-visual-qa/v1"; status: "passed" | "review_required" | "failed"; sceneCount: number; errorCount: number; warningCount: number; issues: VisualQAIssue[] };
 export type VisualCompileInput = { design: VisualDesignSpec; layouts: LayoutContract[]; scenes: RenderScene[] };

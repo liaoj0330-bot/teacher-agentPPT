@@ -28,6 +28,7 @@ export type LayoutPlanValidationResult = {
 };
 
 const MOJIBAKE_PATTERN = /[\uFFFD]|[脙脗芒鈧撁ぢ掆€斆瀅]/;
+const QUESTION_MARK_PLACEHOLDER_PATTERN = /\?{3,}/;
 const INTERNAL_FIELD_PATTERN = /\b(day-route|hero-image|image-strip|tips-grid|stat-card|source-note|route-card|bar-chart|donut-chart|visualPrompt|pageIntent|evidenceBlockIds|sourceIds|debug|mock|placeholder|generated visual)\b/i;
 
 function unique<T>(items: T[]) {
@@ -124,6 +125,9 @@ export function validateLayoutPlans(plans: LayoutPlan[], contentPlan?: ContentPl
   const text = readableText(plans);
   if (MOJIBAKE_PATTERN.test(text)) {
     push(issues, undefined, "mojibake", "layoutPlans", "LayoutPlan 可读说明中出现乱码。");
+  }
+  if (QUESTION_MARK_PLACEHOLDER_PATTERN.test(text)) {
+    push(issues, undefined, "question-mark-placeholder", "layoutPlans", "LayoutPlan 可读说明中出现连续问号占位文本。");
   }
   if (INTERNAL_FIELD_PATTERN.test(text)) {
     push(issues, undefined, "internal-field", "layoutPlans", "LayoutPlan 可读说明中出现工程字段。");

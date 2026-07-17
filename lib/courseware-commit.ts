@@ -55,6 +55,7 @@ export const COMMIT_OPERATIONS: CoursewareOperation[] = [
   "generate_visuals",
   "apply_page_review_fixes",
   "apply_review_fixes",
+  "restore_version",
   "teacher_submit_for_review",
 ];
 
@@ -90,6 +91,8 @@ export type CommitInput = {
     interactionNote?: string;
     /** generate_visuals: provider-returned image URLs/data URIs keyed by slide ID. */
     renderManifest?: Record<string, string>;
+    /** restore_version: historical version to copy into a new immutable version. */
+    restoreVersionId?: string;
     /** the chat/request text this version was generated from (provenance). */
     basis?: string;
   };
@@ -323,6 +326,7 @@ const OPERATION_SUMMARY: Record<CoursewareOperation, string> = {
   generate_visuals: "生成可视化配图",
   apply_page_review_fixes: "应用单页评审修复",
   apply_review_fixes: "应用整份评审修复",
+  restore_version: "恢复历史版本",
   teacher_submit_for_review: "教师提交审核",
 };
 
@@ -387,27 +391,47 @@ export async function commitCoursewareVersion(
     };
   }
 
+  let source = base;
+  if (operation === "restore_version") {
+    const restoreVersionId = payload.restoreVersionId?.trim();
+    if (!restoreVersionId || restoreVersionId === baseVersionId) {
+      return {
+        ok: false,
+        status: 400,
+        code: "invalid_payload",
+        message: "restore_version requires a historical restoreVersionId.",
+      };
+    }
+    const historical = await loadFullVersion(restoreVersionId, userId, projectId);
+    if (!historical.ok) {
+      return historical.reason === "forbidden"
+        ? { ok: false, status: 403, code: "forbidden", message: "Not your project." }
+        : { ok: false, status: 404, code: "not_found", message: "Restore version not found." };
+    }
+    source = historical;
+  }
+
   // loadFullVersion omits the page/layout plan snapshots — read them directly.
   const row = await db.coursewareVersion.findUnique({
-    where: { id: baseVersionId },
+    where: { id: source.versionId },
     select: { slidePagePlanSnapshot: true, layoutPlanSnapshot: true },
   });
   const slidePagePlans = safeParseArray<SlidePagePlan>(row?.slidePagePlanSnapshot);
   const layoutPlans = safeParseArray<LayoutPlan>(row?.layoutPlanSnapshot);
 
   // ── Apply the operation server-side on the frozen snapshot ─────────────────
-  let slides = base.slides;
-  let sourceDocuments = [...base.sourceDocuments];
+  let slides = source.slides;
+  let sourceDocuments = [...source.sourceDocuments];
   let renderManifest: Record<string, string> | null = null;
   const submitted = operation === "teacher_submit_for_review";
 
   const canvas = projectFromSnapshot(
-    base.task,
-    base.contentPlan,
+    source.task,
+    source.contentPlan,
     slidePagePlans,
     layoutPlans,
-    base.deckSpec,
-    base.slides
+    source.deckSpec,
+    source.slides
   );
   const instruction = (payload.instruction || "").trim();
 
@@ -487,6 +511,14 @@ export async function commitCoursewareVersion(
       }
       break;
     }
+    case "restore_version":
+      sourceDocuments.push({
+        kind: "version_restore",
+        origin: "version_history",
+        restoredFromVersionId: source.versionId,
+        addedAt: new Date().toISOString(),
+      });
+      break;
     case "teacher_submit_for_review":
       // No content mutation — this records the teacher's review + approval.
       break;
@@ -510,16 +542,16 @@ export async function commitCoursewareVersion(
     };
   }
   // Keep the DeckSpec content-hash consistent with the (possibly) edited slides.
-  const deckSpec = syncDeckSpec(base.deckSpec, slides);
+  const deckSpec = syncDeckSpec(source.deckSpec, slides);
 
   // Engineering evidence is inherited verbatim; teacher readiness is recomputed
   // on the resulting content (submit is the only path to ready_for_teacher).
-  const engineeringStatus = (base.engineeringStatus === "passed"
+  const engineeringStatus = (source.engineeringStatus === "passed"
     ? "passed"
-    : base.engineeringStatus === "failed"
+    : source.engineeringStatus === "failed"
       ? "failed"
       : "pending") as "pending" | "passed" | "failed";
-  const teacherReadiness = recomputeReadiness(base.task, slides, submitted);
+  const teacherReadiness = recomputeReadiness(source.task, slides, submitted);
 
   // Provenance: fold the generation basis into the version's source record.
   if (payload.basis) {
@@ -536,13 +568,13 @@ export async function commitCoursewareVersion(
 
   const inserted = await upsertCoursewareVersion({
     userId,
-    task: base.task as TeacherCoursewareTask,
-    contentPlan: (base.contentPlan || {}) as ContentPlan,
+    task: source.task as TeacherCoursewareTask,
+    contentPlan: (source.contentPlan || {}) as ContentPlan,
     slidePagePlans,
     layoutPlans,
     deckSpec,
     slides,
-    evidence: base.evidence,
+    evidence: source.evidence,
     engineeringStatus,
     teacherReadiness,
     requestedProjectId: projectId,

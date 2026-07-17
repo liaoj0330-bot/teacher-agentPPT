@@ -1,3 +1,4 @@
+import type { LessonBlueprint } from "@/lib/ppt-agent/content-plan";
 import type { TeacherDeckPlan, TeacherDeckPlanPage, TeacherDeckPlanStatus } from "@/lib/teacher-courseware-task";
 
 export type TeacherDeckPlanAction =
@@ -55,8 +56,8 @@ function replacePages(plan: TeacherDeckPlan, pages: TeacherDeckPlanPage[]) {
     progress: { totalPages: pages.length, completedPages: 0, completedPageIds: [], failedPageIds: [], updatedAt: timestamp() } };
 }
 
-export function createTeacherDeckPlan(planId: string, pages: TeacherDeckPlanPage[]): TeacherDeckPlan {
-  const draft: TeacherDeckPlan = { planId, status: "draft", pageCount: 0, pages: [], revision: 0, transitions: [], progress: { totalPages: 0, completedPages: 0, completedPageIds: [], failedPageIds: [], updatedAt: timestamp() } };
+export function createTeacherDeckPlan(planId: string, pages: TeacherDeckPlanPage[], lessonBlueprint?: LessonBlueprint): TeacherDeckPlan {
+  const draft: TeacherDeckPlan = { planId, status: "draft", pageCount: 0, pages: [], lessonBlueprint, revision: 0, transitions: [], progress: { totalPages: 0, completedPages: 0, completedPageIds: [], failedPageIds: [], updatedAt: timestamp() } };
   return reduceTeacherDeckPlan(reduceTeacherDeckPlan(draft, { type: "begin_generation" }), { type: "outline_generated", pages });
 }
 

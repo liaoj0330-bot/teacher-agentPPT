@@ -555,6 +555,7 @@ export function CanvasWorkbench({ entryMode = "general" }: CanvasWorkbenchProps 
   const [teacherRenderArtifactId, setTeacherRenderArtifactId] = useState<string | null>(null);
   const [teacherVersions, setTeacherVersions] = useState<TeacherVersionRow[]>([]);
   const [isViewingCurrentVersion, setIsViewingCurrentVersion] = useState(true);
+  const [isRestoringVersion, setIsRestoringVersion] = useState(false);
   const [teacherChat, setTeacherChat] = useState<TeacherChatRow[]>([]);
   const [teacherMaterials, setTeacherMaterials] = useState<TeacherMaterialRow[]>([]);
   const [isChatSending, setIsChatSending] = useState(false);
@@ -718,6 +719,35 @@ export function CanvasWorkbench({ entryMode = "general" }: CanvasWorkbenchProps 
       return null;
     }
   }, [workspaceIdentity, isViewingCurrentVersion, reloadTeacherVersion, loadTeacherVersions, showToast]);
+
+  const restoreTeacherVersion = useCallback(async (restoreVersionId: string) => {
+    const identity = workspaceIdentity;
+    const currentVersion = teacherVersions.find((row) => row.isCurrent);
+    if (!identity?.projectId || !currentVersion?.versionId || !restoreVersionId || isRestoringVersion) return;
+    if (!window.confirm("将此历史版本恢复为一个新的当前版本？原有版本不会被覆盖。")) return;
+    setIsRestoringVersion(true);
+    showToast({ type: "info", message: "正在从历史快照创建新的当前版本" });
+    try {
+      const data = await commitTeacherWorkspaceVersion({
+        projectId: identity.projectId,
+        baseVersionId: currentVersion.versionId,
+        operation: "restore_version",
+        payload: { restoreVersionId },
+      });
+      if (data.kind === "conflict") {
+        showToast({ type: "error", message: "版本已更新，请重新选择需要恢复的历史版本" });
+        await loadTeacherVersions(identity.projectId);
+        return;
+      }
+      await reloadTeacherVersion(identity.projectId, data.versionId);
+      await loadTeacherVersions(identity.projectId);
+      showToast({ type: "success", message: "历史版本已恢复，并保存为新的不可变版本" });
+    } catch (error) {
+      showToast({ type: "error", message: `恢复失败：${error instanceof Error ? error.message : "未知错误"}` });
+    } finally {
+      setIsRestoringVersion(false);
+    }
+  }, [workspaceIdentity, teacherVersions, isRestoringVersion, reloadTeacherVersion, loadTeacherVersions, showToast]);
 
   // Explicit manual save for the teacher workspace: commit the active slide's
   // edited fields as a manual_edit version. Not per-keystroke — the studio calls
@@ -1845,7 +1875,7 @@ export function CanvasWorkbench({ entryMode = "general" }: CanvasWorkbenchProps 
             slideRole: target.index === 0 ? "cover" : target.slide?.pageIntent || "content",
             title: target.slide?.title || project.title,
             prompt: visualPrompt,
-            size: "1024x1024"
+            size: "1536x1024"
           })
         });
 
@@ -2103,6 +2133,8 @@ export function CanvasWorkbench({ entryMode = "general" }: CanvasWorkbenchProps 
                 teacherMaterials={teacherMaterials}
                 isViewingCurrentVersion={isViewingCurrentVersion}
                 onSelectVersion={(versionId) => void selectTeacherVersion(versionId)}
+                onRestoreVersion={(versionId) => void restoreTeacherVersion(versionId)}
+                isRestoringVersion={isRestoringVersion}
                 teacherChat={teacherChat}
                 isChatSending={isChatSending}
                 onSendChat={(content) => void sendTeacherChat(content)}

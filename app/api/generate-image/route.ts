@@ -127,6 +127,7 @@ async function normalizeImageData(image: string, timeoutMs: number) {
 
 async function generateWithImageApi(prompt: string, size: string) {
   const config = imageApiConfig();
+  const useStream = process.env.OPENAI_IMAGE_STREAM === "1";
   if (!config.apiKey) throw new Error("OPENAI_IMAGE_API_KEY is not configured");
 
   // The upstream image gateway occasionally returns transient 502/503/504 or
@@ -141,10 +142,10 @@ async function generateWithImageApi(prompt: string, size: string) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Accept: "text/event-stream, application/json",
+          Accept: useStream ? "text/event-stream, application/json" : "application/json",
           Authorization: `Bearer ${config.apiKey}`
         },
-        body: JSON.stringify({ model: config.model, prompt, size, quality: config.quality, n: 1, stream: true }),
+        body: JSON.stringify({ model: config.model, prompt, size, quality: config.quality, n: 1, ...(useStream ? { stream: true } : {}) }),
         signal: AbortSignal.timeout(config.timeoutMs)
       });
       if (!response.ok) {

@@ -15,6 +15,25 @@ import type { LayoutPlan } from "@/lib/ppt-agent/layout-plan";
 import type { DeckSpec, DesignSlide } from "@/lib/canvas-data";
 import type { SourceDocument } from "@/lib/ppt-agent/evidence-types";
 
+type ArtifactManifestMeta = {
+  mimeType?: string;
+  byteSize?: number;
+  sha256?: string;
+};
+
+function artifactMetaFromManifest(raw: string): Required<ArtifactManifestMeta> {
+  try {
+    const parsed = JSON.parse(raw) as ArtifactManifestMeta | null;
+    return {
+      mimeType: typeof parsed?.mimeType === "string" ? parsed.mimeType : "",
+      byteSize: Number.isFinite(parsed?.byteSize) ? Number(parsed?.byteSize) : 0,
+      sha256: typeof parsed?.sha256 === "string" ? parsed.sha256 : "",
+    };
+  } catch {
+    return { mimeType: "", byteSize: 0, sha256: "" };
+  }
+}
+
 export type CoursewareVersionInsertResult = {
   projectId: string;
   requestId: string;
@@ -79,6 +98,7 @@ export type CoursewareOperation =
   | "generate_visuals"
   | "apply_page_review_fixes"
   | "apply_review_fixes"
+  | "restore_version"
   | "teacher_submit_for_review";
 
 /**
@@ -507,6 +527,9 @@ export type CoursewareArtifactSummary = {
   artifactType: string;
   status: string;
   storagePath: string;
+  mimeType: string;
+  byteSize: number;
+  sha256: string;
   sourceDeckSpecHash: string;
   sourceArtifactId: string | null;
   errorDetail: string | null;
@@ -532,6 +555,7 @@ export async function listCoursewareArtifacts(
     orderBy: { createdAt: "desc" },
   });
   return artifacts.map((a) => ({
+    ...artifactMetaFromManifest(a.manifestJson),
     artifactId: a.id,
     versionId: a.versionId,
     artifactType: a.artifactType,
@@ -542,6 +566,29 @@ export async function listCoursewareArtifacts(
     errorDetail: a.errorDetail,
     createdAt: a.createdAt.toISOString(),
   }));
+}
+
+export async function getCoursewareArtifactForDownload(userId: string, artifactId: string) {
+  const artifact = await db.coursewareArtifact.findFirst({
+    where: {
+      id: artifactId,
+      status: "ready",
+      project: { userId },
+    },
+    include: {
+      project: { select: { userId: true } },
+    },
+  });
+  if (!artifact) return null;
+  const meta = artifactMetaFromManifest(artifact.manifestJson);
+  return {
+    artifactId: artifact.id,
+    artifactType: artifact.artifactType,
+    storagePath: artifact.storagePath,
+    mimeType: meta.mimeType || (artifact.artifactType === "pdf" ? "application/pdf" : "application/vnd.openxmlformats-officedocument.presentationml.presentation"),
+    byteSize: meta.byteSize,
+    sha256: meta.sha256,
+  };
 }
 
 /**

@@ -26,6 +26,7 @@ import { selectTeacherTemplate } from "@/lib/teacher-template-registry";
 import { upsertCoursewareVersion, type CoursewareVersionInsertResult } from "@/lib/courseware-version";
 import type { TeacherCoursewareTask } from "@/lib/teacher-courseware-task";
 import { normalizeTeacherTask } from "@/lib/teacher-topic-normalizer";
+import { buildTeacherMaterialPackage } from "@/lib/ppt-agent/teacher-material-package";
 
 type Mode = CanvasProject["mode"];
 
@@ -394,7 +395,18 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => null);
   const scenario = body?.scenario === "teacher_courseware" ? "teacher_courseware" as const : undefined;
-  const teacherTask = scenario && body?.teacherTask ? normalizeTeacherTask(body.teacherTask as TeacherCoursewareTask) : undefined;
+  const normalizedTeacherTask = scenario && body?.teacherTask ? normalizeTeacherTask(body.teacherTask as TeacherCoursewareTask) : undefined;
+  const materialPackage = normalizedTeacherTask ? buildTeacherMaterialPackage({ task: normalizedTeacherTask }) : undefined;
+  if (materialPackage?.readiness.status === "blocked") {
+    return NextResponse.json({
+      code: "MATERIAL_PACKAGE_BLOCKED",
+      message: "上传资料尚不能支持可靠生成，请处理解析失败或教材匹配问题。",
+      materialPackage,
+    }, { status: 422 });
+  }
+  const teacherTask = normalizedTeacherTask && materialPackage
+    ? { ...normalizedTeacherTask, materialPackage }
+    : normalizedTeacherTask;
   if (scenario === "teacher_courseware" && (!teacherTask || teacherTask.scenario !== scenario || teacherTask.planningMode !== "professional")) {
     return NextResponse.json({ message: "teacherTask is required for teacher_courseware" }, { status: 400 });
   }
@@ -403,9 +415,15 @@ export async function POST(request: Request) {
     : "";
   const prompt = typeof body?.prompt === "string" ? cleanText(body.prompt) : cleanText(taskPrompt);
   const mode = body?.mode === "reference" || body?.mode === "beautify" ? body.mode : "agent";
-  const uploadedFile = body?.uploadedFile ?? body?.uploadedFiles ?? null;
+  const uploadedFile = body?.uploadedFile ?? body?.uploadedFiles ?? teacherTask?.uploadedFiles ?? null;
   const researchSources = flattenResearchSources(body?.researchSources);
-  const uploadedAssets = Array.isArray(body?.uploadedAssets) ? body.uploadedAssets : uploadedFile ? [uploadedFile] : [];
+  const uploadedAssets = Array.isArray(body?.uploadedAssets)
+    ? body.uploadedAssets
+    : Array.isArray(uploadedFile)
+      ? uploadedFile
+      : uploadedFile
+        ? [uploadedFile]
+        : [];
   const forceLocal = body?.forceLocal === true || body?.provider === "local";
   const teacherStyle = normalizeTeacherStyle(body?.teacherStyle ?? teacherTask?.teacherStyle);
   const teacherTemplate = scenario && teacherTask
