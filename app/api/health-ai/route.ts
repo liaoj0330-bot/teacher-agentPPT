@@ -17,6 +17,7 @@ function imageConfig() {
   const configuredLimit = Number(process.env.OPENAI_IMAGE_CONCURRENCY || "3");
   return {
     configured: configured(process.env.OPENAI_IMAGE_API_KEY),
+    enabled: process.env.BETA_IMAGE_GENERATION_ENABLED !== "false",
     keyPoolSize: configured(process.env.OPENAI_IMAGE_API_KEY) ? 1 : 0,
     concurrencyLimit: Number.isFinite(configuredLimit) ? Math.min(3, Math.max(1, Math.floor(configuredLimit))) : 3,
     provider: configured(process.env.OPENAI_IMAGE_API_KEY) ? "openai-compatible" : "unconfigured",
@@ -41,6 +42,7 @@ export async function GET() {
     },
     image: {
       configured: image.configured,
+      enabled: image.enabled,
       keyPoolSize: "keyPoolSize" in image ? image.keyPoolSize : 1,
       concurrencyLimit: "concurrencyLimit" in image ? image.concurrencyLimit : 1,
       provider: image.provider,

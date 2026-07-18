@@ -14,7 +14,7 @@ The verified baseline on 2026-07-18 is:
 | New-subject route | 6/6 | Mathematics, chemistry, biology, history, geography and English completed local auth, planning, versioning, export, durable download and reopen. |
 | New-subject output | 93 pages / 42 events | The route is not a fixed nine-page demo. |
 | Browser/PPTX golden subjects | 2/8 | Physics and Chinese have the strongest browser evidence; the other six still need target-office and teacher evidence. |
-| Image calls in six-subject acceptance | 0 | The beta can run with image generation disabled. |
+| Image calls in six-subject acceptance | 0 | The beta keeps text generation independent; image generation is now teacher opt-in and budgeted. |
 | Automatic score | max 95/100 | Five points remain reserved for structured classroom-trial evidence. |
 
 The beta is therefore **planning-ready but invitation-blocked** until the cloud deployment, backup/restore, target-office and first real teacher-trial gates are signed off. The policy must not be weakened to make a date.
@@ -31,7 +31,7 @@ Use three gates, never a single mass invite:
 | Wave 300 | 300 cumulative teachers | 5 days | Add at most 100/day after Wave 100 promotion is signed. |
 | Wave 1000 | 1,000 cumulative teachers | 7 days | Add 200-250/day only after capacity exceeds the admission limit. |
 
-The ceiling is an invitation count, not a simultaneous-generation promise. Each teacher has one running generation job, five no-image decks per day after Wave 100, 30 MB per upload, and a finite retained-project quota. Image decks remain disabled in all three waves until a separate budgeted image trial is approved.
+The ceiling is an invitation count, not a simultaneous-generation promise. Each teacher has one running generation job, five no-image decks per day after Wave 100, one opt-in image deck per day, 30 MB per upload, and a finite retained-project quota. Image generation is never automatic; the teacher must explicitly request it and the server-side switch `BETA_IMAGE_GENERATION_ENABLED` remains available for the fire-response agent.
 
 Promotion requires the previous cohort's sample count, observation window, system metrics, product metrics, incident review and named sign-offs. Any hard stop pauses invitations immediately and rolls back to the last verified release.
 
@@ -70,7 +70,7 @@ No cohort promotion is allowed with an open P0, a known credential/privacy leak,
 
 Track these metrics separately:
 
-- **System**: no-image completion rate, P50/P90 generation latency, export success, artifact hash integrity and crash-free sessions.
+- **System**: no-image and opt-in-image completion rate, P50/P90 generation latency, export success, artifact hash integrity and crash-free sessions.
 - **Product**: invitation activation, first durable deck, willing-to-reuse rate, usable-within-15-minutes editing rate and severe textbook mismatch.
 - **Operations**: feedback SLA compliance, open P0/P1 age, queue age, rollback count and deletion-request completion.
 
@@ -94,4 +94,4 @@ The beta owner signs cohort decisions. Operations owns the queue, feedback and i
 
 ## First Release Checklist
 
-Before the first invite, confirm: HTTPS cloud endpoint; persistent database and artifact storage; backup and restore report; health check and logs; quota enforcement; feedback entry and operations queue; no-image default; one running job per teacher; target-office sample opened; at least one real teacher trial scheduled; and a signed Wave 100 go/no-go record. Until then, the correct product status is **local RC verified, private beta invitation blocked**.
+Before the first invite, confirm: HTTPS cloud endpoint; persistent database and artifact storage; backup and restore report; health check and logs; quota enforcement; feedback entry and operations queue; teacher opt-in image switch; one running job per teacher; target-office sample opened; at least one real teacher trial scheduled; and a signed Wave 100 go/no-go record. Until then, the correct product status is **local RC verified, private beta invitation blocked**.

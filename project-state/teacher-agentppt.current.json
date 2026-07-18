@@ -18,6 +18,7 @@
     "creditWallet": { "initialCredits": 500, "costs": { "generateDeck": 24, "exportPptx": 8, "generateImage": 6, "refinePage": 4 }, "estimates": { "noImageDeck": 32, "standardSixImageDeck": 68, "tenImageDeck": 92 }, "implementation": "success-settlement + atomic idempotent ledger + admin batch grant API" },
     "wave100Campaign": { "inviteCodeCeiling": 100, "distributionBatches": [10, 20, 30, 40], "codeInventory": "planned_not_implemented", "playbook": "docs/WAVE_100_PRIVATE_BETA_PLAYBOOK_20260718.md" },
     "betaMonitoring": { "dashboardPath": "/teacher-ai-ppt/admin", "apiPath": "/api/admin/beta-monitor?hours=24", "refreshSeconds": 60, "databaseSignals": "implemented", "cloudTelemetry": "not_connected" },
+    "imagePermission": { "mode": "teacher_opt_in", "perTeacherDailyDecks": 1, "runtimeSwitch": "BETA_IMAGE_GENERATION_ENABLED", "defaultInEnvExample": true },
     "apiRealPathCount": 8,
     "browserGoldenCount": 2,
     "note": "Initial contracts and deterministic render/scoring regressions do not replace real textbook chapter verification, target-office opening, or teacher classroom trials."
@@ -175,7 +176,7 @@
     "scoringContract": "teacher-subject-scoring/v1 uses six dimensions, P0 hard gates and 75 review / 85 classroom-ready thresholds; automated score is capped at 95 and structured teacher trial evidence supplies the final 5",
     "sixSubjectRealPath": "mathematics, chemistry, biology, history, geography and English passed 6/6 through auth, parsed acceptance source, plan confirmation, generation, review, durable version, PPTX export/download hash match and reopen; 93 pages and 42 lesson events, image API calls=0",
       "teacherTrialUI": "structured teacher trial form submits persisted reviewer-bound evidence and keeps pre-class workflow review separate from the 5 teacher-trial points",
-      "privateBetaOperations": "machine-readable wave-100/wave-300/wave-1000 policy defines eight-subject eligibility, no-image defaults, quotas, feedback triage, support SLA, rollback, go/no-go metrics, privacy retention and named roles; a persisted context-aware teacher feedback entry now passes API E2E, while operator RBAC/queue and cloud evidence remain blocked",
+      "privateBetaOperations": "machine-readable wave-100/wave-300/wave-1000 policy defines eight-subject eligibility, teacher-opt-in image quotas, feedback triage, support SLA, rollback, go/no-go metrics, privacy retention and named roles; a persisted context-aware teacher feedback entry now passes API E2E, while operator RBAC/queue and cloud evidence remain blocked",
       "shortLessonGeneration": "kindergarten small-class mathematics topic 数字1-10 with a confirmed seven-page/30-minute plan now returns HTTP 200 with slidePagePlan/layoutPlan/contentDrafts/projectSlides all 7; the prior dynamic-template pagePlanId overrun is covered by regression and image API calls=0",
       "stageRouting": "幼儿园数学30分钟命中 play_based_discovery，页面语言以观察/操作/游戏/表达为主；小学语文、高中物理分别命中 close_reading/experiment_inquiry",
       "ageSubjectDurationMatrix": "8/8 real API cases passed across kindergarten/primary/junior/senior, 8 subjects and 25/30/40/45/60/90 minutes; 112 pages total, page bands 7/11/14/16/17/18/22, image API calls=0",

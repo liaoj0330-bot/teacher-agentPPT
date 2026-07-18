@@ -68,10 +68,10 @@ record(
   "one running generation job per teacher",
 );
 record(
-  "no-image-default",
-  policy.scope?.imageGenerationDefault === "disabled"
-    && cohorts.every((item) => item.quotas?.imageDecksPerTeacherPerDay === 0),
-  "image generation is disabled in all cohorts",
+  "image-opt-in-quota",
+  policy.scope?.imageGenerationDefault === "teacher_opt_in"
+    && cohorts.every((item) => item.quotas?.imageDecksPerTeacherPerDay === 1),
+  "image generation is teacher opt-in with one image deck per teacher per day",
 );
 
 const feedback = policy.feedback || {};

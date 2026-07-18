@@ -22,6 +22,10 @@ function teacherRoleKind(value: string) {
   return "content";
 }
 
+function imageGenerationEnabled() {
+  return process.env.BETA_IMAGE_GENERATION_ENABLED !== "false";
+}
+
 function asyncPages(body: Record<string, unknown>) {
   const source = Array.isArray(body.pages) ? body.pages : [body];
   const pages: Array<{ pageId: string; prompt: string; size?: string; title?: string }> = [];
@@ -45,6 +49,7 @@ function asyncPages(body: Record<string, unknown>) {
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const user = await getCurrentUser().catch(() => null);
+  if (!imageGenerationEnabled()) return NextResponse.json({ error: "image_generation_disabled", message: "当前内测暂未开放图片生成" }, { status: 503 });
   if (!user) return NextResponse.json({ error: "login_required", message: "请先登录后生成图片" }, { status: 401 });
   if (body && typeof body === "object" && (body.async === true || body.mode === "async" || Array.isArray(body.pages))) {
     const parsedBody = body as Record<string, unknown>;

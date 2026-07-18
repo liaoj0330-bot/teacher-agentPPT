@@ -44,7 +44,7 @@
     "coreSubjects": ["语文", "数学", "英语", "物理", "化学", "生物", "历史", "地理"],
     "supportedLessonMinutes": [25, 45, 60, 90],
     "defaultLessonMinutes": 45,
-    "imageGenerationDefault": "disabled",
+    "imageGenerationDefault": "teacher_opt_in",
     "textbookTruthPolicy": "teacher_uploaded_material_first",
     "explicitlyOutOfScope": [
       "public self-service signup",
@@ -84,7 +84,7 @@
       "quotas": {
         "runningGenerationJobsPerTeacher": 1,
         "noImageDecksPerTeacherPerDay": 3,
-        "imageDecksPerTeacherPerDay": 0,
+        "imageDecksPerTeacherPerDay": 1,
         "uploadMegabytesPerFile": 30,
         "retainedProjectsPerTeacher": 20
       },
@@ -109,7 +109,7 @@
       "quotas": {
         "runningGenerationJobsPerTeacher": 1,
         "noImageDecksPerTeacherPerDay": 5,
-        "imageDecksPerTeacherPerDay": 0,
+        "imageDecksPerTeacherPerDay": 1,
         "uploadMegabytesPerFile": 30,
         "retainedProjectsPerTeacher": 30
       },
@@ -134,7 +134,7 @@
       "quotas": {
         "runningGenerationJobsPerTeacher": 1,
         "noImageDecksPerTeacherPerDay": 5,
-        "imageDecksPerTeacherPerDay": 0,
+        "imageDecksPerTeacherPerDay": 1,
         "uploadMegabytesPerFile": 30,
         "retainedProjectsPerTeacher": 30
       },
