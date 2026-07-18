@@ -1,7 +1,7 @@
 {
   "schemaVersion": "teacher-agentppt-issue-board/v1",
   "projectKey": "teacher-agentppt",
-  "updatedAt": "2026-07-18T04:10:00+08:00",
+  "updatedAt": "2026-07-18T10:30:00+08:00",
   "releaseTarget": "private_beta_rc1",
   "releaseState": "blocked",
   "policy": {
@@ -475,6 +475,30 @@
       "dependencies": ["DEPLOYMENT-001", "SCORING-TRUTH-001"]
     },
     {
+      "id": "BETA-CREDITS-001",
+      "priority": "P0",
+      "releaseGate": true,
+      "status": "in_progress_unverified",
+      "ownerRole": "product_engineering",
+      "summary": "内测统一积分钱包已接入注册、PPT生成、版本导出、页面精修和图片成功结算；云端管理员补额、真实部署和并发账本证据仍待验收。",
+      "evidence": [
+        "lib/credits.ts：500初始额度、24/8/6/4成本、原子扣费、退款和幂等引用",
+        "app/api/generate-ppt/route.ts：成功生成后结算，失败不扣费",
+        "app/api/export-pptx/route.ts：渲染成功后结算，同一冻结版本只扣一次",
+        "app/api/generate-image/route.ts + lib/image-generation-jobs.ts：成功图片按页扣6分，失败页不扣费",
+        "app/api/admin/credits/route.ts：BETA_ADMIN_EMAILS保护的批量补额接口",
+        "npm run credit-policy:test、npm run image-async:test、npm run lint"
+      ],
+      "doneWhen": [
+        "云端部署后完成真实注册、生成、导出、图片成功/失败、重试和重复请求账本验收",
+        "管理员补额、邀请硬门和审计日志在云端可查询",
+        "完成并发压力、备份恢复和余额不为负的生产证据"
+      ],
+      "nextAction": "部署持久化数据库和Worker，使用管理员邮箱配置BETA_ADMIN_EMAILS，执行真实云端账本与并发验收；未完成前不宣称商业化成熟。",
+      "estimateEngineeringHours": "4-8",
+      "dependencies": ["DEPLOYMENT-001", "BETA-OPERATIONS-001"]
+    },
+    {
       "id": "STAGE-ROUTING-001",
       "priority": "P0",
       "releaseGate": true,
@@ -530,6 +554,7 @@
     "SUBJECT-MATRIX-001",
     "STAGE-ROUTING-001",
     "TEXTBOOK-CATALOG-001",
+    "BETA-CREDITS-001",
     "DEPLOYMENT-001",
     "BETA-OPERATIONS-001"
   ],

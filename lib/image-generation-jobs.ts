@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { prisma } from "./db.ts";
+import { creditCosts, spendCreditsOnce } from "./credits.ts";
 
 export type ImageJobPageInput = {
   pageId: string;
@@ -73,7 +74,11 @@ function publicJob(job: JobRecord) {
     error: job.errorMessage || undefined,
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,
-    completedAt: job.completedAt
+    completedAt: job.completedAt,
+    creditPolicy: {
+      perSuccessfulImage: creditCosts.generateImage,
+      estimatedMaximum: job.pages.length * creditCosts.generateImage
+    }
   };
 }
 
@@ -188,6 +193,18 @@ export async function runImageJob(
     await prisma.imageGenerationJob.update({ where: { id }, data: { pagesJson: JSON.stringify(job.pages) } });
     try {
       const result = await generate(working);
+      const creditUser = job.userId
+        ? await prisma.user.findUnique({ where: { id: job.userId }, select: { id: true } })
+        : null;
+      if (creditUser) {
+        await spendCreditsOnce(
+          creditUser.id,
+          creditCosts.generateImage,
+          "成功生成图片",
+          "image_generation",
+          `${job.id}:${page.pageId}`,
+        );
+      }
       job.pages = job.pages.map((item) => item.pageId === page.pageId ? {
         ...working, status: "completed" as const, image: result.image, model: result.model,
         transport: result.transport, elapsedMs: result.elapsedMs, error: undefined

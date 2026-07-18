@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import pptxgen from "pptxgenjs";
 import { getCurrentUser } from "@/lib/auth";
 import { defaultProject, type CanvasProject, type DesignSlide, type ResearchItem, type SlideLayout, type SlideSection } from "@/lib/canvas-data";
-import { spendCredits } from "@/lib/credits";
+import { assertCredits, creditCosts, hasCreditOperation, spendCreditsOnce } from "@/lib/credits";
 import { evaluateExportQualityGate } from "@/lib/export-quality-gate";
 import { getDesignProfile, type DeckDesignProfile, type DesignPalette } from "@/lib/ppt-design-system";
 import { ensureProjectQuality } from "@/lib/project-quality";
@@ -1178,9 +1178,11 @@ export async function POST(request: Request) {
 
   const user = await getCurrentUser();
   let nextCredits: number | null = null;
-  if (user) {
+  const stableProjectExportRef = `project:${project.deckSpec?.contentHash || project.title}:${visuals?.cover ? "cover" : "no-cover"}:${Object.keys(visuals?.slides || {}).sort().join(",")}`;
+  const exportRefId = request.headers.get("idempotency-key") || (typeof body?.idempotencyKey === "string" ? body.idempotencyKey : undefined) || stableProjectExportRef;
+  if (user && !(await hasCreditOperation(user.id, "export", exportRefId))) {
     try {
-      nextCredits = await spendCredits(user.id, 8, "导出 PPTX", "api", "export-pptx");
+      await assertCredits(user.id, creditCosts.exportPptx);
     } catch (error) {
       if (error instanceof Error && error.message === "INSUFFICIENT_CREDITS") {
         return NextResponse.json({ message: "积分不足，无法导出 PPTX" }, { status: 402 });
@@ -1191,6 +1193,17 @@ export async function POST(request: Request) {
 
   const { buffer } = await renderDeckToBuffer(project, profile, slides, research, visuals);
   const fileName = `${cleanFileName(project.title || "AI-PPT-Agent")}.pptx`;
+
+  if (user) {
+    try {
+      nextCredits = (await spendCreditsOnce(user.id, creditCosts.exportPptx, "导出 PPTX", "export", exportRefId)).balance;
+    } catch (error) {
+      if (error instanceof Error && error.message === "INSUFFICIENT_CREDITS") {
+        return NextResponse.json({ message: "credits_insufficient" }, { status: 402 });
+      }
+      throw error;
+    }
+  }
 
   return new NextResponse(buffer as BodyInit, {
     headers: {
@@ -1268,6 +1281,17 @@ async function handleVersionedExport(body: {
   if (!source.ok) {
     const status = source.reason === "forbidden" ? 403 : source.reason === "not_found" ? 404 : 422;
     return NextResponse.json({ message: `无法读取版本：${source.reason}`, reason: source.reason }, { status });
+  }
+  const exportRefId = `${versionId}:${artifactType}`;
+  if (!(await hasCreditOperation(user.id, "export", exportRefId))) {
+    try {
+      await assertCredits(user.id, creditCosts.exportPptx);
+    } catch (error) {
+      if (error instanceof Error && error.message === "INSUFFICIENT_CREDITS") {
+        return NextResponse.json({ message: "credits_insufficient" }, { status: 402 });
+      }
+      throw error;
+    }
   }
 
   // A frozen export must describe the same teacher task at every layer. This
@@ -1376,6 +1400,7 @@ async function handleVersionedExport(body: {
       storagePath: persisted.storagePath,
       manifestJson: { deliveryClass: decision.deliveryClass, beautifyEngine: "pptx-automizer", beautifyIntensity: "preserve", sourceAssetId, fidelity, commercialReady: false, ...persisted },
     });
+    const creditSettlement = await spendCreditsOnce(user.id, creditCosts.exportPptx, "导出 PPTX", "export", exportRefId);
     return new NextResponse(buffer as BodyInit, { headers: {
       "Content-Type": PPTX_MIME,
       "Content-Disposition": `attachment; filename="Teacher-PPT.pptx"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
@@ -1383,6 +1408,7 @@ async function handleVersionedExport(body: {
       "X-Delivery-Class": decision.deliveryClass,
       "X-Deck-Spec-Hash": source.deckSpecHash,
       "X-Page-Count": String(fidelity.candidate.slideCount),
+      "X-AI-PPT-Credits": String(creditSettlement.balance),
     } });
   }
 
@@ -1601,6 +1627,8 @@ async function handleVersionedExport(body: {
     });
   }
 
+  const creditSettlement = await spendCreditsOnce(user.id, creditCosts.exportPptx, "导出 PPTX", "export", exportRefId);
+
   return new NextResponse(buffer as BodyInit, {
     headers: {
       "Content-Type": PPTX_MIME,
@@ -1611,7 +1639,8 @@ async function handleVersionedExport(body: {
       "X-Deck-Spec-Hash": source.deckSpecHash,
       "X-Visual-QA": visualTruth.qa.status,
       "X-Page-Count": String(pageCount),
-      "X-Visual-Delivery-Mode": visualDeliveryMode
+      "X-Visual-Delivery-Mode": visualDeliveryMode,
+      "X-AI-PPT-Credits": String(creditSettlement.balance)
     }
   });
 }

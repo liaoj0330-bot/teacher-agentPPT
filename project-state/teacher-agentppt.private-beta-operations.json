@@ -1,7 +1,16 @@
 {
   "schemaVersion": "teacher-agentppt-private-beta-operations/v1",
-  "updatedAt": "2026-07-18T04:10:00+08:00",
-  "objective": "Run a controlled no-image private beta for up to 1000 invited teachers without treating registrations as concurrent capacity.",
+  "updatedAt": "2026-07-18T10:30:00+08:00",
+  "objective": "Run a controlled invitation-only beta with one unified 500-credit wallet; text courseware is the default and image generation is explicit opt-in.",
+  "creditWallet": {
+    "initialCredits": 500,
+    "costs": { "generateDeck": 24, "exportPptx": 8, "generateImage": 6, "refinePage": 4 },
+    "estimates": { "noImageDeck": 32, "standardSixImageDeck": 68, "tenImageDeck": 92 },
+    "failurePolicy": "Only successful operations settle; failed generation, timeout and failed image pages do not consume credits.",
+    "idempotency": "Generation, version export, refinement and image settlement use stable operation references to prevent duplicate charges.",
+    "operatorGrantApi": "POST /api/admin/credits guarded by BETA_ADMIN_EMAILS",
+    "teacherApiKeyExposure": "none"
+  },
   "scope": {
     "invitedTeacherTarget": 1000,
     "coreSubjects": ["语文", "数学", "英语", "物理", "化学", "生物", "历史", "地理"],

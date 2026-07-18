@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
+import { randomUUID } from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
 import { buildProjectFromPrompt, type CanvasProject, type ResearchItem, type SearchGroup, type TeacherPptStyle } from "@/lib/canvas-data";
-import { spendCredits } from "@/lib/credits";
+import { assertCredits, creditCosts, spendCreditsOnce } from "@/lib/credits";
 import { compactAnalysisForPrompt, type DocumentAnalysis } from "@/lib/document-analysis";
 import { buildProjectFromBeautifySource, buildProjectFromDocument } from "@/lib/project-builder";
 import { ensureProjectQuality } from "@/lib/project-quality";
@@ -382,18 +383,21 @@ async function generateWithChatCompletions({
 
 export async function POST(request: Request) {
   const user = await getCurrentUser();
+  const body = await request.json().catch(() => null);
+  const creditRefId = request.headers.get("idempotency-key")
+    || (typeof body?.idempotencyKey === "string" ? body.idempotencyKey : "")
+    || (typeof body?.requestId === "string" ? body.requestId : "")
+    || `generate-${randomUUID()}`;
   if (user) {
     try {
-      await spendCredits(user.id, 24, "生成 PPT", "api", "generate-ppt");
+      await assertCredits(user.id, creditCosts.generateDeck);
     } catch (error) {
       if (error instanceof Error && error.message === "INSUFFICIENT_CREDITS") {
-        return NextResponse.json({ message: "积分不足，请邀请好友或切换本地演示模式" }, { status: 402 });
+        return NextResponse.json({ message: `积分不足，生成课件需要 ${creditCosts.generateDeck} 积分` }, { status: 402 });
       }
       throw error;
     }
   }
-
-  const body = await request.json().catch(() => null);
   const scenario = body?.scenario === "teacher_courseware" ? "teacher_courseware" as const : undefined;
   const normalizedTeacherTask = scenario && body?.teacherTask ? normalizeTeacherTask(body.teacherTask as TeacherCoursewareTask) : undefined;
   const materialPackage = normalizedTeacherTask ? buildTeacherMaterialPackage({ task: normalizedTeacherTask }) : undefined;
@@ -736,6 +740,18 @@ export async function POST(request: Request) {
         }
       : finalProject.quality;
 
+  let nextCredits: number | null = null;
+  if (user) {
+    try {
+      nextCredits = (await spendCreditsOnce(user.id, creditCosts.generateDeck, "成功生成 PPT", "generation", creditRefId)).balance;
+    } catch (error) {
+      if (error instanceof Error && error.message === "INSUFFICIENT_CREDITS") {
+        return NextResponse.json({ message: `积分不足，生成课件需要 ${creditCosts.generateDeck} 积分` }, { status: 402 });
+      }
+      throw error;
+    }
+  }
+
   return NextResponse.json({
     scenario,
     title: finalProject.title,
@@ -743,6 +759,8 @@ export async function POST(request: Request) {
     style: "商务简约",
     status: "ready",
     provider,
+    credits: nextCredits,
+    creditCharge: user ? { amount: creditCosts.generateDeck, unit: "积分", operation: "generate_deck" } : undefined,
     teacherStyle,
     contentPlan,
     slidePagePlan: slidePagePlans,

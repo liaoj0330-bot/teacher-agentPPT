@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { randomUUID } from "node:crypto";
 import { getCurrentUser } from "@/lib/auth";
+import { assertCredits, creditCosts, hasCreditOperation, spendCreditsOnce } from "@/lib/credits";
 import {
   createImageJob,
   imageJobResponse,
@@ -23,7 +25,8 @@ function teacherRoleKind(value: string) {
 function asyncPages(body: Record<string, unknown>) {
   const source = Array.isArray(body.pages) ? body.pages : [body];
   const pages: Array<{ pageId: string; prompt: string; size?: string; title?: string }> = [];
-  for (let index = 0; index < Math.min(source.length, 20); index += 1) {
+  const maxPages = Math.max(1, Math.min(20, Number(process.env.BETA_MAX_IMAGE_PAGES) || 10));
+  for (let index = 0; index < Math.min(source.length, maxPages); index += 1) {
     const page = source[index];
     if (!page || typeof page !== "object") continue;
     const record = page as Record<string, unknown>;
@@ -41,12 +44,21 @@ function asyncPages(body: Record<string, unknown>) {
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
+  const user = await getCurrentUser().catch(() => null);
+  if (!user) return NextResponse.json({ error: "login_required", message: "请先登录后生成图片" }, { status: 401 });
   if (body && typeof body === "object" && (body.async === true || body.mode === "async" || Array.isArray(body.pages))) {
     const parsedBody = body as Record<string, unknown>;
     const pages = asyncPages(parsedBody);
     if (!pages.length) return NextResponse.json({ error: "invalid_image_pages", message: "至少需要一个包含 prompt 的页面。" }, { status: 400 });
-    const user = await getCurrentUser().catch(() => null);
     const ownerKey = ownerKeyFor(user?.id);
+    try {
+      await assertCredits(user.id, pages.length * creditCosts.generateImage);
+    } catch (error) {
+      if (error instanceof Error && error.message === "INSUFFICIENT_CREDITS") {
+        return NextResponse.json({ error: "insufficient_credits", message: "积分不足，无法开始图片任务" }, { status: 402 });
+      }
+      throw error;
+    }
     const idempotencyKey = request.headers.get("idempotency-key") || (typeof parsedBody.idempotencyKey === "string" ? parsedBody.idempotencyKey : undefined);
     const created = await createImageJob({
       ownerKey,
@@ -82,11 +94,19 @@ export async function POST(request: Request) {
         ? `概念直观图：${requestedPrompt}。使用真实学具或清晰科学插画表达关系和变化，只画可观察对象，不在图片内写定义或结论。不要生成数字、公式、文字、Logo、UI截图和水印。`
           : requestedPrompt;
   const size = typeof body?.size === "string" && body.size.trim() ? body.size.trim() : process.env.OPENAI_IMAGE_SIZE || "1024x1024";
+  const imageRefId = request.headers.get("idempotency-key") || (typeof body?.idempotencyKey === "string" ? body.idempotencyKey : undefined) || `image-${randomUUID()}`;
 
   try {
+    if (!(await hasCreditOperation(user.id, "image_generation", imageRefId))) {
+      await assertCredits(user.id, creditCosts.generateImage);
+    }
     const result = await generateImageForRequest(prompt, size);
-    return NextResponse.json({ ...result, provider: "openai-compatible" });
+    const settlement = await spendCreditsOnce(user.id, creditCosts.generateImage, "成功生成图片", "image_generation", imageRefId);
+    return NextResponse.json({ ...result, provider: "openai-compatible", credits: settlement.balance, creditCharge: settlement.charged ? creditCosts.generateImage : 0 });
   } catch (error) {
+    if (error instanceof Error && error.message === "INSUFFICIENT_CREDITS") {
+      return NextResponse.json({ error: "insufficient_credits", message: "积分不足，无法生成图片" }, { status: 402 });
+    }
     const message = error instanceof Error ? error.message : "image generation failed";
     console.error("[generate-image] OpenAI-compatible image request failed.", message);
     return NextResponse.json({ error: "image_generation_failed", message }, { status: 502 });

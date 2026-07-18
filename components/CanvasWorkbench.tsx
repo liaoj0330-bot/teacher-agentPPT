@@ -1456,7 +1456,8 @@ export function CanvasWorkbench({ entryMode = "general" }: CanvasWorkbenchProps 
     if (!response.ok) {
       throw new Error("generate failed");
     }
-    const data = (await response.json()) as { project?: CanvasProject; provider?: "openai" | "local" };
+    const data = (await response.json()) as { project?: CanvasProject; provider?: "openai" | "local"; credits?: number };
+    if (typeof data.credits === "number") setPoints(data.credits);
     await refreshUser();
     return {
       nextProject: ensureProjectQuality(data.project ?? buildProjectFromPrompt(prompt, project.mode)),
@@ -1505,10 +1506,10 @@ export function CanvasWorkbench({ entryMode = "general" }: CanvasWorkbenchProps 
       if (!response.ok) {
         throw new Error("refine failed");
       }
-      const data = (await response.json()) as { project?: CanvasProject; changes?: string[] };
+      const data = (await response.json()) as { project?: CanvasProject; changes?: string[]; credits?: number };
       const nextProject = ensureProjectQuality(data.project ?? project);
       setProject(nextProject);
-      setPoints((current) => Math.max(0, current - 6));
+      if (typeof data.credits === "number") setPoints(data.credits);
       const changeText = data.changes?.length ? data.changes.slice(0, 4).join("；") : "已重新检查页面结构";
       pushMessage("assistant", `已完成页面级微调：${changeText}。当前交付成熟度 ${nextProject.quality?.score ?? "-"}。`);
       showToast({ type: "success", message: `微调完成：交付成熟度 ${nextProject.quality?.score ?? "-"}` });
@@ -1570,7 +1571,6 @@ export function CanvasWorkbench({ entryMode = "general" }: CanvasWorkbenchProps 
         const mergedProject = ensureProjectQuality({ ...nextProject, reviewCenter: nextProject.reviewCenter || project.reviewCenter, research: searchGroups.length ? [...(nextProject.research || []), ...researchFromSearchGroups(searchGroups)].slice(0, 12) : nextProject.research });
         setProject(mergedProject);
         setProvider(nextProvider);
-        setPoints((current) => Math.max(0, current - 24));
         await sleep(350);
         setStage("outlineReady");
         pushMessage("assistant", `${nextProvider === "openai" ? "模型已参与生成" : "模型未通过或不可用，已切换本地策划引擎兜底"}。大纲已生成。下一步我会为每页继续补资料，并生成内容策划稿。`);
@@ -1645,7 +1645,6 @@ export function CanvasWorkbench({ entryMode = "general" }: CanvasWorkbenchProps 
         });
         setProject(workingProject);
         setProvider(nextProvider);
-        setPoints((current) => Math.max(0, current - 24));
         await sleep(350);
         setStage("outlineReady");
         pushMessage("assistant", nextProvider === "openai" ? "模型已参与生成大纲，后续继续做逐页检索和策划。" : "模型未通过或不可用，已用本地策划引擎兜底生成，后续仍会使用真实检索资料。");
@@ -1882,10 +1881,11 @@ export function CanvasWorkbench({ entryMode = "general" }: CanvasWorkbenchProps 
           })
         });
 
-        const data = await response.json().catch(() => null) as { image?: string; message?: string } | null;
+        const data = await response.json().catch(() => null) as { image?: string; message?: string; credits?: number } | null;
         if (!response.ok || !data?.image) {
           throw new Error(data?.message || `image generation failed (${response.status})`);
         }
+        if (typeof data.credits === "number") setPoints(data.credits);
         requestSucceeded = true;
         return { target, image: data.image };
         } finally {

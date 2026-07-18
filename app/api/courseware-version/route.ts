@@ -6,6 +6,7 @@ import { commitCoursewareVersion, COMMIT_OPERATIONS } from "@/lib/courseware-com
 import { scoreTeacherDeckV3 } from "@/lib/teacher-deck-scoring-v3";
 import type { SourceDocument, SlideEvidenceMap } from "@/lib/ppt-agent/evidence-types";
 import { findTeacherTrialEvidence, validateTeacherTrialEvidence } from "@/lib/teacher-trial-evidence";
+import { assertCredits, creditCosts, hasCreditOperation, spendCreditsOnce } from "@/lib/credits";
 
 /**
  * GET /api/courseware-version?projectId=&versionId=
@@ -108,6 +109,19 @@ export async function POST(request: Request) {
       ? (body.payload as Record<string, unknown>)
       : {};
 
+  const isAiRefine = operation === "ai_refine_page" || operation === "ai_refine_deck";
+  const creditRefId = idempotencyKey || `${baseVersionId}:${operation}:${typeof payload.targetSlideId === "string" ? payload.targetSlideId : ""}`;
+  if (isAiRefine && !(await hasCreditOperation(user.id, "refine", creditRefId))) {
+    try {
+      await assertCredits(user.id, creditCosts.refinePage);
+    } catch (error) {
+      if (error instanceof Error && error.message === "INSUFFICIENT_CREDITS") {
+        return NextResponse.json({ code: "insufficient_credits", message: "积分不足，无法进行 AI 精修" }, { status: 402 });
+      }
+      throw error;
+    }
+  }
+
   if (!projectId || !baseVersionId || !operation) {
     return NextResponse.json(
       { message: "projectId、baseVersionId、operation 均为必填" },
@@ -137,6 +151,10 @@ export async function POST(request: Request) {
     );
   }
 
+  const creditSettlement = isAiRefine
+    ? await spendCreditsOnce(user.id, creditCosts.refinePage, "成功完成 AI 精修", "refine", creditRefId)
+    : null;
+
   return NextResponse.json(
     {
       projectId: result.projectId,
@@ -151,6 +169,7 @@ export async function POST(request: Request) {
       slides: result.slides,
       artifactId: result.artifactId ?? null,
       deduped: result.deduped,
+      ...(creditSettlement ? { credits: creditSettlement.balance, creditCharge: creditSettlement.charged ? creditCosts.refinePage : 0 } : {})
     },
     { status: result.deduped ? 200 : 201 }
   );

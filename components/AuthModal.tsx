@@ -80,7 +80,7 @@ export function AuthModal({ open, user, onClose, onAuthed }: AuthModalProps) {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-2xl bg-[#eef6ff] p-4">
-                <div className="text-xs text-[#1462ff]">积分</div>
+                <div className="text-xs text-[#1462ff]">内测积分</div>
                 <div className="mt-1 text-2xl font-bold text-[#1462ff]">{user.credits}</div>
               </div>
               <div className="rounded-2xl bg-[#f8fafc] p-4">
@@ -104,7 +104,7 @@ export function AuthModal({ open, user, onClose, onAuthed }: AuthModalProps) {
             {mode === "register" ? <input value={name} onChange={(event) => setName(event.target.value)} placeholder="昵称" className="h-11 w-full rounded-2xl border-line bg-[#fbfcff] px-4 text-sm focus:border-[#82b7ff] focus:ring-[#82b7ff]" /> : null}
             <input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="邮箱" className="h-11 w-full rounded-2xl border-line bg-[#fbfcff] px-4 text-sm focus:border-[#82b7ff] focus:ring-[#82b7ff]" />
             <input value={password} onChange={(event) => setPassword(event.target.value)} placeholder="密码，至少 6 位" type="password" className="h-11 w-full rounded-2xl border-line bg-[#fbfcff] px-4 text-sm focus:border-[#82b7ff] focus:ring-[#82b7ff]" />
-            {mode === "register" ? <input value={inviteCode} onChange={(event) => setInviteCode(event.target.value)} placeholder="邀请码，可选" className="h-11 w-full rounded-2xl border-line bg-[#fbfcff] px-4 text-sm focus:border-[#82b7ff] focus:ring-[#82b7ff]" /> : null}
+            {mode === "register" ? <input value={inviteCode} onChange={(event) => setInviteCode(event.target.value)} placeholder="内测邀请码" className="h-11 w-full rounded-2xl border-line bg-[#fbfcff] px-4 text-sm focus:border-[#82b7ff] focus:ring-[#82b7ff]" /> : null}
             {message ? <div className="rounded-2xl bg-[#fff7ed] px-4 py-3 text-sm text-[#c2410c]">{message}</div> : null}
             <button type="button" onClick={submit} disabled={isLoading} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-ink text-sm font-semibold text-white transition hover:-translate-y-0.5 disabled:opacity-60">
               {isLoading ? <Loader2 className="size-4 animate-spin" /> : <LogIn className="size-4" />}

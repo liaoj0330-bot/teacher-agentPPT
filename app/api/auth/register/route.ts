@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSession, generateInviteCode, hashPassword, publicUser } from "@/lib/auth";
-import { addCredits, ensureCreditAccount } from "@/lib/credits";
+import { addCredits, configuredInitialCredits, ensureCreditAccount } from "@/lib/credits";
 import { prisma } from "@/lib/db";
 
 function normalizeEmail(value: unknown) {
@@ -27,6 +27,12 @@ export async function POST(request: Request) {
   }
 
   const inviter = inviteCode ? await prisma.user.findUnique({ where: { inviteCode } }) : null;
+  const masterInviteCodes = new Set(String(process.env.BETA_MASTER_INVITE_CODES || "")
+    .split(",").map((value) => value.trim().toUpperCase()).filter(Boolean));
+  const inviteAccepted = Boolean(inviter || (inviteCode && masterInviteCodes.has(inviteCode)));
+  if (inviteCode && !inviteAccepted) return NextResponse.json({ message: "内测邀请码无效或已停用" }, { status: 400 });
+  if (process.env.BETA_REQUIRE_INVITE === "true" && !inviteAccepted) return NextResponse.json({ message: "当前为邀请制内测，请输入有效邀请码" }, { status: 403 });
+  const initialCredits = configuredInitialCredits();
   const user = await prisma.user.create({
     data: {
       email,
@@ -37,10 +43,11 @@ export async function POST(request: Request) {
     }
   });
 
-  await ensureCreditAccount(user.id, 500);
-  await prisma.creditLedger.create({ data: { userId: user.id, amount: 500, reason: "注册赠送积分" } });
-  if (inviter) {
-    await addCredits(inviter.id, 500, "邀请好友注册奖励", "user", user.id);
+  await ensureCreditAccount(user.id, initialCredits);
+  await prisma.creditLedger.create({ data: { userId: user.id, amount: initialCredits, reason: "内测注册赠送积分", refType: "beta_registration", refId: user.id } });
+  if (inviter && process.env.BETA_ENABLE_REFERRAL_REWARD === "true") {
+    const referralCredits = Math.max(0, Number(process.env.BETA_REFERRAL_CREDITS || "0") || 0);
+    if (referralCredits) await addCredits(inviter.id, referralCredits, "邀请好友注册奖励", "user", user.id);
   }
   await createSession(user.id);
   const account = await prisma.creditAccount.findUnique({ where: { userId: user.id } });
@@ -51,7 +58,7 @@ export async function POST(request: Request) {
       email: user.email,
       name: user.name,
       inviteCode: user.inviteCode,
-      credits: account?.balance ?? 500
+      credits: account?.balance ?? initialCredits
     })
   });
 }

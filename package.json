@@ -22,6 +22,7 @@
         "brain-ppt:draft-test": "node scripts/brain-ppt-draft-deck-regression.mjs",
         "image-provider:test": "node scripts/image-provider-regression.mjs",
         "image-async:test": "node --experimental-strip-types scripts/image-generation-async-regression.ts",
+        "credit-policy:test": "node --experimental-strip-types scripts/credit-policy-regression.ts",
         "image2-app:acceptance": "node scripts/image2-app-real-acceptance.mjs",
         "p1f:provider": "node scripts/p1f-provider-diagnostics.mjs",
         "p1f:upload-parse": "node scripts/p1f-upload-parse-regression.mjs",

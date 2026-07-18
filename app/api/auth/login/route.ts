@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createSession, publicUser, verifyPassword } from "@/lib/auth";
-import { ensureCreditAccount } from "@/lib/credits";
+import { configuredInitialCredits, ensureCreditAccount } from "@/lib/credits";
 import { prisma } from "@/lib/db";
 
 export async function POST(request: Request) {
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "邮箱或密码不正确" }, { status: 401 });
   }
 
-  const account = user.credit ?? (await ensureCreditAccount(user.id, 500));
+  const account = user.credit ?? (await ensureCreditAccount(user.id, configuredInitialCredits()));
   await createSession(user.id);
 
   return NextResponse.json({

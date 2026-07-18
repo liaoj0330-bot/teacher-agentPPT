@@ -715,9 +715,13 @@ export function TeacherPptBetaPrototype() {
       });
       const data = await response.json().catch(() => null) as (Partial<WorkspaceBootstrapPayload> & {
         message?: string;
+        credits?: number;
       }) | null;
       if (!data) {
         throw new Error(`生成服务返回了空响应（HTTP ${response.status}），请重试；若仍失败，请从内测入口提交反馈`);
+      }
+      if (typeof data.credits === "number") {
+        setUser((current) => current ? { ...current, credits: data.credits! } : current);
       }
       if (!response.ok || !data.project)
         throw new Error(data.message || `服务返回 HTTP ${response.status}`);
