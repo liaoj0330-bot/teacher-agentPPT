@@ -53,6 +53,7 @@
         "teacher-feedback:e2e": "node scripts/teacher-feedback-e2e.mjs",
         "teacher-beta-operations-ui:test": "node --experimental-strip-types scripts/teacher-beta-operations-ui-regression.ts",
         "teacher-private-beta:check": "node scripts/teacher-private-beta-operations-check.mjs",
+        "teacher-fire-response-agent:test": "node scripts/teacher-fire-response-agent-check.mjs",
         "teacher-template-poc:test": "node --experimental-strip-types scripts/teacher-template-parser-poc-test.ts",
         "teacher-outline:domain-test": "node scripts/teacher-deck-plan-domain-test.mjs",
         "teacher-outline:api-test": "node scripts/teacher-deck-plan-api-test.mjs",

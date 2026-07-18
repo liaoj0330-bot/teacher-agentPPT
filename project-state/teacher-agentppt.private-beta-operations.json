@@ -1,7 +1,22 @@
 {
   "schemaVersion": "teacher-agentppt-private-beta-operations/v1",
-  "updatedAt": "2026-07-18T10:30:00+08:00",
-  "objective": "Run a controlled invitation-only beta with one unified 500-credit wallet; text courseware is the default and image generation is explicit opt-in.",
+  "updatedAt": "2026-07-18T12:20:00+08:00",
+  "objective": "Run a controlled 100-code invitation beta with one unified 500-credit wallet; admit teachers in 10/20/30/40 batches and keep image generation explicit opt-in.",
+  "currentCampaign": {
+    "id": "wave-100-code-beta",
+    "inviteCodeCeiling": 100,
+    "distributionBatches": [10, 20, 30, 40],
+    "minimumObservationDaysByBatch": [1, 1, 2, 3],
+    "codePolicy": {
+      "oneTimeUse": true,
+      "bindToEmail": true,
+      "expiresAfterDays": 7,
+      "states": ["created", "issued", "activated", "expired", "revoked"],
+      "requiredLedgerFields": ["code", "batch", "email", "subject", "grade", "issuedAt", "expiresAt", "activatedAt", "userId", "issuedBy", "revocationReason"],
+      "currentImplementationGap": "BETA_MASTER_INVITE_CODES supports shared codes only; database-backed single-use code inventory is required before public distribution."
+    },
+    "playbook": "docs/WAVE_100_PRIVATE_BETA_PLAYBOOK_20260718.md"
+  },
   "creditWallet": {
     "initialCredits": 500,
     "costs": { "generateDeck": 24, "exportPptx": 8, "generateImage": 6, "refinePage": 4 },
@@ -12,7 +27,8 @@
     "teacherApiKeyExposure": "none"
   },
   "scope": {
-    "invitedTeacherTarget": 1000,
+    "invitedTeacherTarget": 100,
+    "futureScaleTarget": 1000,
     "coreSubjects": ["语文", "数学", "英语", "物理", "化学", "生物", "历史", "地理"],
     "supportedLessonMinutes": [25, 45, 60, 90],
     "defaultLessonMinutes": 45,
@@ -178,6 +194,11 @@
     ]
   },
   "incidents": {
+    "fireResponseAgent": {
+      "policy": "project-state/teacher-agentppt.fire-response-agent.json",
+      "instruction": "agents/private-beta-fire-response-agent.md",
+      "status": "instruction_ready_control_plane_not_connected"
+    },
     "severityDefinitions": [
       {"severity": "P0", "definition": "Security/privacy exposure, data loss, corrupt downloads, or the primary generation/export path unavailable for 30% or more active users."},
       {"severity": "P1", "definition": "Generation/export failure for 10-30% of active users, severe textbook mismatch, or no workaround for a core subject."},

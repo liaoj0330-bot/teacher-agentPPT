@@ -1,7 +1,7 @@
 {
   "schemaVersion": "teacher-agentppt-issue-board/v1",
   "projectKey": "teacher-agentppt",
-  "updatedAt": "2026-07-18T10:30:00+08:00",
+  "updatedAt": "2026-07-18T12:20:00+08:00",
   "releaseTarget": "private_beta_rc1",
   "releaseState": "blocked",
   "policy": {
@@ -16,7 +16,7 @@
     }
   },
   "currentFocus": {
-    "issueId": "TEXTBOOK-CATALOG-001",
+    "issueId": "BETA-INVITE-001",
     "reason": "年龄学段路由和8/8真实矩阵已通过；下一项产品阻塞是把教材身份目录扩展为可引用章节来源，并完成官方目录或教师上传原文接入。",
     "nextCommand": "先保持identity-only目录边界，补官方教材目录/教师上传原文的章节定位与引用链；不要把目录身份当成章节事实。",
     "decisionAfterVerification": "教材章节引用链通过后，再推进真实WPS/PowerPoint、教师过课和云端部署门禁。"
@@ -475,6 +475,28 @@
       "dependencies": ["DEPLOYMENT-001", "SCORING-TRUTH-001"]
     },
     {
+      "id": "BETA-INVITE-001",
+      "priority": "P0",
+      "releaseGate": true,
+      "status": "open",
+      "ownerRole": "product_engineering",
+      "summary": "100 人内测需要数据库级一次性邀请码；当前 BETA_MASTER_INVITE_CODES 是共享码列表，不能保证一码一人、核销、过期、撤销和审计。",
+      "evidence": [
+        "docs/WAVE_100_PRIVATE_BETA_PLAYBOOK_20260718.md",
+        "project-state/teacher-agentppt.private-beta-operations.json currentCampaign.codePolicy",
+        "app/api/auth/register/route.ts 当前只校验共享主码或用户邀请码"
+      ],
+      "doneWhen": [
+        "可生成恰好100个高熵一次性邀请码，并按10/20/30/40分批发放",
+        "邀请码可绑定邮箱、7天过期、激活后失效、未激活可撤销",
+        "运营可查询created/issued/activated/expired/revoked台账且普通用户无管理权限",
+        "并发注册不能重复核销同一码"
+      ],
+      "nextAction": "新增InviteCode数据模型、管理员生成/发放/撤销接口和注册事务核销，再进行100码演练。",
+      "estimateEngineeringHours": "4-8",
+      "dependencies": ["DEPLOYMENT-001", "BETA-OPERATIONS-001"]
+    },
+    {
       "id": "BETA-CREDITS-001",
       "priority": "P0",
       "releaseGate": true,
@@ -554,6 +576,7 @@
     "SUBJECT-MATRIX-001",
     "STAGE-ROUTING-001",
     "TEXTBOOK-CATALOG-001",
+    "BETA-INVITE-001",
     "BETA-CREDITS-001",
     "DEPLOYMENT-001",
     "BETA-OPERATIONS-001"

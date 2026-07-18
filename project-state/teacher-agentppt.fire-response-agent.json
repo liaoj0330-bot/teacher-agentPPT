@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "teacher-agentppt-fire-response-agent/v1",
+  "updatedAt": "2026-07-18T12:20:00+08:00",
+  "name": "private-beta-fire-response-agent",
+  "displayName": "消防队",
+  "status": "instruction_ready_control_plane_not_connected",
+  "objective": "Contain private-beta incidents, preserve evidence, restore the minimum safe teacher workflow and coordinate human sign-off.",
+  "commands": ["report", "status", "contain", "recover", "close", "drill"],
+  "incidentStates": ["investigating", "contained", "monitoring", "resolved"],
+  "severity": {
+    "P0": { "acknowledgeMinutes": 15, "updateMinutes": 30, "examples": ["privacy_or_credential_exposure", "data_loss", "corrupt_artifact", "primary_path_failure_gte_30_percent"] },
+    "P1": { "acknowledgeMinutes": 60, "updateMinutes": 120, "examples": ["primary_path_failure_10_to_30_percent", "multi_teacher_textbook_mismatch", "core_subject_no_workaround"] },
+    "P2": { "acknowledgeMinutes": 480, "updateMinutes": 1440, "examples": ["impact_below_10_percent", "retryable_failure", "workaround_available"] },
+    "P3": { "acknowledgeMinutes": 1440, "updateMinutes": 4320, "examples": ["cosmetic", "copy", "feature_request"] }
+  },
+  "hardStops": [
+    "any_open_P0",
+    "privacy_or_credential_exposure",
+    "data_loss_or_artifact_hash_mismatch",
+    "generation_completion_below_90_percent_for_60_minutes",
+    "export_success_below_95_percent_for_60_minutes",
+    "queue_growth_unbounded_for_30_minutes",
+    "multi_teacher_material_textbook_mismatch"
+  ],
+  "preAuthorizedActions": [
+    "pause_invitation_issuance",
+    "pause_image_generation",
+    "switch_to_no_image_mode",
+    "pause_new_generation_admission",
+    "rollback_to_last_verified_release",
+    "draft_incident_notice"
+  ],
+  "prohibitedActions": [
+    "delete_database_or_incident_evidence",
+    "reveal_or_test_production_secrets",
+    "mass_modify_credits_without_approval",
+    "silently_modify_teacher_content",
+    "deploy_unreviewed_code",
+    "claim_recovery_from_local_or_simulated_evidence"
+  ],
+  "recoveryChecks": [
+    "login_and_invite_registration",
+    "material_upload_and_reopen",
+    "no_image_generation_and_failure_no_charge",
+    "pptx_export_and_redownload_hash_match",
+    "version_reopen_consistency",
+    "queue_stable_for_30_minutes",
+    "beta_owner_and_engineering_signoff"
+  ],
+  "drills": [
+    "auth_500",
+    "generation_empty_or_truncated_json",
+    "image_provider_timeout_and_queue_growth",
+    "corrupt_or_garbled_pptx",
+    "multi_teacher_textbook_mismatch",
+    "credential_or_student_privacy_exposure"
+  ],
+  "controlPlane": {
+    "connected": false,
+    "requiredControls": ["invite_pause", "image_pause", "generation_admission_pause", "release_rollback", "incident_notice", "metrics_and_logs"],
+    "executionRule": "When a required control is not connected, report the action as recommended_not_executed and name the human owner."
+  },
+  "instructionPath": "agents/private-beta-fire-response-agent.md",
+  "playbookPath": "docs/WAVE_100_PRIVATE_BETA_PLAYBOOK_20260718.md"
+}
