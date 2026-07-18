@@ -1,5 +1,14 @@
 # Teacher AgentPPT
 
+## 使用与部署文档
+
+- [云端部署与更新手册](docs/DEPLOYMENT_MANUAL_20260718.md)
+- [教师操作手册](docs/TEACHER_USER_MANUAL_20260718.md)
+- [管理员与 100 人内测操作手册](docs/ADMIN_OPERATIONS_MANUAL_20260718.md)
+- [2026-07-18 发布说明](docs/RELEASE_NOTES_20260718.md)
+- [100 人内测执行手册](docs/WAVE_100_PRIVATE_BETA_PLAYBOOK_20260718.md)
+- [消防队 Agent 指令](agents/private-beta-fire-response-agent.md)
+
 > 把教材、教案和旧课件，变成老师真正能改、能讲、能继续迭代的课堂 PPT。
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
