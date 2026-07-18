@@ -1,7 +1,7 @@
 {
   "schemaVersion": "teacher-agentppt-project-state/v1",
   "projectKey": "teacher-agentppt",
-  "updatedAt": "2026-07-18T15:50:00+08:00",
+  "updatedAt": "2026-07-18T16:20:05+08:00",
   "status": "private_beta_blocked_by_p0_deliverability",
   "productStage": "邀请制内测 P0 收口",
   "commercialReady": false,
@@ -19,7 +19,7 @@
     "wave100Campaign": { "inviteCodeCeiling": 100, "distributionBatches": [10, 20, 30, 40], "codeInventory": "planned_not_implemented", "playbook": "docs/WAVE_100_PRIVATE_BETA_PLAYBOOK_20260718.md" },
     "betaMonitoring": { "dashboardPath": "/teacher-ai-ppt/admin", "apiPath": "/api/admin/beta-monitor?hours=24", "refreshSeconds": 60, "databaseSignals": "implemented", "cloudTelemetry": "not_connected" },
     "imagePermission": { "mode": "teacher_opt_in", "perTeacherDailyDecks": 1, "runtimeSwitch": "BETA_IMAGE_GENERATION_ENABLED", "defaultInEnvExample": true, "trackedSampleAssets": 8, "sampleGallery": "docs/assets/samples/README.md" },
-    "releaseDocumentation": { "deployment": "docs/DEPLOYMENT_MANUAL_20260718.md", "teacher": "docs/TEACHER_USER_MANUAL_20260718.md", "admin": "docs/ADMIN_OPERATIONS_MANUAL_20260718.md", "releaseNotes": "docs/RELEASE_NOTES_20260718.md" },
+    "releaseDocumentation": { "deployment": "docs/DEPLOYMENT_MANUAL_20260718.md", "teacher": "docs/TEACHER_USER_MANUAL_20260718.md", "teacherScreenshots": 15, "teacherScreenshotDirectory": "docs/assets/teacher-manual", "admin": "docs/ADMIN_OPERATIONS_MANUAL_20260718.md", "releaseNotes": "docs/RELEASE_NOTES_20260718.md" },
     "apiRealPathCount": 8,
     "browserGoldenCount": 2,
     "note": "Initial contracts and deterministic render/scoring regressions do not replace real textbook chapter verification, target-office opening, or teacher classroom trials."

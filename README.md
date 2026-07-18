@@ -3,7 +3,7 @@
 ## 使用与部署文档
 
 - [云端部署与更新手册](docs/DEPLOYMENT_MANUAL_20260718.md)
-- [教师操作手册](docs/TEACHER_USER_MANUAL_20260718.md)
+- [教师图文操作手册（15 张真实操作截图）](docs/TEACHER_USER_MANUAL_20260718.md)
 - [管理员与 100 人内测操作手册](docs/ADMIN_OPERATIONS_MANUAL_20260718.md)
 - [2026-07-18 发布说明](docs/RELEASE_NOTES_20260718.md)
 - [100 人内测执行手册](docs/WAVE_100_PRIVATE_BETA_PLAYBOOK_20260718.md)
