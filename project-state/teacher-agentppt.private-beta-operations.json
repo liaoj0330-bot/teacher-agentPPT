@@ -1,6 +1,6 @@
 {
   "schemaVersion": "teacher-agentppt-private-beta-operations/v1",
-  "updatedAt": "2026-07-18T12:20:00+08:00",
+  "updatedAt": "2026-07-18T13:05:00+08:00",
   "objective": "Run a controlled 100-code invitation beta with one unified 500-credit wallet; admit teachers in 10/20/30/40 batches and keep image generation explicit opt-in.",
   "currentCampaign": {
     "id": "wave-100-code-beta",
@@ -16,6 +16,18 @@
       "currentImplementationGap": "BETA_MASTER_INVITE_CODES supports shared codes only; database-backed single-use code inventory is required before public distribution."
     },
     "playbook": "docs/WAVE_100_PRIVATE_BETA_PLAYBOOK_20260718.md"
+  },
+  "monitoring": {
+    "dashboardPath": "/teacher-ai-ppt/admin",
+    "apiPath": "/api/admin/beta-monitor?hours=24",
+    "access": "BETA_ADMIN_EMAILS only",
+    "refreshSeconds": 60,
+    "windowsHours": [1, 24, 168],
+    "usageSignals": ["registered_users", "new_users", "active_users", "generation_users", "export_users", "projects_touched", "generation_attempts", "pptx_export_attempts", "image_pages_attempted", "credits_spent", "invitation_activation_rate"],
+    "stabilitySignals": ["generation_completion_rate", "generation_latency_p50", "generation_latency_p90", "export_success_rate", "image_page_success_rate", "queued_jobs", "oldest_queue_minutes", "open_p0", "open_p1", "open_feedback"],
+    "criticalTriggers": ["any_open_p0", "generation_completion_below_90_percent_with_5_samples", "export_success_below_95_percent_with_5_samples", "oldest_queue_at_least_30_minutes"],
+    "warningTriggers": ["generation_completion_below_95_percent_with_5_samples", "export_success_below_98_percent_with_5_samples", "oldest_queue_at_least_15_minutes", "open_p1_above_2"],
+    "notMeasuredUntilCloudTelemetry": ["http_uptime", "server_cpu_memory", "client_crash_free_sessions", "provider_latency_and_error_rate", "backup_freshness", "object_storage_capacity"]
   },
   "creditWallet": {
     "initialCredits": 500,

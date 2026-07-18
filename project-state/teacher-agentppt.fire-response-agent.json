@@ -1,12 +1,18 @@
 {
   "schemaVersion": "teacher-agentppt-fire-response-agent/v1",
-  "updatedAt": "2026-07-18T12:20:00+08:00",
+  "updatedAt": "2026-07-18T13:05:00+08:00",
   "name": "private-beta-fire-response-agent",
   "displayName": "消防队",
   "status": "instruction_ready_control_plane_not_connected",
   "objective": "Contain private-beta incidents, preserve evidence, restore the minimum safe teacher workflow and coordinate human sign-off.",
   "commands": ["report", "status", "contain", "recover", "close", "drill"],
   "incidentStates": ["investigating", "contained", "monitoring", "resolved"],
+  "monitoring": {
+    "dashboardPath": "/teacher-ai-ppt/admin",
+    "apiPath": "/api/admin/beta-monitor?hours=24",
+    "pollSeconds": 60,
+    "automaticFireMapping": true
+  },
   "severity": {
     "P0": { "acknowledgeMinutes": 15, "updateMinutes": 30, "examples": ["privacy_or_credential_exposure", "data_loss", "corrupt_artifact", "primary_path_failure_gte_30_percent"] },
     "P1": { "acknowledgeMinutes": 60, "updateMinutes": 120, "examples": ["primary_path_failure_10_to_30_percent", "multi_teacher_textbook_mismatch", "core_subject_no_workaround"] },

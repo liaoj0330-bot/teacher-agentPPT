@@ -1,7 +1,7 @@
 {
   "schemaVersion": "teacher-agentppt-issue-board/v1",
   "projectKey": "teacher-agentppt",
-  "updatedAt": "2026-07-18T12:20:00+08:00",
+  "updatedAt": "2026-07-18T13:05:00+08:00",
   "releaseTarget": "private_beta_rc1",
   "releaseState": "blocked",
   "policy": {
@@ -475,6 +475,29 @@
       "dependencies": ["DEPLOYMENT-001", "SCORING-TRUTH-001"]
     },
     {
+      "id": "BETA-MONITORING-001",
+      "priority": "P0",
+      "releaseGate": true,
+      "status": "in_progress_unverified",
+      "ownerRole": "product_operations",
+      "summary": "100人内测必须同时监控使用率和稳定性；本地管理员看板已接入数据库指标，云端主机、客户端、供应商和备份遥测尚未接入。",
+      "evidence": [
+        "app/api/admin/beta-monitor/route.ts：24小时聚合使用率、成功率、延迟、队列、反馈和积分",
+        "app/teacher-ai-ppt/admin/page.tsx：管理员监控看板，60秒刷新",
+        "project-state/teacher-agentppt.fire-response-agent.json：critical/warning与消防队映射",
+        "docs/WAVE_100_PRIVATE_BETA_PLAYBOOK_20260718.md：放量门禁和监控解释"
+      ],
+      "doneWhen": [
+        "BETA_ADMIN_EMAILS账号可以访问看板和24小时/7天窗口",
+        "红色告警自动暂停发码并生成消防队事故记录，黄色告警暂缓扩批",
+        "云端补齐HTTP可用率、CPU/内存、客户端崩溃、供应商延迟、备份和对象存储容量",
+        "完成一次故障演练并留下指标快照、事故ID和恢复证据"
+      ],
+      "nextAction": "部署后接入云监控和告警通知，完成真实P0/P1演练；在此之前看板只能作为本地数据库运营辅助。",
+      "estimateEngineeringHours": "6-12",
+      "dependencies": ["DEPLOYMENT-001", "BETA-OPERATIONS-001"]
+    },
+    {
       "id": "BETA-INVITE-001",
       "priority": "P0",
       "releaseGate": true,
@@ -576,6 +599,7 @@
     "SUBJECT-MATRIX-001",
     "STAGE-ROUTING-001",
     "TEXTBOOK-CATALOG-001",
+    "BETA-MONITORING-001",
     "BETA-INVITE-001",
     "BETA-CREDITS-001",
     "DEPLOYMENT-001",
