@@ -327,7 +327,7 @@ export function TeacherPptBetaPrototype() {
   }, []);
 
   useEffect(() => {
-    if (step !== "curriculum" || taskKind === "polish" || !form.textbook.trim()) {
+    if (taskKind === "polish" || !form.textbook.trim()) {
       setTextbookMatch(null);
       setIsTextbookMatching(false);
       return;
@@ -363,7 +363,7 @@ export function TeacherPptBetaPrototype() {
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [step, taskKind, form.textbook, form.schoolStage, form.grade, form.subject, form.publisher, form.editionYear, form.volume]);
+  }, [taskKind, form.textbook, form.schoolStage, form.grade, form.subject, form.publisher, form.editionYear, form.volume]);
 
   useEffect(() => {
     if (!user) {
