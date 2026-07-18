@@ -134,6 +134,7 @@ OPENAI_MODEL=gpt-5.5
 OPENAI_IMAGE_API_KEY=
 OPENAI_IMAGE_BASE_URL=https://api.xcode.hk
 OPENAI_IMAGE_MODEL=gpt-image-2
+BETA_IMAGE_GENERATION_ENABLED=true
 ```
 
 未配置图片模型时，系统允许使用原生可编辑视觉完成结构验收；不会用本地 SVG 冒充远程图片成功。
