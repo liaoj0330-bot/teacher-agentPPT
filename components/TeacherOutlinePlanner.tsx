@@ -27,6 +27,7 @@ type Props = {
 };
 
 const architectureNames = {
+  play_based_discovery: "游戏化发现活动",
   experiment_inquiry: "实验探究课",
   close_reading: "文本精读课",
   concept_building: "概念建构课",

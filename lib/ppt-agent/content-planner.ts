@@ -5,6 +5,7 @@ import { detectScenarioPlaybookType, getScenarioPlaybook, playbookTypeFromCoreTy
 import { validateContentPlan } from "@/lib/ppt-agent/content-plan-validator";
 import { deriveLessonPresentationStrategy } from "@/lib/ppt-agent/lesson-presentation-strategy";
 import { resolveInitialSubjectCoverage } from "@/lib/ppt-agent/subject-coverage-matrix";
+import { resolveLearnerStageProfile } from "@/lib/ppt-agent/learner-stage-profile";
 import { cleanText } from "@/lib/text-sanitize";
 
 type PlannerMode = "quick" | "professional";
@@ -384,6 +385,37 @@ function fullLessonSamplePlan(
   }));
 }
 
+function teacherEarlyChildhoodSlidePlan(topic: string, subject: string): ContentPlan["slidePlan"] {
+  const seeds = [
+    ["活动封面", topic, "用一个熟悉的生活画面进入活动。", "幼儿知道今天要找、摆、数或说什么。", "cover", "看一看画面，说出自己发现了什么。", "愿意指认或说出一个发现。", "classroom_scene"],
+    ["经验唤醒", `找一找：哪里有${topic}`, "从教室、玩具或生活经验中找到学习对象。", "幼儿能把新任务与已有经验连接起来。", "split", "在实物或图片中指出符合要求的对象。", "能正确指出至少一个对象。", "classroom_scene"],
+    ["观察发现", "看一看，有什么不一样", "通过并列观察发现数量、形状、声音或动作差异。", "差异可以被幼儿看见、指出和表达。", "comparison", "观察两组材料，用动作或短句说不同。", "能说出或演示一个明显差异。", "before_after"],
+    ["动手操作", "摆一摆、分一分", "用可操作材料建立一一对应、分类或次序经验。", "每名幼儿都有明确动作和可见结果。", "process", "按要求摆放、配对或分类材料。", "操作结果与规则一致。", "inquiry_process"],
+    ["共同表达", "说一说，你是怎么做的", "让幼儿用动作、词语或短句表达操作过程。", "幼儿的表达与刚才的操作对应。", "cards", "指着自己的结果说一说做法。", "能用动作或短句说明一步做法。", "teacher_student_flow"],
+    ["游戏练习", `玩一玩：${topic}挑战`, "在有规则的游戏中重复关键经验。", "游戏规则简单，成功条件可以观察。", "checklist", "按口令完成一次找、摆、数或说的挑战。", "能在少量提示下完成游戏任务。", "practice_feedback"],
+    ["变化挑战", "换一换，还能完成吗", "改变材料、位置或数量，检查幼儿是否真正理解。", "变化后仍保留同一个核心经验。", "comparison", "在新材料中再次完成任务。", "能把刚才的方法用到新情境。", "before_after"],
+    ["分享反馈", "我来展示，你来看看", "通过展示、同伴观察和教师短反馈修正经验。", "反馈指向一个具体动作，不贴抽象标签。", "split", "展示自己的结果，并尝试改一次。", "能根据一个提示完成修正。", "teacher_student_flow"],
+    ["活动收束", "今天我会了什么", "用一个小任务和一句话结束活动。", "教师获得幼儿是否达成核心经验的证据。", "closing", "完成最后一次小挑战并选择自己的表现。", "能独立或在轻提示下完成核心动作。", "objective_map"],
+  ] as const;
+  return seeds.map((seed, index) => ({
+    id: `teacher-early-childhood-${String(index + 1).padStart(2, "0")}`,
+    role: seed[0],
+    titleIntent: seed[1],
+    pagePurpose: seed[2],
+    mustProve: seed[3],
+    suggestedEvidence: [topic, `${subject}活动材料`, "幼儿操作与表达"],
+    avoid: ["抽象学科术语", "长段文字", "把课堂目标直接写给幼儿", "中学式变式迁移语言"],
+    priority: "required" as const,
+    layoutHint: seed[4],
+    audienceQuestion: `幼儿完成“${seed[1]}”时要出现什么可观察动作？`,
+    studentAction: seed[5],
+    masteryCheck: seed[6],
+    childOutputRequired: index > 0,
+    visualNeed: seed[7],
+    contentLimit: "一页一个动作；指令不超过两句；每句不超过16字",
+  }));
+}
+
 function variableTeacherPlan(base: ContentPlan["slidePlan"], context: ReturnType<typeof teacherCoursewareContext>): ContentPlan["slidePlan"] {
   const confirmed = context?.deckPlan as { status?: string; pages?: Array<Record<string, unknown>> } | undefined;
   if (confirmed?.status === "confirmed" && Array.isArray(confirmed.pages) && confirmed.pages.length >= 1) {
@@ -404,7 +436,15 @@ function variableTeacherPlan(base: ContentPlan["slidePlan"], context: ReturnType
   const desired = strategy.recommendedPageCount;
   const compact = [0, 1, 2, 3, 5, 7, 8].map((index) => base[index]).filter(Boolean);
   const planned = desired < base.length ? compact : [...base];
-  const extras = [
+  const earlyChildhoodExtras = [
+    ["材料认识", "先认识今天要用的材料", "让幼儿知道材料名称、拿取方法和活动边界。", "每种材料只承担一个清楚动作。", "cards", "指一指、拿一拿，并听懂一个使用约定。", "能正确拿取并放回材料。"],
+    ["动作模仿", "跟我做一遍", "用慢动作示范关键操作，再让幼儿接着完成。", "示范只包含一到两个动作。", "process", "观察后模仿一个关键动作。", "能完成与示范一致的动作。"],
+    ["同伴合作", "两个人一起完成", "通过轮流、递交或共同摆放练习合作规则。", "每名幼儿都有可观察任务。", "split", "与同伴轮流完成一个小任务。", "能等待、轮流并完成自己的动作。"],
+    ["动作儿歌", "边说边做记得牢", "用短句、节奏或动作重复核心经验。", "语言与动作一一对应。", "timeline", "跟着节奏说一说、做一做。", "能把一句短句和动作对应起来。"],
+    ["生活寻找", "教室里还能在哪里找到", "把操作经验连接到真实环境中的同类对象。", "寻找范围清楚并符合安全边界。", "split", "在指定范围找到一个新例子。", "能指出新例子并说出相同点。"],
+    ["个别观察", "老师看看我会不会", "用一个很短的个人任务记录需要支持的幼儿。", "任务不依赖同伴提示。", "checklist", "独立完成一次找、摆、数或说。", "教师能记录独立完成或所需提示。"],
+  ] as const;
+  const generalExtras = [
     ["前置诊断", "先测：哪些前置知识还不稳", "用一个短任务暴露本课所需的前置知识差异，并决定是否需要补讲。", "诊断题、预期表现、补讲条件和进入新知的标准明确。", "cards", "独立完成诊断并标记不确定处。", "教师能依据作答决定补讲哪一个前置点。"],
     ["证据整理", "把观察结果整理成可解释的证据", "把零散观察、文本批注或题目条件整理成可比较的证据单元。", "证据包含条件、现象或原文、初步解释和待验证问题。", "matrix", "小组把材料整理成一张证据表。", "能区分事实、证据和解释。"],
     ["概念边界", "这个方法什么时候不能直接用", "用正例、反例或边界条件检查概念和方法的适用范围。", "边界条件、反例表现和修正策略清楚。", "comparison", "判断两个相近情境的适用性并说明理由。", "能指出方法成立所需的关键条件。"],
@@ -420,6 +460,9 @@ function variableTeacherPlan(base: ContentPlan["slidePlan"], context: ReturnType
     ["拓展应用", "把本课方法用于新的真实情境", "将核心知识迁移到新的学科或生活情境，形成可展示的学习成果。", "新情境、任务要求、学生成果和评价标准明确。", "split", "独立或合作完成一个新情境任务并展示成果。", "能用本课知识解释或解决新问题。"],
     ["离堂评价", "用一项成果证明本课目标已经达成", "通过离堂任务收集学习证据，并明确课后巩固方向。", "离堂题、标准答案、自评标准和后续任务完整。", "closing", "完成离堂题并对照目标进行自评。", "教师能依据离堂结果安排巩固或拓展。"],
   ] as const;
+  const extras = resolveLearnerStageProfile(context?.schoolStage, context?.grade).id === "early_childhood"
+    ? earlyChildhoodExtras
+    : generalExtras;
   for (let index = 0; planned.length < desired; index += 1) {
     const item = extras[index % extras.length];
     planned.splice(Math.max(1, planned.length - 1), 0, {
@@ -486,6 +529,18 @@ function teacherLessonRoute(context: ReturnType<typeof teacherCoursewareContext>
   const topic = cleanText(context?.topic, "本课主题");
   const equipment = cleanText(context?.classroomConstraints?.equipment);
   const noExperimentEquipment = /无|没有|不可用|仅投影/.test(equipment);
+  const stageProfile = resolveLearnerStageProfile(context?.schoolStage, context?.grade);
+  if (stageProfile.id === "early_childhood") {
+    return [
+      { type: "opening", title: "生活情境与发现", weight: 4, teacherAction: `用幼儿熟悉的实物、动作或画面呈现“${topic}”，先请幼儿发现，不先讲规则。`, studentAction: "观察、指认，并用动作或短句说出一个发现。", expectedResponse: "幼儿愿意参与，并能指出与活动主题有关的对象。", evidenceOfLearning: "一次指认、动作或短句表达。", fallbackAction: "减少画面中的对象，只保留两个明显选项并示范一次指认。" },
+      { type: "activate", title: "找一找与说一说", weight: 5, teacherAction: "把任务连接到教室、玩具或日常经验，用短口令邀请幼儿寻找。", studentAction: "在实物或图片中找到符合要求的对象，并说出或演示理由。", expectedResponse: "幼儿能把活动对象与已有生活经验联系起来。", evidenceOfLearning: "一个正确找到的对象和对应表达。", fallbackAction: "提供同类与不同类各一个，让幼儿先做二选一。" },
+      { type: "inquire", title: "摆一摆与试一试", weight: 9, teacherAction: "发放可操作材料，用一个动作一条口令组织配对、分类、排序或点数。", studentAction: "亲手摆放、移动、配对或点数，并保留操作结果。", expectedResponse: "幼儿能按简单规则完成一次操作。", evidenceOfLearning: "可观察的材料操作结果。", fallbackAction: "教师完成第一步，幼儿接着完成下一步，再逐步撤掉提示。" },
+      { type: "explain", title: "把发现说出来", weight: 5, teacherAction: "邀请幼儿指着自己的操作结果说做法，用儿童语言复述并确认关键经验。", studentAction: "用动作、词语或短句说出自己怎样完成。", expectedResponse: "幼儿的表达与操作结果对应。", evidenceOfLearning: "一句短表达或一套清楚动作。", fallbackAction: "提供“我把___放在___”等短句支架，允许幼儿先用动作回答。" },
+      { type: "practice", title: "游戏挑战", weight: 9, teacherAction: "用轮流、口令或情境任务组织重复练习，每轮只改变一个条件。", studentAction: "按游戏规则再次完成找、摆、数或说的任务。", expectedResponse: "幼儿能在少量提示下稳定完成核心动作。", evidenceOfLearning: "两轮游戏中的操作或表达记录。", fallbackAction: "降低一轮难度，缩短口令，并让幼儿与同伴共同完成。" },
+      { type: "feedback", title: "展示与调整", weight: 6, teacherAction: "选择一两个操作结果请幼儿观察，只反馈一个具体动作，并给立即重试机会。", studentAction: "展示结果，听取提示后再调整一次。", expectedResponse: "幼儿能根据具体提示修改操作。", evidenceOfLearning: "调整前后的操作结果。", fallbackAction: "教师并排展示两个结果，请幼儿指一指更符合规则的一个。" },
+      { type: "closing", title: "小挑战与再见", weight: 3, teacherAction: "用一个独立小任务检查核心经验，再请幼儿用表情、动作或一句话回顾。", studentAction: "完成最后一次小挑战，并表达今天会做什么。", expectedResponse: "幼儿能独立或在轻提示下完成核心动作。", evidenceOfLearning: "离场前的一次操作或表达。", fallbackAction: "记录需要继续支持的幼儿，活动结束后用同类材料个别练习。" },
+    ];
+  }
   const initialCoverage = resolveInitialSubjectCoverage(subject);
   if (initialCoverage) return initialCoverage.lesson.route.map((event) => ({ ...event }));
   if (/物理/.test(subject)) {
@@ -596,6 +651,8 @@ function buildTeacherLessonBlueprint(
   const isPhysics = /物理/.test(subject);
   const isChinese = /语文/.test(subject);
   const isMath = /数学/.test(subject);
+  const stageProfile = resolveLearnerStageProfile(context?.schoolStage, context?.grade);
+  const isEarlyChildhood = stageProfile.id === "early_childhood";
   const initialCoverage = resolveInitialSubjectCoverage(subject);
   const learnerProfile = context?.learnerProfile || {};
   const classroomConstraints = context?.classroomConstraints || {};
@@ -609,8 +666,10 @@ function buildTeacherLessonBlueprint(
     teachingRequirements: context?.teachingRequirements,
     generationMode: context?.generationMode,
   });
-  const architecture = isPhysics ? "experiment_inquiry" : isChinese ? "close_reading" : initialCoverage?.lesson.architecture || (isMath ? "concept_building" : "general_lesson");
-  const architectureReason = isPhysics
+  const architecture = stageProfile.architectureOverride || (isPhysics ? "experiment_inquiry" : isChinese ? "close_reading" : initialCoverage?.lesson.architecture || (isMath ? "concept_building" : "general_lesson"));
+  const architectureReason = isEarlyChildhood
+    ? "本活动应从生活经验和实物操作出发，通过寻找、摆放、游戏和表达形成经验；避免抽象定义和成人化题目表达。"
+    : isPhysics
     ? "本课的理解应从现象和实验记录出发，再建构规律并完成方向判断，不能先展示结论。"
     : isChinese
       ? "本课必须以原文词句为证据，通过细读、朗读和表达迁移形成理解，不能停留在故事复述。"
@@ -619,7 +678,13 @@ function buildTeacherLessonBlueprint(
       : isMath
         ? "本课需要从已有知识和表征活动进入概念，再用示例、练习和反馈完成建构。"
         : "本课采用问题进入、理解建构、方法示范、练习反馈和迁移收束的完整课堂闭环。";
-  const objectives = isPhysics
+  const objectives = isEarlyChildhood
+    ? [
+        { id: "objective-discover", statement: `能在生活情境或操作材料中发现并指出与“${topic}”有关的对象。`, evidence: "指认、配对或操作结果", successCriteria: "能独立或在轻提示下正确完成一次。" },
+        { id: "objective-express", statement: "能用动作、词语或短句说出自己的发现或做法。", evidence: "活动中的动作或口头表达", successCriteria: "表达与自己的操作结果一致。" },
+        { id: "objective-play", statement: "能遵守简单游戏规则，在材料变化后再完成一次任务。", evidence: "两轮游戏操作记录", successCriteria: "在少量提示下完成核心动作。" },
+      ]
+    : isPhysics
     ? [
         { id: "objective-evidence", statement: `能从实验现象和记录中概括“${topic}”的核心规律。`, evidence: "实验记录与规律表述", successCriteria: "表述包含变化、作用和适用边界。" },
         { id: "objective-method", statement: "能按完整判断链确定物理方向并说明每一步依据。", evidence: "独立判断题与口头解释", successCriteria: "步骤完整，观察方向与物理规律不混淆。" },
@@ -635,7 +700,9 @@ function buildTeacherLessonBlueprint(
           { id: "objective-understanding", statement: `能解释“${topic}”的核心知识与适用条件。`, evidence: "概念解释或结构化笔记", successCriteria: "表述准确且包含关键关系。" },
           { id: "objective-application", statement: "能独立完成与本课目标对应的基础和迁移任务。", evidence: "个人作答与离堂任务", successCriteria: "答案正确并能说明依据。" },
         ];
-  const keyDifficulties = isPhysics
+  const keyDifficulties = isEarlyChildhood
+    ? [{ focus: `在操作和游戏中形成对“${topic}”的稳定经验`, reason: "幼儿可能会跟随模仿，但还不能在材料或位置变化后独立完成。", breakthrough: "先用实物一对一操作，再用同类游戏重复，并只改变一个条件检查理解。" }]
+    : isPhysics
     ? [{ focus: "从现象归纳规律而不是背诵结论", reason: "学生容易把阻碍变化误记为方向永远相反。", breakthrough: "用四种状态证据表比较磁通量变化、感应磁场和电流方向。" }]
     : isChinese
       ? [{ focus: "用文本证据解释人物和情感", reason: "学生容易复述故事或只写父爱、感动等空泛结论。", breakthrough: "使用词句、画面、语境、情感四步细读，并通过朗读和改写复查。" }]
@@ -646,19 +713,23 @@ function buildTeacherLessonBlueprint(
     status: "teacher_confirmation_required",
     architecture,
     architectureReason,
-    lessonPromise: isPhysics
+    lessonPromise: isEarlyChildhood
+      ? `幼儿不是听懂一段关于“${topic}”的讲解，而是能亲手完成、指出发现并用自己的方式表达。`
+      : isPhysics
       ? `学生不是背诵“${topic}”，而是能从证据建构规律并独立完成方向判断。`
       : isChinese
         ? `学生不是复述“${topic}”的故事，而是能用原文细节解释人物情感并迁移表达方法。`
         : initialCoverage?.lesson.lessonPromise || `学生能理解“${topic}”、说明依据并完成一次独立迁移。`,
-    drivingQuestion: isPhysics
+    drivingQuestion: isEarlyChildhood
+      ? `我们在哪里能找到“${topic}”，怎样摆一摆、试一试，再把发现告诉大家？`
+      : isPhysics
       ? "变化发生时，新的物理作用为什么这样响应，我们怎样用证据判断方向？"
       : isChinese
         ? "作者为什么选择这些具体词句和细节，它们怎样让人物与情感变得可见？"
         : initialCoverage?.lesson.drivingQuestion || `怎样证明我们真正理解并能使用“${topic}”？`,
     learnerAssumptions: [
-      teacherBaseline || (isPhysics ? "学生具备本节所需的基础磁场与磁通量概念。" : isChinese ? "学生已经通读课文并能概括主要事件。" : "学生具备本课所需的基本前置知识。"),
-      teacherDifficulties || (isPhysics ? "学生能使用右手螺旋定则，但观察方向可能混淆。" : isChinese ? "学生能够圈画词句，但文本证据与情感解释之间可能缺少联系。" : "常见困难尚待教师确认。"),
+      teacherBaseline || (isPhysics && !isEarlyChildhood ? "学生具备本节所需的基础磁场与磁通量概念。" : isChinese && !isEarlyChildhood ? "学生已经通读课文并能概括主要事件。" : stageProfile.defaultBaseline),
+      teacherDifficulties || (isPhysics && !isEarlyChildhood ? "学生能使用右手螺旋定则，但观察方向可能混淆。" : isChinese && !isEarlyChildhood ? "学生能够圈画词句，但文本证据与情感解释之间可能缺少联系。" : stageProfile.defaultDifficulty),
       classSize > 0 ? `本课按 ${classSize} 人班级组织课堂活动。` : "班级规模尚待教师确认。",
     ],
     keyDifficulties,
@@ -671,12 +742,12 @@ function buildTeacherLessonBlueprint(
       maximumPageCount: presentationStrategy.maximumPageCount,
       drivers: presentationStrategy.drivers,
       rationale: `当前 ${slides.length} 页由 ${lessonPlan.events.length} 个课堂事件、${presentationStrategy.durationMinutes} 分钟课时及教学任务复杂度共同派生；课堂事件可以使用多页或不使用投影，页数不再代替课时完整性。`,
-      screenPrinciples: ["学生当前要观察、思考或完成的任务上屏。", "证据、步骤和反馈按课堂节奏分步呈现。", "答案与结论不得早于学生任务出现。"],
-      teacherOnlyPrinciples: ["追问、预期回答、备用动作和时间提醒保留在教师端。", "教材依据不足或学情未知的假设必须要求教师确认。"],
+      screenPrinciples: [...stageProfile.screenPrinciples, "答案与教师归纳不得早于学生任务出现。"],
+      teacherOnlyPrinciples: [...stageProfile.teacherOnlyPrinciples, "教材依据不足或学情未知的假设必须要求教师确认。"],
     },
     teacherDecisions: [
       { id: "confirm-learner-baseline", question: "当前班级的前置知识和常见困难是否符合以上假设？", assumption: teacherBaseline || teacherDifficulties ? "已使用教师填写的学情，仍建议生成前复核。" : "暂按同年级中等基础班设计。", requiredBeforeGeneration: !teacherBaseline || !teacherDifficulties },
-      { id: "confirm-classroom-condition", question: isPhysics ? "课堂是否具备演示实验或等价观察条件？" : "是否需要指定朗读、讨论或写作的组织方式？", assumption: equipment || (isPhysics ? "暂按教师可完成一次演示实验设计。" : "暂按个人批注、同伴交流和一次短写作设计。"), requiredBeforeGeneration: isPhysics ? !equipment : false },
+      { id: "confirm-classroom-condition", question: isEarlyChildhood ? "本次活动可使用哪些实物、玩具或操作材料？" : isPhysics ? "课堂是否具备演示实验或等价观察条件？" : "是否需要指定朗读、讨论或写作的组织方式？", assumption: equipment || (isEarlyChildhood ? "暂按可使用常见教室物品和可移动操作材料设计。" : isPhysics ? "暂按教师可完成一次演示实验设计。" : "暂按个人批注、同伴交流和一次短写作设计。"), requiredBeforeGeneration: isEarlyChildhood || (isPhysics ? !equipment : false) },
       { id: "confirm-source-basis", question: "教材版本、章节和本课文本或例题范围是否准确？", assumption: context?.textbook || "暂以教师填写的教材与章节为准。", requiredBeforeGeneration: !context?.textbook || !context?.chapter },
     ],
   };
@@ -777,7 +848,11 @@ function buildPlan(input: ContentPlannerInput, playbookType: ContentPlanPPTType)
     const topic = teacherContext.topic;
     const subject = teacherContext.subject || "课程";
     const requirements = teacherContext.teachingRequirements;
-    const slidePlan = variableTeacherPlan(teacherGeneralSlidePlan(topic, subject), teacherContext);
+    const stageProfile = resolveLearnerStageProfile(teacherContext.schoolStage, teacherContext.grade);
+    const slidePlan = variableTeacherPlan(
+      stageProfile.id === "early_childhood" ? teacherEarlyChildhoodSlidePlan(topic, subject) : teacherGeneralSlidePlan(topic, subject),
+      teacherContext,
+    );
     const confirmedPlanId = cleanText((teacherContext.deckPlan as { planId?: string } | undefined)?.planId);
     const planId = confirmedPlanId || `content-plan-teacher-general-${Date.now()}`;
     const lessonPlan = buildTeacherLessonPlan(teacherContext, slidePlan);
@@ -788,16 +863,28 @@ function buildPlan(input: ContentPlannerInput, playbookType: ContentPlanPPTType)
       pptType: "courseware",
       userIntent: `生成一份面向${teacherContext.schoolStage || "本学段"}${teacherContext.grade || "学生"}的${subject}课件，课题为「${topic}」。${requirements ? `教学要求：${requirements}` : ""}`,
       audience: `${teacherContext.schoolStage || "本学段"}${teacherContext.grade || "学生"}`,
-      decisionGoal: `让学生理解「${topic}」的核心知识，并通过课堂活动、练习和反馈形成可检查的学习成果`,
-      coreMessage: `围绕「${topic}」完成情境导入、核心讲解、示例、探究、练习、反馈和总结的教学闭环。${requirements ? `教学要求：${requirements}` : ""}`,
-      narrativeStrategy: "情境导入 -> 明确目标 -> 核心讲解 -> 示例示范 -> 课堂探究 -> 分层练习 -> 反馈纠错 -> 总结迁移",
+      decisionGoal: stageProfile.id === "early_childhood"
+        ? `让幼儿通过观察、操作、游戏和表达形成与「${topic}」有关的可见经验`
+        : `让学生理解「${topic}」的核心知识，并通过课堂活动、练习和反馈形成可检查的学习成果`,
+      coreMessage: stageProfile.id === "early_childhood"
+        ? `围绕「${topic}」完成生活发现、动手操作、游戏练习、表达分享和小挑战的活动闭环。${requirements ? `教学要求：${requirements}` : ""}`
+        : `围绕「${topic}」完成情境导入、核心讲解、示例、探究、练习、反馈和总结的教学闭环。${requirements ? `教学要求：${requirements}` : ""}`,
+      narrativeStrategy: stageProfile.id === "early_childhood"
+        ? "生活发现 -> 找一找 -> 摆一摆 -> 说一说 -> 游戏挑战 -> 展示调整 -> 小任务收束"
+        : "情境导入 -> 明确目标 -> 核心讲解 -> 示例示范 -> 课堂探究 -> 分层练习 -> 反馈纠错 -> 总结迁移",
       contentScope: {
-        include: ["学习目标", "已有经验", "核心知识", "示例", "课堂活动", "分层练习", "反馈纠错", "总结作业"],
+        include: stageProfile.id === "early_childhood"
+          ? ["生活经验", "观察发现", "实物操作", "游戏规则", "幼儿表达", "展示反馈", "活动收束"]
+          : ["学习目标", "已有经验", "核心知识", "示例", "课堂活动", "分层练习", "反馈纠错", "总结作业"],
         exclude: ["项目汇报", "市场分析", "研究报告", "与课题无关的通用补页"],
-        avoid: ["内部规划字段上屏", "泛化套话", "重复句", "没有学生行动的纯讲解"],
+        avoid: stageProfile.id === "early_childhood"
+          ? ["内部规划字段上屏", "抽象概念定义", "适用条件和迁移任务等中学语言", "长段文字", "没有幼儿动作的纯讲解"]
+          : ["内部规划字段上屏", "泛化套话", "重复句", "没有学生行动的纯讲解"],
       },
       evidenceNeeds: [teacherContext.sourceMaterial || teacherContext.textbook || `${subject}教材`, "课堂教材", "学生课堂产出"],
-      keyQuestions: ["学生已有经验是什么？", "本课核心知识是什么？", "怎样通过示例和活动形成理解？", "如何练习并获得反馈？", "怎样检查学习目标是否达成？"],
+      keyQuestions: stageProfile.id === "early_childhood"
+        ? ["幼儿已有怎样的生活经验？", "可以操作哪些具体材料？", "幼儿要完成什么动作？", "怎样在游戏中重复关键经验？", "教师如何观察幼儿是否会做？"]
+        : ["学生已有经验是什么？", "本课核心知识是什么？", "怎样通过示例和活动形成理解？", "如何练习并获得反馈？", "怎样检查学习目标是否达成？"],
       slidePlan,
       qualityChecklist: ["课堂蓝图与页面引用完整", "每页一个教学任务", "有学生行动", "有练习和反馈", "无商务语义"],
       styleDirection: `teacher_general_v1 / ${teacherContext.visualMode || "teaching_grid"} / ${teacherContext.theme || "book_blue"}`,

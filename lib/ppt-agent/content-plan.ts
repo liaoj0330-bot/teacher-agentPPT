@@ -60,6 +60,7 @@ export type LessonPlan = {
 };
 
 export type LessonArchitecture =
+  | "play_based_discovery"
   | "experiment_inquiry"
   | "close_reading"
   | "concept_building"

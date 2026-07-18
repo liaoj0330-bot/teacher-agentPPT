@@ -153,6 +153,7 @@ function recomputeReadiness(
 
   const report = scoreTeacherDeckV2({
     scene: "teacher_courseware",
+    teacherStage: task?.schoolStage,
     topic: task?.topic,
     slides: slides.map((slide, index) => ({
       page: index + 1,

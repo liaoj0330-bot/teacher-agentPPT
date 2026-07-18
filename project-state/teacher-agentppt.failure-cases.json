@@ -271,6 +271,24 @@
       "detection": "比较 contentPlan.slidePlan、slidePagePlans、layoutPlans、contentDrafts 四层数量，并检查非 9 页方案的 generate-ppt 服务端日志。",
       "resolution": "扩展后按确认计划数量裁齐动态内容页，并按 pagePlanId 匹配版式；前端对空响应安全降级为带 HTTP 状态的可操作提示。",
       "prevention": "25/30/45/60/90 分钟与 7/9/14/16/18/22 页组合必须验证四层数量一致，短方案真实接口回归不得返回 500。"
+    },
+    {
+      "id": "FC-031-STAGE-INHERITS-SECONDARY-RULES",
+      "status": "closed",
+      "fingerprint": "幼儿园或小学短课套用中学概念、迁移和M07-M09证据规则，页面像成人教案且正式导出被误拦截。",
+      "rootCause": "学段只是表单字段，没有成为策划架构、内容生成和评分合同的第一路由。",
+      "detection": "跨幼儿园/小学/初中/高中检查 architecture、页面可见词、课堂事件和导出状态。",
+      "resolution": "新增 learner-stage-profile、play_based_discovery 和学段化青年学习者评分合同；8/8真实矩阵正式导出通过。",
+      "prevention": "新增学科必须同时跑年龄×学科×课时矩阵，短课不能只复用中学M07-M09规则。"
+    },
+    {
+      "id": "FC-032-TEXTBOOK-DATALIST-AS-CATALOG",
+      "status": "active_rule",
+      "fingerprint": "教材输入只靠datalist或手填字符串，‘人教版’被静默当成确定版本，或者教材身份与章节正文被混为一谈。",
+      "rootCause": "没有教材身份主数据、别名解析、候选歧义状态和即时接口；上传文件名也被误当成语义验证。",
+      "detection": "检查目录匹配状态、候选数、缺失字段、冲突、sourceAssetId和可引用正文是否分别落盘。",
+      "resolution": "新增8个版系、629条identity-only目录和POST/GET匹配接口；exact/ambiguous/unmatched硬门，文件名不能升级asset_verified。",
+      "prevention": "目录身份只能证明版次/学段/学科/年级/册次；没有章节正文或官方引用不得宣称章节已核验。"
     }
   ]
 }

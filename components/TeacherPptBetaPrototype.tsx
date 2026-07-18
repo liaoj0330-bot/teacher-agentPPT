@@ -82,6 +82,25 @@ type TeacherProjectSummary = {
   currentVersionId: string | null;
   updatedAt: string;
 };
+type TextbookCatalogCandidate = {
+  id: string;
+  edition: string;
+  publisher: string;
+  schoolStage: string;
+  grade?: string;
+  subject: string;
+  volume: string;
+};
+type TextbookCatalogState = {
+  status: "exact" | "ambiguous" | "unmatched";
+  confidence: number;
+  normalized?: { displayName?: string; publisher?: string; volume?: string };
+  missingFields: string[];
+  conflicts: string[];
+  requiresTeacherConfirmation: boolean;
+  messageCode: string;
+  candidates: TextbookCatalogCandidate[];
+};
 
 const initialForm: TeacherForm = {
   schoolStage: "初中",
@@ -245,6 +264,8 @@ export function TeacherPptBetaPrototype() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [deckPlan, setDeckPlan] = useState<TeacherDeckPlan | null>(null);
+  const [textbookMatch, setTextbookMatch] = useState<TextbookCatalogState | null>(null);
+  const [isTextbookMatching, setIsTextbookMatching] = useState(false);
   const [teacherProjects, setTeacherProjects] = useState<TeacherProjectSummary[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
   const [openingProjectId, setOpeningProjectId] = useState<string | null>(null);
@@ -304,6 +325,45 @@ export function TeacherPptBetaPrototype() {
       .then((data) => setUser(data?.user ?? null))
       .catch(() => setUser(null));
   }, []);
+
+  useEffect(() => {
+    if (step !== "curriculum" || taskKind === "polish" || !form.textbook.trim()) {
+      setTextbookMatch(null);
+      setIsTextbookMatching(false);
+      return;
+    }
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      setIsTextbookMatching(true);
+      void fetch("/api/textbook-catalog/match", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({
+          displayName: form.textbook,
+          schoolStage: form.schoolStage,
+          grade: form.grade,
+          subject: form.subject,
+          publisher: form.publisher,
+          editionYear: form.editionYear,
+          volume: form.volume,
+        }),
+      })
+        .then(async (response) => {
+          const data = await response.json().catch(() => null) as { match?: TextbookCatalogState; candidates?: TextbookCatalogCandidate[] } | null;
+          if (!response.ok || !data?.match) throw new Error("教材目录暂时无法查询");
+          setTextbookMatch({ ...data.match, candidates: data.candidates || [] });
+        })
+        .catch((error) => {
+          if (error?.name !== "AbortError") setTextbookMatch(null);
+        })
+        .finally(() => setIsTextbookMatching(false));
+    }, 260);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [step, taskKind, form.textbook, form.schoolStage, form.grade, form.subject, form.publisher, form.editionYear, form.volume]);
 
   useEffect(() => {
     if (!user) {
@@ -522,9 +582,16 @@ export function TeacherPptBetaPrototype() {
     const taskFiles = taskKind === "polish" ? (uploadedFile ? [uploadedFile] : []) : uploadedFiles;
     const textbookFile = taskFiles.find((file) => /教材|课本|教科书|textbook/i.test(file.name));
     const sourceAssetId = taskKind === "polish" ? uploadedFile?.assetId : textbookFile?.assetId;
-    const verificationStatus = sourceAssetId
+    const textbookVerificationStatus = sourceAssetId
       ? "asset_verified" as const
+      : textbookMatch?.status === "exact"
+        ? "catalog_verified" as const
       : form.textbook.trim() && form.chapter.trim()
+        ? "teacher_confirmed" as const
+        : "unverified" as const;
+    const chapterVerificationStatus = sourceAssetId
+      ? "asset_verified" as const
+      : form.chapter.trim()
         ? "teacher_confirmed" as const
         : "unverified" as const;
     return {
@@ -532,19 +599,19 @@ export function TeacherPptBetaPrototype() {
       generationMode: taskKind === "chapter" ? "chapter_prep" : taskKind === "materials" ? "lesson_plan" : "optimize_existing",
       ...form, lessonType, templateId: lessonType === "concept_building" ? A1_TEMPLATE_ID : undefined,
       textbookIdentity: {
-        displayName: form.textbook,
-        publisher: form.publisher,
+        displayName: textbookMatch?.status === "exact" ? textbookMatch.normalized?.displayName || form.textbook : form.textbook,
+        publisher: textbookMatch?.status === "exact" ? textbookMatch.normalized?.publisher || form.publisher : form.publisher,
         editionYear: form.editionYear,
-        volume: form.volume,
+        volume: textbookMatch?.status === "exact" ? textbookMatch.normalized?.volume || form.volume : form.volume,
         sourceAssetId,
-        verificationStatus,
+        verificationStatus: textbookVerificationStatus,
       },
       chapterIdentity: {
         unit: form.unit,
         chapter: form.chapter,
         pageStart: pageNumbers[0],
         pageEnd: pageNumbers[1] || pageNumbers[0],
-        verificationStatus,
+        verificationStatus: chapterVerificationStatus,
       },
       learnerProfile: {
         baseline: form.studentBaseline.trim() || undefined,
@@ -555,6 +622,7 @@ export function TeacherPptBetaPrototype() {
         equipment: form.classroomEquipment.trim() || undefined,
         assessmentFocus: form.assessmentFocus,
       },
+      // The catalog confirms identity only; without parsed textbook text it must not be treated as a citation source.
       sourcePolicy: textbookFile ? "uploaded_only" : "web_supplement",
       beautifyOptions: taskKind === "polish" ? {
         intensity: beautifyIntensity,
@@ -570,11 +638,18 @@ export function TeacherPptBetaPrototype() {
     if (!taskKind || !requiredReady || state === "calling") return;
     if (needsFile && (taskKind === "polish" ? uploadedFile?.status !== "uploaded" : !uploadedFiles.some((file) => file.status === "uploaded"))) { setState("error"); setMessage("请先上传当前任务所需的文件。"); return; }
     if (taskKind === "chapter" && (!form.textbook.trim() || !form.chapter.trim())) { setState("error"); setMessage("章节备课必须确认教材版本和章节。"); return; }
+    const hasTextbookAsset = uploadedFiles.some((file) => file.status === "uploaded" && /教材|课本|教科书|textbook/i.test(file.name));
+    if (taskKind === "chapter" && !hasTextbookAsset && (!textbookMatch || textbookMatch.status !== "exact")) {
+      setState("error");
+      setMessage(textbookMatch?.status === "ambiguous" ? "教材版本有多个匹配结果，请补齐年级、学科和册次，或上传教材原文件。" : "教材版本暂未匹配到目录，请补齐信息或上传教材原文件后再继续。");
+      return;
+    }
     setState("calling"); setMessage("正在根据教材依据建立教学大纲…");
     try {
       const response = await fetch("/api/teacher-courseware-plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ teacherTask: buildTeacherTask() }) });
-      const data = await response.json();
-      if (!response.ok || !data?.deckPlan) throw new Error(data?.message || "规划服务没有返回可确认的大纲。");
+      const data = await response.json().catch(() => null) as { deckPlan?: TeacherDeckPlan; message?: string } | null;
+      if (!data) throw new Error(`规划服务返回了空响应（HTTP ${response.status}），请重试；若仍失败，请从内测入口提交反馈。`);
+      if (!response.ok || !data.deckPlan) throw new Error(data.message || "规划服务没有返回可确认的大纲。");
       setDeckPlan(data.deckPlan as TeacherDeckPlan); setStep("plan"); setState("idle");
     } catch (error) { setState("error"); setMessage(error instanceof Error ? error.message : "Planning failed."); }
   }
@@ -1006,6 +1081,24 @@ export function TeacherPptBetaPrototype() {
                   </div>
                 </>
               )}
+              {taskKind !== "polish" && form.textbook.trim() ? (
+                <div className={cn("mt-3 border px-3 py-3 text-xs leading-5", isTextbookMatching ? "border-line text-muted" : textbookMatch?.status === "exact" ? "border-[#a6f4c5] bg-[#ecfdf3] text-[#067647]" : "border-[#fedf89] bg-[#fffaeb] text-[#b54708]")} data-testid="textbook-match-status">
+                  {isTextbookMatching ? "正在匹配教材目录…" : textbookMatch?.status === "exact" ? (
+                    <>
+                      <div className="font-semibold">已匹配教材身份：{textbookMatch.normalized?.displayName || form.textbook}</div>
+                      <div className="mt-1">目录确认版次、学段、学科、年级和册次；章节正文仍需上传教材或由教师复核。</div>
+                    </>
+                  ) : textbookMatch?.status === "ambiguous" ? (
+                    <>
+                      <div className="font-semibold">教材身份需要确认</div>
+                      <div className="mt-1">{textbookMatch.conflicts.length ? "输入信息存在冲突。" : "当前信息对应多个目录候选，不能静默选择。"} 请补齐信息或上传教材原文件。</div>
+                      {textbookMatch.candidates.length ? <div className="mt-2 space-y-1">{textbookMatch.candidates.slice(0, 3).map((candidate) => <button key={candidate.id} type="button" className="block text-left underline" onClick={() => { update("textbook", `${candidate.edition}${candidate.grade || ""}${candidate.subject}${candidate.volume}`); update("publisher", candidate.publisher); update("volume", candidate.volume); }}>{candidate.edition}{candidate.grade || ""}{candidate.subject}{candidate.volume}</button>)}</div> : null}
+                    </>
+                  ) : (
+                    <><div className="font-semibold">暂未识别教材版本</div><div className="mt-1">请补齐出版社、学科、年级和册次，或直接上传教材原文件。</div></>
+                  )}
+                </div>
+              ) : null}
               <div className="mt-5 border-t border-line pt-5">
                 <div className="text-xs font-semibold text-[#344054]">班级情况与课堂条件</div>
                 <p className="mt-1 text-[11px] leading-5 text-[#667085]">选填。未填写的信息会作为待确认假设显示在课堂方案中。</p>

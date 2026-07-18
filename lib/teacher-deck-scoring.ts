@@ -16,6 +16,8 @@ export type TeacherDeckScoreReportV2 = {
 
 export type TeacherDeckScoreInputV2 = {
   scene?: string;
+  /** Stage-aware evidence contract. Young learners need activity evidence, not secondary-school M07-M09 wording. */
+  teacherStage?: string;
   topic?: string;
   slides?: Array<{ page?: number; id?: string; module?: string; role?: string; title?: string; body?: string; bullets?: string[]; layout?: string; fontSize?: number; overflow?: boolean; collision?: boolean; internalField?: unknown }>;
   engineering?: {
@@ -29,10 +31,17 @@ export type TeacherDeckScoreInputV2 = {
 const textOf = (slide: NonNullable<TeacherDeckScoreInputV2["slides"]>[number]) =>
   [slide.title, slide.body, ...(slide.bullets || [])].filter((value): value is string => typeof value === "string").join(" ");
 
-const moduleFor = (slide: NonNullable<TeacherDeckScoreInputV2["slides"]>[number]) => {
+const moduleFor = (slide: NonNullable<TeacherDeckScoreInputV2["slides"]>[number], youngStage = false) => {
   const explicit = (slide.module || slide.id || "").toUpperCase().match(/M0[24789]/)?.[0];
+  if (explicit && youngStage) return ({ M02: "Y01", M04: "Y02", M07: "Y02", M08: "Y03", M09: "Y04" } as const)[explicit as "M02" | "M04" | "M07" | "M08" | "M09"];
   if (explicit) return explicit;
   const role = `${slide.role || ""} ${slide.title || ""}`;
+  if (youngStage) {
+    if (/封面|目标|经验|情境|导入|warm-?up|course cover/i.test(role)) return "Y01";
+    if (/观察|操作|讲解|示范|概念|算理|词句|活动|探究|model/i.test(role)) return "Y02";
+    if (/练习|游戏|表达|朗读|任务|互动|practice|pair work/i.test(role)) return "Y03";
+    if (/反馈|分享|纠错|总结|作业|收束|closing|retry/i.test(role)) return "Y04";
+  }
   if (/目标|导入|learning goals?|warm-?up|course cover/i.test(role)) return "M02";
   if (/概念|定义|解释|算理|方法|表示|词句|细读|key expressions?|language patterns?|explain/i.test(role)) return "M04";
   if (/例题|讲解|步骤|示范|重点段落|精读|model dialogue|worked example/i.test(role)) return "M07";
@@ -47,6 +56,7 @@ export function scoreTeacherDeckV2(input: TeacherDeckScoreInputV2): TeacherDeckS
   if (!sceneEligible) return empty;
 
   const slides = input.slides || [];
+  const youngStage = /幼儿园|学前|小学|一年级|二年级|三年级|四年级|五年级|六年级/.test(input.teacherStage || "");
   const p0: string[] = [], p1: string[] = [], p2: string[] = [];
   const pageIssues: TeacherDeckScoreReportV2["pageIssues"] = [];
   const add = (severity: "P0" | "P1" | "P2", issue: string, page?: number) => {
@@ -61,7 +71,12 @@ export function scoreTeacherDeckV2(input: TeacherDeckScoreInputV2): TeacherDeckS
     if (slide.overflow || slide.collision) add("P1", "存在几何溢出或碰撞", slide.page || index + 1);
   });
 
-  const requirements: Record<string, Array<{ label: string; matches: (text: string) => boolean }>> = {
+  const requirements: Record<string, Array<{ label: string; matches: (text: string) => boolean }>> = youngStage ? {
+    Y01: [{ label: "活动进入", matches: text => /观察|发现|情境|目标|经验|找一找|看一看/.test(text) }],
+    Y02: [{ label: "操作或表达", matches: text => /操作|摆一摆|分一分|说一说|讲解|示范|探究|活动/.test(text) }],
+    Y03: [{ label: "练习或游戏", matches: text => /练习|游戏|挑战|任务|练习|互动|朗读|表达/.test(text) }],
+    Y04: [{ label: "反馈与收束", matches: text => /反馈|分享|调整|总结|作业|收束|小挑战|再练/.test(text) }],
+  } : {
     M02: ["目标", "学习"].map(term => ({ label: term, matches: text => text.includes(term) })),
     M04: ["概念", "解释"].map(term => ({ label: term, matches: text => text.includes(term) })),
     M07: ["题目", "步骤", "结论"].map(term => ({ label: term, matches: text => text.includes(term) })),
@@ -81,11 +96,13 @@ export function scoreTeacherDeckV2(input: TeacherDeckScoreInputV2): TeacherDeckS
   };
   let moduleHits = 0;
   for (const [module, checks] of Object.entries(requirements)) {
-    const owned = slides.filter(slide => moduleFor(slide) === module);
+    const owned = slides.filter(slide => moduleFor(slide, youngStage) === module);
     const text = owned.map(textOf).join(" ");
     const hits = checks.filter(check => check.matches(text)).length;
     moduleHits += hits / checks.length;
-    if (!owned.length) add("P0", `${module}缺少页面证据`);
+    // Young/primary lessons may use a short activity arc instead of four separate
+    // evidence pages; missing a split-out module is review feedback, not an export blocker.
+    if (!owned.length) add(youngStage ? "P2" : "P0", `${module}缺少页面证据`);
     else if (hits < checks.length) {
       const ruleId = module === "M09" ? "M09_TEACHING_EVIDENCE_COMPLETE: " : "";
       add(module === "M07" || module === "M08" ? "P0" : "P1", `${ruleId}${module}证据不完整：缺少${checks.filter(check => !check.matches(text)).map(check => check.label).join("、")}`, owned[0].page);

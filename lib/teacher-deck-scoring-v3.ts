@@ -100,8 +100,8 @@ function dimensionPass(
 }
 
 export function scoreTeacherDeckV3(input: TeacherDeckScoreInputV3): TeacherDeckScoreReportV3 {
-  const v2 = scoreTeacherDeckV2(input);
   const task = input.task;
+  const v2 = scoreTeacherDeckV2({ ...input, teacherStage: input.teacherStage || task?.schoolStage });
   const sources = input.sources || [];
   const maps = input.evidenceMaps || [];
   const p0: string[] = [];

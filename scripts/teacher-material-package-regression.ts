@@ -62,7 +62,8 @@ const falseVerification = buildTeacherMaterialPackage({
 });
 assert.equal(falseVerification.textbookMatch.status, "unmatched");
 assert.ok(falseVerification.textbookMatch.conflicts.includes("source_asset_is_not_a_textbook"));
-assert.equal(falseVerification.readiness.status, "needs_confirmation");
+assert.equal(falseVerification.readiness.status, "blocked");
+assert.ok(falseVerification.readiness.blockingIssues.includes("textbook_match_confirmation_required"));
 
 const failedMaterials = buildTeacherMaterialPackage({
   task: {
@@ -209,7 +210,7 @@ const needsConfirmationBySubject = subjectFixtures.map((fixture) => {
     },
   });
   assert.equal(result.readiness.status, "needs_confirmation", `${fixture.subject} must not treat guide/plan as textbook`);
-  assert.equal(result.textbookMatch.status, "unmatched");
+  assert.equal(result.textbookMatch.status, "catalog_verified");
   assert.ok(result.readiness.warnings.includes("no_citable_textbook_source"));
   return fixture.subject;
 });

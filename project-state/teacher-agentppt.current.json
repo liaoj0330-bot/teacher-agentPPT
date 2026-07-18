@@ -1,17 +1,20 @@
 {
   "schemaVersion": "teacher-agentppt-project-state/v1",
   "projectKey": "teacher-agentppt",
-  "updatedAt": "2026-07-18T04:10:00+08:00",
+  "updatedAt": "2026-07-18T08:58:00+08:00",
   "status": "private_beta_blocked_by_p0_deliverability",
   "productStage": "邀请制内测 P0 收口",
   "commercialReady": false,
   "goal": "建立面向市场的教师 AI 课件产品：真实备课交互、教材绑定、跨学科动态策划、不可变版本链、真实视觉、可编辑 PPTX 与教师验收。",
-  "currentJudgement": "高二物理《楞次定律》和初二语文《背影》已升级为 16 页、45 分钟课堂样品，并完成真实浏览器主链、教师包、版本、审核、导出与重开验收。两套样品各嵌入 4 张远程生成关键视觉，PowerPoint 实际打开并渲染 16/16 页通过，无乱码、占位符或文字遮挡。产品内图片请求仍缺少可持久化的异步任务队列与完整直连闭环；这次样品资产由双供应商直连脚本生成，不能冒充为网页图片功能已完成。仍缺连续修改压力验收、真实 WPS 目标机检查、真实教师过课和云端部署，因此只能称为本地 RC 候选。",
+  "currentJudgement": "高二物理《楞次定律》和初二语文《背影》保持16页、45分钟课堂样品并通过原有真实链路。最新真实年龄×学科×课时矩阵 8/8 通过注册、规划、生成、版本、重开、正式导出、下载哈希和图片禁用检查，页数实际为7/11/14/16/17/18/22，不再固定9页。幼儿园已切换为游戏化发现活动，小学短课不再被中学式 M07-M09 评分规则误拦截。新增教材身份目录与即时匹配 API：8个版系、629条 identity-only 记录，精确/歧义/未匹配边界已验证；目录只证明版次、学段、学科、年级和册次，不冒充章节正文或页码核验。产品仍未完成真实 WPS/PowerPoint 目标机、真实教师过课、云端并发和图片异步网页闭环，因此仍是本地 RC 候选，不称商业成熟。",
   "currentMilestone": {
-    "status": "eight_subjects_initial_contracts_two_subjects_golden",
+    "status": "age_subject_duration_matrix_and_textbook_catalog_verified_local",
     "initialSubjects": ["数学", "化学", "生物", "历史", "地理", "英语"],
     "goldenSubjects": ["物理", "语文"],
     "automatedInitialContractCount": 8,
+      "ageSubjectDurationMatrix": { "cases": 8, "passed": 8, "pageCounts": [7, 11, 14, 16, 17, 18, 22], "imageApiCalls": 0 },
+      "customerPathMatrix": { "cases": 23, "passed": 23, "failed": 0, "imageApiCalls": 0, "paths": ["upload", "chapter", "lesson_plan", "optimize_existing", "replan", "retry", "restore", "export", "mobile", "error_contract"] },
+    "textbookCatalog": { "families": 8, "entries": 629, "regressionCases": 29, "exact": 15, "ambiguous": 11, "unmatched": 3, "coverage": "identity_only; no chapter/page/ISBN" },
     "apiRealPathCount": 8,
     "browserGoldenCount": 2,
     "note": "Initial contracts and deterministic render/scoring regressions do not replace real textbook chapter verification, target-office opening, or teacher classroom trials."
@@ -109,6 +112,13 @@
       "teacher-two-subject-delivery:e2e 已产出高二物理《楞次定律》和初二语文《背影》两份 9 页 PPTX，完成课堂蓝图持久化、版本重开与持久再次下载",
       "已新增 LessonBlueprint：物理 experiment_inquiry、语文 close_reading；课堂事件独立于投影页面",
       "已新增 learnerProfile/classroomConstraints 输入与 TeacherOutlinePlanner 课堂方案优先确认界面",
+      "已新增 learner-stage-profile：幼儿园使用 play_based_discovery 活动架构、操作型页面和幼儿可观察目标；小学/中学/中职/大学保留分层学段画像",
+      "已新增年龄×学科×课时真实矩阵：8/8 通过注册、规划、生成、持久化、重开、正式导出、下载哈希；页数7/11/14/16/17/18/22，图片API调用0",
+      "已新增初版教材身份目录与 POST/GET /api/textbook-catalog/match：8个版系、629条identity-only条目，29个解析/歧义/未匹配用例通过",
+      "章节规划 API 已对 ambiguous/unmatched 教材身份下沉硬门；trusted_catalog 没有可引用正文时明确阻断，exact identity + web_supplement 保持待核验而不冒充已引用",
+      "客户真实路径矩阵已通过23/23：上传、章节、教案/粘贴材料、已有PPT、美化路由、重规划、重复确认、失败重试、版本恢复、导出下载、空响应、400错误和390px移动端",
+      "TeacherPptBetaPrototype 已接入教材即时匹配、候选确认、歧义硬门和规划空响应人话兜底；目录精确命中不再冒充章节正文依据",
+      "幼儿园/小学短课评分合同已按学段放宽为活动证据合同，避免M07-M09中学证据规则误拦截；真实矩阵复跑8/8通过",
       "teacher-lesson-blueprint-ui:e2e 已通过桌面与手机布局、课堂事件编辑和输入字段传递",
       "teacher-lesson-blueprint-persistence:e2e 已通过真实注册登录、课堂事件修改、服务器计划创建、版本生成与重开；修改后的动作仍在且蓝图状态为 teacher_confirmed",
       "python-pptx 已独立重开两份样品，确认 16:9、9 页且无 ??? 或替换字符",
@@ -122,7 +132,8 @@
       "连续 10 次教师修改、局部重做、版本冲突和刷新恢复压力验收尚未完成",
       "WPS/PowerPoint 目标机字体与版面验收尚未完成",
       "真实物理与语文教师各一轮 45 分钟过课记录尚未完成",
-      "当前 P0 代码和问题页尚未 git commit 或 push"
+      "当前本轮年龄路由、教材目录和评分修复尚未 git commit 或 push",
+      "教材目录当前只覆盖身份字段，不含全国完整章节、页码、ISBN或可引用正文；章节级成熟能力仍需官方目录/教师上传原文"
     ],
     "resumeCommands": [
       "git status --short",
@@ -161,6 +172,9 @@
       "teacherTrialUI": "structured teacher trial form submits persisted reviewer-bound evidence and keeps pre-class workflow review separate from the 5 teacher-trial points",
       "privateBetaOperations": "machine-readable wave-100/wave-300/wave-1000 policy defines eight-subject eligibility, no-image defaults, quotas, feedback triage, support SLA, rollback, go/no-go metrics, privacy retention and named roles; a persisted context-aware teacher feedback entry now passes API E2E, while operator RBAC/queue and cloud evidence remain blocked",
       "shortLessonGeneration": "kindergarten small-class mathematics topic 数字1-10 with a confirmed seven-page/30-minute plan now returns HTTP 200 with slidePagePlan/layoutPlan/contentDrafts/projectSlides all 7; the prior dynamic-template pagePlanId overrun is covered by regression and image API calls=0",
+      "stageRouting": "幼儿园数学30分钟命中 play_based_discovery，页面语言以观察/操作/游戏/表达为主；小学语文、高中物理分别命中 close_reading/experiment_inquiry",
+      "ageSubjectDurationMatrix": "8/8 real API cases passed across kindergarten/primary/junior/senior, 8 subjects and 25/30/40/45/60/90 minutes; 112 pages total, page bands 7/11/14/16/17/18/22, image API calls=0",
+      "textbookCatalog": "8 textbook families and 629 identity-only entries; 29 resolver cases passed (15 exact, 11 ambiguous, 3 unmatched); exact identity does not claim chapter text",
       "browserGolden": "physics and Chinese browser production chains passed with ready_for_teacher and consoleErrors=[]",
     "remainingExternalGates": ["WPS/PowerPoint target-machine opening", "real teacher 45-minute trials", "cloud deployment and persistent operations"],
     "commands": [

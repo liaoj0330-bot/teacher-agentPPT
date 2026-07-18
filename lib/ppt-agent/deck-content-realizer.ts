@@ -7,6 +7,7 @@ import { createSlideContentDraft } from "@/lib/ppt-agent/slide-content-realizer"
 import { validateSlideContentDraft, validateSlideContentDrafts } from "@/lib/ppt-agent/slide-content-validator";
 import type { SlideSection } from "@/lib/canvas-data";
 import { limitDynamicTeacherPages } from "@/lib/ppt-agent/dynamic-page-alignment";
+import { resolveLearnerStageProfile } from "@/lib/ppt-agent/learner-stage-profile";
 
 export type DeckContentRealizerInput = {
   contentPlan: ContentPlan;
@@ -634,11 +635,60 @@ function teacherMathDynamicDrafts(input: DeckContentRealizerInput): SlideContent
   });
 }
 
+function teacherEarlyChildhoodDynamicDrafts(input: DeckContentRealizerInput): SlideContentDraft[] {
+  const context = input.contentPlan.teacherContext;
+  const topic = context?.topic?.trim() || "本次活动";
+  const subject = context?.subject?.trim() || "活动";
+  const schoolStage = context?.schoolStage || "幼儿园";
+  const grade = context?.grade || "";
+  const duration = context?.duration || "课堂时间";
+  const source = [context?.textbook, context?.chapter].filter(Boolean).join(" · ") || `${subject}活动材料`;
+  const pages: DynamicTeacherPage[] = [
+    { title: topic, subtitle: `${subject} · ${schoolStage}${grade} · ${duration}`, action: `看一看“${topic}”，说出或指出一个发现。`, blocks: [["今天做什么", `我们要在熟悉的情境中找一找、摆一摆、说一说“${topic}”。`], ["活动材料", source]], sections: [{ type: "tag-row", tags: [subject, schoolStage, grade, duration].filter(Boolean) }] },
+    { title: "找一找：哪里有它", subtitle: "从生活经验里找到今天要认识的对象", action: "在实物或图片中指出符合要求的对象。", blocks: [["观察", `看看教室、玩具或生活画面，找出和“${topic}”有关的对象。`], ["表达", "可以用手指、动作或短句告诉大家你找到了什么。"], ["检查", "教师只确认找到的对象，不先给出答案。"]], sections: [{ type: "callout", title: "先发现", body: "先看、先找、先说，等大家发现后再一起整理。" }] },
+    { title: "看一看，有什么不一样", subtitle: "把能看见的差异说出来", action: "观察两组材料，用动作或短句说出一个不同。", blocks: [["第一组", "看看数量、位置、大小、形状或声音。"], ["第二组", "再看看另一组，找一个最明显的变化。"], ["说一说", "可以说“多一点、少一点、一样”或直接演示。"]], sections: [{ type: "tips-grid", title: "两组材料", items: [{ title: "这里", body: "先看见什么" }, { title: "那里", body: "哪里不一样" }] }] },
+    { title: "摆一摆、分一分", subtitle: "用手上的材料做出自己的结果", action: "按口令摆放、配对或分类材料。", blocks: [["拿材料", "每人拿到相同的一小份材料。"], ["做动作", "按一个口令摆放、配对、分类或点数。"], ["留结果", "做完后先不收，指给同伴和老师看。"]], sections: [{ type: "timeline", title: "操作三步", steps: [{ label: "01", title: "拿", body: "拿好一小份材料" }, { label: "02", title: "做", body: "按口令完成动作" }, { label: "03", title: "看", body: "指一指自己的结果" }] }] },
+    { title: "说一说，你是怎么做的", subtitle: "让动作变成自己的表达", action: "指着自己的结果，说一说或演示刚才的做法。", blocks: [["我做了什么", "可以说“我把……放在……”或直接用动作演示。"], ["我发现了什么", `说出和“${topic}”有关的一个发现。`], ["同伴看看", "同伴只需要指出哪里和规则相同。"]], sections: [{ type: "tips-grid", title: "表达支架", items: [{ title: "指一指", body: "我找到了……" }, { title: "做一做", body: "我先……再……" }, { title: "说一说", body: "我发现……" }] }] },
+    { title: `${topic}游戏挑战`, subtitle: "在简单规则里再做一次", action: "按口令完成一轮找、摆、数或说的挑战。", blocks: [["游戏规则", "听清一个口令，轮流完成一个动作。"], ["成功标准", "材料放对、顺序正确，或者能说出自己的发现。"], ["再来一次", "教师只改变一个材料或位置，让大家再试一次。"]], sections: [{ type: "tips-grid", title: "我会做", items: [{ title: "第一步", body: "听懂口令" }, { title: "第二步", body: "完成动作" }, { title: "第三步", body: "说出发现" }, { title: "第四步", body: "再试一次" }] }] },
+    { title: "换一换，还能完成吗", subtitle: "把经验用到新材料里", action: "在新材料中再次完成同一个核心动作。", blocks: [["哪里变了", "只换材料、位置或数量中的一个。"], ["什么没变", "找、摆、数或说的关键动作不变。"], ["我来试试", "先自己做，再和同伴互相看看。"]], sections: [{ type: "tips-grid", title: "原来和现在", items: [{ title: "原来", body: "刚才怎样做" }, { title: "现在", body: "换了什么" }] }] },
+    { title: "展示与调整", subtitle: "看一看同伴的结果，再改一次", action: "展示自己的结果，听到一个提示后再调整一次。", blocks: [["展示", "把自己的材料或动作展示给大家看。"], ["观察", "同伴指出一个符合规则的地方。"], ["调整", "根据一个具体提示，马上改一次。"]], sections: [{ type: "callout", title: "一个提示就够了", body: "只说一个清楚的动作提示，让幼儿有机会马上重试。" }] },
+    { title: "今天我会了什么", subtitle: "用一个小挑战结束活动", action: "完成最后一次小挑战，并用动作或一句话回顾。", blocks: [["小挑战", `独立完成一次和“${topic}”有关的找、摆、数或说。`], ["我会了", "用表情、动作或一句短话告诉老师。"], ["下次再玩", "把还需要练习的动作留给下一次活动。"]], sections: [{ type: "tips-grid", title: "活动收束", items: [{ title: "我看见", body: "指出一个对象" }, { title: "我做了", body: "完成一个动作" }, { title: "我说了", body: "表达一个发现" }] }] },
+  ];
+  extendDynamicTeacherPages(pages, input, topic, source);
+  return limitDynamicTeacherPages(pages, input.slidePagePlans.length).map((page, index) => {
+    const pagePlan = input.slidePagePlans[index];
+    const layoutPlan = input.layoutPlans.find((plan) => plan.pagePlanId === pagePlan.pagePlanId) || input.layoutPlans[index];
+    return {
+      contentDraftId: `teacher-early-childhood-draft-${index + 1}`,
+      planId: input.contentPlan.planId,
+      pagePlanId: pagePlan.pagePlanId,
+      layoutPlanId: layoutPlan.layoutPlanId,
+      slideIndex: index + 1,
+      pptType: "courseware",
+      role: pagePlan.role,
+      finalTitle: page.title,
+      subtitle: page.subtitle,
+      leadSentence: page.subtitle,
+      visibleBlocks: page.blocks.map(([title, body, tag], blockIndex) => ({ type: blockIndex === 0 ? "point" as const : "example" as const, title, body, tag, priority: "must" as const })),
+      evidenceSnippets: [{ text: `依据教师输入与${source}生成，主题：${topic}。`, reliability: "user_claim" as const, confidence: 86, visible: false }],
+      actionText: page.action,
+      speakerNotes: `${page.subtitle} 幼儿活动：${page.action}`,
+      sourceUseSummary: source,
+      confidenceNote: "活动材料和幼儿表现请教师结合现场情况复核。",
+      contentQualityChecks: { titleLengthOk: true, titleIsConclusion: true, visibleBlocksPresent: true, scaffoldFree: true, evidenceRealized: true, noInternalFields: true, lowConfidenceMarked: true },
+      blockedScaffoldTerms: [],
+      warnings: [],
+      sections: page.sections,
+    };
+  });
+}
+
 function teacherGeneralDynamicDrafts(input: DeckContentRealizerInput): SlideContentDraft[] {
   const context = input.contentPlan.teacherContext;
   const topic = context?.topic?.trim();
   const subject = context?.subject?.trim() || "课程";
   if (!topic) return [];
+  if (resolveLearnerStageProfile(context?.schoolStage, context?.grade).id === "early_childhood") return teacherEarlyChildhoodDynamicDrafts(input);
   const grade = context?.grade || "本年级";
   const schoolStage = context?.schoolStage || "本学段";
   const duration = context?.duration || "课堂时间";

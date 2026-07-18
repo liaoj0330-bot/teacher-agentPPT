@@ -1,3 +1,5 @@
+import { resolveTextbookCatalog, type TextbookCatalogResolution } from "./textbook-catalog.ts";
+
 export const teacherMaterialPackageSchema = "teacher-material-package/v1" as const;
 
 export type TeacherMaterialRole =
@@ -71,6 +73,7 @@ export type TextbookMatch = {
   missingFields: string[];
   conflicts: string[];
   requiresTeacherConfirmation: boolean;
+  catalogResolution?: TextbookCatalogResolution;
 };
 
 export type TeacherMaterialPackageReadiness = {
@@ -257,16 +260,16 @@ function uniqueMaterials(values: unknown[]) {
     .slice(0, 20);
 }
 
-function textbookLocator(task: MaterialPackageTask): TextbookLocator {
+function textbookLocator(task: MaterialPackageTask, catalogResolution: TextbookCatalogResolution): TextbookLocator {
   const identity = task.textbookIdentity || {};
   return {
-    displayName: text(identity.displayName || task.textbook),
-    schoolStage: text(task.schoolStage) || undefined,
-    grade: text(task.grade) || undefined,
-    subject: text(task.subject) || undefined,
-    publisher: text(identity.publisher) || undefined,
-    editionYear: text(identity.editionYear) || undefined,
-    volume: text(identity.volume) || undefined,
+    displayName: catalogResolution.normalized.displayName || text(identity.displayName || task.textbook),
+    schoolStage: catalogResolution.normalized.schoolStage || text(task.schoolStage) || undefined,
+    grade: catalogResolution.normalized.grade || text(task.grade) || undefined,
+    subject: catalogResolution.normalized.subject || text(task.subject) || undefined,
+    publisher: catalogResolution.normalized.publisher || text(identity.publisher) || undefined,
+    editionYear: catalogResolution.normalized.editionYear || text(identity.editionYear) || undefined,
+    volume: catalogResolution.normalized.volume || text(identity.volume) || undefined,
     isbn: text(identity.isbn) || undefined,
   };
 }
@@ -287,7 +290,6 @@ function materialEvidence(material: TeacherMaterialItem, original: unknown) {
   const analysis = record.analysis && typeof record.analysis === "object" ? record.analysis as Record<string, unknown> : {};
   const metadata = analysis.metadata && typeof analysis.metadata === "object" ? analysis.metadata as Record<string, unknown> : {};
   return canonical([
-    material.name,
     analysis.summary,
     metadata.title,
     metadata.publisher,
@@ -297,7 +299,7 @@ function materialEvidence(material: TeacherMaterialItem, original: unknown) {
   ].map(text).filter(Boolean).join(" "));
 }
 
-function matchTextbook(task: MaterialPackageTask, locator: TextbookLocator, items: TeacherMaterialItem[], originals: unknown[]): TextbookMatch {
+function matchTextbook(task: MaterialPackageTask, locator: TextbookLocator, items: TeacherMaterialItem[], originals: unknown[], catalogResolution: TextbookCatalogResolution): TextbookMatch {
   const identity = task.textbookIdentity || {};
   const verificationStatus = text(identity.verificationStatus);
   const requestedAssetId = text(identity.sourceAssetId);
@@ -305,13 +307,34 @@ function matchTextbook(task: MaterialPackageTask, locator: TextbookLocator, item
   const matchedByAsset = requestedAssetId
     ? textbookItems.find((item) => item.assetId === requestedAssetId)
     : undefined;
+  if (requestedAssetId && !matchedByAsset) {
+    return {
+      status: "unmatched",
+      confidence: 20,
+      matchedFields: [],
+      missingFields: ["verified_textbook_source"],
+      conflicts: ["source_asset_is_not_a_textbook"],
+      requiresTeacherConfirmation: true,
+      catalogResolution,
+    };
+  }
   if (verificationStatus === "catalog_verified") {
-    return { status: "catalog_verified", confidence: 98, matchedFields: ["catalog"], missingFields: [], conflicts: [], requiresTeacherConfirmation: false };
+    if (catalogResolution.status === "exact") {
+      return { status: "catalog_verified", confidence: 98, matchedFields: ["catalog", ...catalogResolution.matchedFields], missingFields: [], conflicts: [], requiresTeacherConfirmation: false, catalogResolution };
+    }
+    return {
+      status: "ambiguous",
+      confidence: catalogResolution.confidence,
+      matchedFields: catalogResolution.matchedFields,
+      missingFields: catalogResolution.missingFields,
+      conflicts: [...catalogResolution.conflicts, "invalid_catalog_verification"],
+      requiresTeacherConfirmation: true,
+      catalogResolution,
+    };
   }
   if (matchedByAsset) {
-    return { status: "asset_verified", confidence: 95, matchedMaterialId: matchedByAsset.materialId, matchedFields: ["sourceAssetId"], missingFields: [], conflicts: [], requiresTeacherConfirmation: false };
+    return { status: "asset_verified", confidence: 95, matchedMaterialId: matchedByAsset.materialId, matchedFields: ["sourceAssetId"], missingFields: [], conflicts: [], requiresTeacherConfirmation: false, catalogResolution };
   }
-
   const fields = ["displayName", "publisher", "editionYear", "volume", "isbn"] as const;
   let best: { item: TeacherMaterialItem; fields: string[]; score: number } | undefined;
   for (const item of textbookItems) {
@@ -337,6 +360,7 @@ function matchTextbook(task: MaterialPackageTask, locator: TextbookLocator, item
       missingFields: fields.filter((field) => Boolean(locator[field]) && !best?.fields.includes(field)),
       conflicts: [],
       requiresTeacherConfirmation: best.score < 54,
+      catalogResolution,
     };
   }
   if (verificationStatus === "teacher_confirmed" && locator.displayName && (task.chapter || task.chapterIdentity?.chapter)) {
@@ -347,6 +371,40 @@ function matchTextbook(task: MaterialPackageTask, locator: TextbookLocator, item
       missingFields: textbookItems.length ? ["asset_identity"] : ["textbook_asset"],
       conflicts: requestedAssetId && !matchedByAsset ? ["source_asset_is_not_a_textbook"] : [],
       requiresTeacherConfirmation: false,
+      catalogResolution,
+    };
+  }
+  if (catalogResolution.status === "exact") {
+    if (textbookItems.length > 0) {
+      return {
+        status: "ambiguous",
+        confidence: 64,
+        matchedFields: catalogResolution.matchedFields,
+        missingFields: ["source_asset_identity"],
+        conflicts: ["source_asset_identity_required"],
+        requiresTeacherConfirmation: true,
+        catalogResolution,
+      };
+    }
+    return {
+      status: "catalog_verified",
+      confidence: 96,
+      matchedFields: ["catalog", ...catalogResolution.matchedFields],
+      missingFields: [],
+      conflicts: [],
+      requiresTeacherConfirmation: false,
+      catalogResolution,
+    };
+  }
+  if (catalogResolution.status === "ambiguous") {
+    return {
+      status: "ambiguous",
+      confidence: catalogResolution.confidence,
+      matchedFields: catalogResolution.matchedFields,
+      missingFields: catalogResolution.missingFields,
+      conflicts: catalogResolution.conflicts,
+      requiresTeacherConfirmation: true,
+      catalogResolution,
     };
   }
   return {
@@ -356,6 +414,7 @@ function matchTextbook(task: MaterialPackageTask, locator: TextbookLocator, item
     missingFields: [!locator.displayName ? "displayName" : "verified_textbook_source"],
     conflicts: requestedAssetId && !matchedByAsset ? ["source_asset_is_not_a_textbook"] : [],
     requiresTeacherConfirmation: true,
+    catalogResolution,
   };
 }
 
@@ -363,6 +422,7 @@ function readinessFor(task: MaterialPackageTask, items: TeacherMaterialItem[], m
   const mode = task.generationMode || "chapter_prep";
   const sourcePolicy = text(task.sourcePolicy) || "web_supplement";
   const usable = items.filter((item) => item.usableForPlanning);
+  const hasUsableTextbook = items.some((item) => item.role === "textbook" && item.usableForCitation);
   const blockingIssues: string[] = [];
   const warnings: string[] = [];
   if (items.some((item) => item.parseStatus === "failed" || item.parseStatus === "unsupported")) warnings.push("some_materials_unusable");
@@ -370,6 +430,7 @@ function readinessFor(task: MaterialPackageTask, items: TeacherMaterialItem[], m
   if (items.length > 0 && usable.length === 0) blockingIssues.push("no_parseable_material");
   if (sourcePolicy === "uploaded_only" && usable.length === 0) blockingIssues.push("uploaded_source_required_by_policy");
   if (sourcePolicy === "trusted_catalog" && match.status !== "catalog_verified") blockingIssues.push("trusted_catalog_match_required");
+  if (sourcePolicy === "trusted_catalog" && !hasUsableTextbook) blockingIssues.push("trusted_catalog_source_text_required");
 
   if (mode === "optimize_existing" && !usable.some((item) => item.role === "existing_deck" && item.fileType === "pptx")) {
     blockingIssues.push("parsed_existing_ppt_required");
@@ -380,9 +441,12 @@ function readinessFor(task: MaterialPackageTask, items: TeacherMaterialItem[], m
   if (mode === "chapter_prep") {
     if (!locator.displayName) blockingIssues.push("textbook_identity_required");
     if (!chapter.chapter && !chapter.unit && !chapter.lesson) blockingIssues.push("chapter_identity_required");
+    if (match.requiresTeacherConfirmation && match.status !== "teacher_confirmed" && !hasUsableTextbook) {
+      blockingIssues.push("textbook_match_confirmation_required");
+    }
     if (match.status === "unmatched") warnings.push("textbook_not_verified");
     if (match.status === "ambiguous") warnings.push("textbook_match_ambiguous");
-    if (!items.some((item) => item.role === "textbook" && item.usableForCitation) && match.status !== "catalog_verified") {
+    if (!hasUsableTextbook) {
       warnings.push("no_citable_textbook_source");
     }
   }
@@ -407,9 +471,19 @@ export function buildTeacherMaterialPackage(input: MaterialPackageInput): Teache
     ...(Array.isArray(input.uploadedFiles) ? input.uploadedFiles : []),
   ];
   const items = uniqueMaterials(originals);
-  const textbook = textbookLocator(input.task);
+  const identity = input.task.textbookIdentity || {};
+  const catalogResolution = resolveTextbookCatalog({
+    displayName: identity.displayName || input.task.textbook,
+    schoolStage: input.task.schoolStage,
+    grade: input.task.grade,
+    subject: input.task.subject,
+    publisher: identity.publisher,
+    editionYear: identity.editionYear,
+    volume: identity.volume,
+  });
+  const textbook = textbookLocator(input.task, catalogResolution);
   const chapter = chapterLocator(input.task);
-  const textbookMatch = matchTextbook(input.task, textbook, items, originals);
+  const textbookMatch = matchTextbook(input.task, textbook, items, originals, catalogResolution);
   const sourcePolicy = ["uploaded_only", "trusted_catalog", "web_supplement"].includes(text(input.task.sourcePolicy))
     ? text(input.task.sourcePolicy) as TeacherMaterialPackage["sourcePolicy"]
     : "web_supplement";

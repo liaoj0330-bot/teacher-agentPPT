@@ -16,10 +16,10 @@
     }
   },
   "currentFocus": {
-    "issueId": "FONT-PORTABILITY-001",
-    "reason": "楞次定律与背影已经从 /teacher-ai-ppt 完成生产浏览器主入口全链；下一项可本地完成的 P0 是连续修改、版本冲突和刷新恢复压力验收。",
-    "nextCommand": "补充连续 10 次教师修改、局部重做、版本回退、stale 409 和刷新重开报告；不要重复双学科黄金链。",
-    "decisionAfterVerification": "TEACHER-EDIT-001 通过后，剩余发布阻塞只保留真实 WPS/PowerPoint、真实教师过课和云端部署。"
+    "issueId": "TEXTBOOK-CATALOG-001",
+    "reason": "年龄学段路由和8/8真实矩阵已通过；下一项产品阻塞是把教材身份目录扩展为可引用章节来源，并完成官方目录或教师上传原文接入。",
+    "nextCommand": "先保持identity-only目录边界，补官方教材目录/教师上传原文的章节定位与引用链；不要把目录身份当成章节事实。",
+    "decisionAfterVerification": "教材章节引用链通过后，再推进真实WPS/PowerPoint、教师过课和云端部署门禁。"
   },
   "issues": [
     {
@@ -473,6 +473,51 @@
         "npm run lint"
       ],
       "dependencies": ["DEPLOYMENT-001", "SCORING-TRUTH-001"]
+    },
+    {
+      "id": "STAGE-ROUTING-001",
+      "priority": "P0",
+      "releaseGate": true,
+      "status": "closed",
+      "ownerRole": "product_content_engineering",
+      "summary": "策划路由没有把学段作为第一决策维度，幼儿园和小学短课被中学式表达与评分规则误伤。",
+      "doneWhen": [
+        "幼儿园命中 play_based_discovery，目标、课堂事件和页面内容以观察、操作、游戏、表达为主",
+        "小学短课评分不再强制拆出中学 M07-M09 证据页，但仍要求活动产出、反馈和收束",
+        "年龄×学科×课时真实矩阵覆盖4学段、8学科、25/30/40/45/60/90分钟并完成导出下载"
+      ],
+      "nextAction": "已关闭；后续新增学科必须先补学段画像和短课评分合同。",
+      "closedAt": "2026-07-18T08:58:00+08:00",
+      "verificationEvidence": [
+        "lib/ppt-agent/learner-stage-profile.ts",
+        "npm run teacher-stage-routing:test",
+        "artifacts/teacher-age-subject-duration-matrix/report.json：8/8通过，112页，图片API调用0"
+      ],
+      "verificationCommands": ["npm run lint", "npm run teacher-stage-routing:test", "node scripts/teacher-age-subject-duration-matrix-e2e.mjs"],
+      "dependencies": []
+    },
+    {
+      "id": "TEXTBOOK-CATALOG-001",
+      "priority": "P0",
+      "releaseGate": true,
+      "status": "in_progress_unverified",
+      "ownerRole": "product_engineering",
+      "summary": "教材输入此前只是 datalist 和手填字符串，没有可解释的身份目录、别名解析、歧义硬门和即时接口。",
+      "doneWhen": [
+        "目录支持精确、歧义、未匹配三种结果，并返回候选、缺失字段、冲突和置信度",
+        "只有唯一目录身份、正确上传资产或教师明确确认才能继续；文件名不能伪造 asset_verified",
+        "目录覆盖范围、章节正文和页码边界在教师界面明确展示"
+      ],
+      "nextAction": "接入真实官方教材目录或教师上传原文的章节定位；当前 identity-only 目录可用于内测身份确认，不可冒充章节事实。",
+      "estimateEngineeringHours": "6-12",
+      "verificationEvidence": [
+        "lib/ppt-agent/textbook-catalog.ts：8个版系、629条identity-only条目",
+        "app/api/textbook-catalog/match/route.ts：POST/GET即时接口",
+        "npm run teacher-textbook-catalog:test：29例，exact15/ambiguous11/unmatched3",
+        "TeacherPptBetaPrototype 已接歧义硬门与候选确认"
+      ],
+      "verificationCommands": ["npm run lint", "npm run teacher-textbook-catalog:test", "npm run teacher-material-matrix:test"],
+      "dependencies": ["SEARCH-TRUTH-001"]
     }
   ],
   "executionOrder": [
@@ -483,6 +528,8 @@
     "FONT-PORTABILITY-001",
     "TEACHER-EDIT-001",
     "SUBJECT-MATRIX-001",
+    "STAGE-ROUTING-001",
+    "TEXTBOOK-CATALOG-001",
     "DEPLOYMENT-001",
     "BETA-OPERATIONS-001"
   ],
